@@ -1,0 +1,22 @@
+- Stack: Next.js 15 (App Router), TypeScript, Tailwind v4 (@tailwindcss/postcss)
+- Dev/build/start: `npm run dev` | `npm run build` | `npm run start` (Turbopack)
+- Typecheck/lint/tests: `npm run typecheck`; lint: `npm run lint`; fix: `npm run fix`; combined: `npm run check`; tests: N/A; single-test: N/A
+- App Router: [layout.tsx](app/layout.tsx), [page.tsx](app/page.tsx) (client), [globals.css](app/globals.css)
+- API routes (Knock): [subscribe/route.ts](app/api/notifications/subscribe/route.ts), [send/route.ts](app/api/notifications/send/route.ts) using `@knocklabs/node`
+- Service Worker: [public/sw.js](public/sw.js); registered via [useKnockNotifications.ts](app/hooks/useKnockNotifications.ts)
+- Env vars: `KNOCK_SECRET_API_KEY`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (client), `VAPID_PRIVATE_KEY` (server)
+- External services: No DB; notifications handled by Knock; persist externally
+- Tailwind: Config in [postcss.config.mjs](postcss.config.mjs); theme via CSS vars in [globals.css](app/globals.css)
+- Config: [next.config.ts](next.config.ts); [tsconfig.json](tsconfig.json) (`strict`, `noEmit`, `bundler`, `@/*`->`./*`, `jsx: preserve`)
+- Imports: ESM only; prefer `@/` alias; avoid deep relative paths
+- Naming: Components PascalCase; hooks camelCase `use*`; pages/layouts/routes follow Next.js conventions
+- API handlers: Export `GET`/`POST` in `route.ts`; return `NextResponse.json(data, { status })`
+- Types: Strict TS; explicit types for public APIs; rely on inference internally
+- Errors: try/catch around Knock calls; return `{ error }` with status; never log secrets
+- Formatting/Lint: ESLint v9 flat config; ESLint Stylistic for formatting; no Prettier; match current style; keep diffs minimal
+- ESLint config: [eslint.config.mjs](file:///home/prinova/CodeProjects/agent-vibes/eslint.config.mjs) (TS+React minimal + Stylistic rules; ignores `.next/**`, `node_modules/**`; disables `@typescript-eslint/triple-slash-reference` for `next-env.d.ts`; sets browser+node globals; CLI cache on)
+- Local checks: `npm run check` (typecheck + lint), `npm run check:fix` (typecheck + lint:fix, formats code)
+- Mocks: See [mocks](mocks) for static dashboard prototypes and reference assets
+- Client/server: Use `"use client"` where needed (e.g., [page.tsx](app/page.tsx)); keep secrets server-side
+- SW updates: Editing [sw.js](public/sw.js) may require reload; verify registration flow
+- Agent rules: No `.cursor/`, `.cursorrules`, `.windsurfrules`, `.clinerules`, `.goosehints`, `.github/copilot-instructions.md`, or `CLAUDE.md` found
