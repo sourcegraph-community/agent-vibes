@@ -65,6 +65,10 @@
                     <i data-lucide="search"></i>
                     <span>Search & Filter</span>
                 </a>
+                <a href="#query" class="nav-item">
+                    <i data-lucide="message-square"></i>
+                    <span>Query Interface</span>
+                </a>
             </div>
         </nav>
     </aside>
@@ -580,6 +584,224 @@
                                     <span class="checkbox-label">Social</span>
                                 </label>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Query Interface Section -->
+            <section id="query" class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Query Interface</h2>
+                    <p class="section-description">Ask Amp questions or search through the database</p>
+                </div>
+
+                <!-- Ask Amp Section -->
+                <div class="ask-amp-section">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="query-interface">
+                                <div class="query-header">
+                                    <div class="query-avatar">
+                                        <i data-lucide="message-square"></i>
+                                    </div>
+                                    <div class="query-title">
+                                        <h4>Ask Amp</h4>
+                                        <p class="query-subtitle">Get AI-powered insights and analysis from selected data sources</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Source Selection -->
+                                <div class="source-selection">
+                                    <h5>Select Data Sources:</h5>
+                                    <div class="source-grid">
+                                        <label class="source-card">
+                                            <input type="checkbox" name="ampSources" value="sentiment" checked />
+                                            <div class="source-content">
+                                                <i data-lucide="trending-up"></i>
+                                                <span>Sentiment Analysis</span>
+                                            </div>
+                                        </label>
+                                        <label class="source-card">
+                                            <input type="checkbox" name="ampSources" value="product-updates" checked />
+                                            <div class="source-content">
+                                                <i data-lucide="bell"></i>
+                                                <span>Product Updates</span>
+                                            </div>
+                                        </label>
+                                        <label class="source-card">
+                                            <input type="checkbox" name="ampSources" value="research" />
+                                            <div class="source-content">
+                                                <i data-lucide="book-open"></i>
+                                                <span>Research Papers</span>
+                                            </div>
+                                        </label>
+                                        <label class="source-card">
+                                            <input type="checkbox" name="ampSources" value="social" />
+                                            <div class="source-content">
+                                                <i data-lucide="message-circle"></i>
+                                                <span>Social Media</span>
+                                            </div>
+                                        </label>
+                                        <label class="source-card">
+                                            <input type="checkbox" name="ampSources" value="perspectives" />
+                                            <div class="source-content">
+                                                <i data-lucide="pen-tool"></i>
+                                                <span>Perspectives</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="query-input-wrapper">
+                                    <textarea 
+                                        id="ampQueryInput" 
+                                        class="query-input" 
+                                        placeholder="Ask Amp to analyze and synthesize insights from your selected sources...
+
+Examples:
+• Summarize the key sentiment drivers for Cursor this week
+• What are the main concerns in recent product update discussions?
+• Compare competitive positioning across research mentions
+• Analyze the correlation between product releases and sentiment changes"
+                                        rows="3"
+                                    ></textarea>
+                                    <div class="query-actions">
+                                        <div class="query-options">
+                                            <select class="select" id="ampTimeframe">
+                                                <option value="1d">Last Day</option>
+                                                <option value="7d" selected>Last 7 Days</option>
+                                                <option value="30d">Last 30 Days</option>
+                                            </select>
+                                        </div>
+                                        <button class="button" id="ampQuerySubmit">
+                                            <i data-lucide="sparkles"></i>
+                                            Ask Amp
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Analysis Suggestions -->
+                    <div class="quick-analysis">
+                        <h5>Quick Analysis</h5>
+                        <div class="suggestions-grid">
+                            <button class="suggestion-card" data-query="What are the key sentiment trends across all agents this week?" data-sources="sentiment,social">
+                                <div class="suggestion-icon">
+                                    <i data-lucide="trending-up"></i>
+                                </div>
+                                <div class="suggestion-content">
+                                    <div class="suggestion-title">Sentiment Overview</div>
+                                    <div class="suggestion-desc">Cross-agent sentiment analysis</div>
+                                </div>
+                            </button>
+                            
+                            <button class="suggestion-card" data-query="Analyze the impact of recent product updates on user sentiment" data-sources="product-updates,sentiment">
+                                <div class="suggestion-icon">
+                                    <i data-lucide="zap"></i>
+                                </div>
+                                <div class="suggestion-content">
+                                    <div class="suggestion-title">Update Impact</div>
+                                    <div class="suggestion-desc">Product release analysis</div>
+                                </div>
+                            </button>
+                            
+                            <button class="suggestion-card" data-query="Compare how different agents are positioned in recent research" data-sources="research,perspectives">
+                                <div class="suggestion-icon">
+                                    <i data-lucide="git-compare"></i>
+                                </div>
+                                <div class="suggestion-content">
+                                    <div class="suggestion-title">Research Positioning</div>
+                                    <div class="suggestion-desc">Academic mentions comparison</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Amp Results Section -->
+                    <div class="amp-results" id="ampResults" style="display: none;">
+                        <!-- Results will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Database Search Section -->
+                <div class="database-search-section">
+                    <div class="section-subheader">
+                        <h4>Database Search</h4>
+                        <p>Use natural language to find specific content, posts, or data points</p>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="database-interface">
+                                <div class="search-input-wrapper">
+                                    <input 
+                                        type="text" 
+                                        id="dbSearchInput"
+                                        class="search-input-large" 
+                                        placeholder="Search for specific content... e.g., 'GitHub Copilot pricing posts from last week', 'Amp research papers about productivity', 'negative sentiment about Cursor'"
+                                    />
+                                    <button class="button" id="dbSearchSubmit">
+                                        <i data-lucide="search"></i>
+                                        Search
+                                    </button>
+                                </div>
+                                
+                                <div class="search-filters-compact">
+                                    <div class="filter-row">
+                                        <select class="select" id="dbQuickFilter">
+                                            <option value="all">All Content</option>
+                                            <option value="product">Product Updates Only</option>
+                                            <option value="research">Research Papers Only</option>
+                                            <option value="social">Social Posts Only</option>
+                                            <option value="perspective">Perspectives Only</option>
+                                        </select>
+                                        <select class="select" id="dbTimeFilter">
+                                            <option value="1d">Last Day</option>
+                                            <option value="7d" selected>Last Week</option>
+                                            <option value="30d">Last Month</option>
+                                            <option value="all">All Time</option>
+                                        </select>
+                                        <select class="select" id="dbAgentFilter">
+                                            <option value="all">All Agents</option>
+                                            <option value="amp">Amp Only</option>
+                                            <option value="cursor">Cursor Only</option>
+                                            <option value="github-copilot">GitHub Copilot Only</option>
+                                            <option value="claude-code">Claude Code Only</option>
+                                            <option value="windsurf">Windsurf Only</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Example Searches -->
+                    <div class="example-searches">
+                        <h5>Example Searches</h5>
+                        <div class="example-grid">
+                            <button class="example-search" data-search="GitHub Copilot pricing discussions">
+                                "GitHub Copilot pricing discussions"
+                            </button>
+                            <button class="example-search" data-search="Amp productivity research papers">
+                                "Amp productivity research papers"
+                            </button>
+                            <button class="example-search" data-search="negative sentiment about Cursor">
+                                "negative sentiment about Cursor"
+                            </button>
+                            <button class="example-search" data-search="recent Windsurf product updates">
+                                "recent Windsurf product updates"
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Database Results -->
+                    <div class="database-results" id="databaseResults">
+                        <div class="results-placeholder">
+                            <i data-lucide="database"></i>
+                            <p>Enter a search query to find specific content in the database</p>
                         </div>
                     </div>
                 </div>
