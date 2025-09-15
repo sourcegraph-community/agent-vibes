@@ -1198,5 +1198,460 @@ if (typeof Chart !== 'undefined') {
  *    - Connection pooling and caching strategies
  */
 
+// ===== QUERY INTERFACE FUNCTIONALITY =====
+
+/**
+ * Query Interface - Simulates AI-powered querying with database search capabilities
+ * In real implementation, this would integrate with:
+ * - OpenAI/Claude API for natural language processing
+ * - Supabase Edge Functions for complex queries
+ * - Vector search for semantic similarity
+ */
+
+const queryInterface = {
+    // Mock database of content for searching
+    mockDatabase: [
+        {
+            id: 1,
+            type: 'product',
+            agent: 'amp',
+            title: 'Amp v2.3 released with enhanced NLP capabilities',
+            content: 'Major update includes enhanced natural language processing, improved code generation accuracy, and new debugging features. Performance improvements show 25% faster response times.',
+            sentiment: 'positive',
+            source: 'Official Blog',
+            sourceUrl: 'https://amp.dev/blog/v2-3-release',
+            timestamp: '2024-01-15T10:00:00Z',
+            relevance: 0.95
+        },
+        {
+            id: 2,
+            type: 'product',
+            agent: 'cursor',
+            title: 'Cursor AI introduces new context-aware code completion',
+            content: 'Revolutionary update brings 40% improvement in code suggestion accuracy with enhanced multi-file context understanding and real-time debugging assistance.',
+            sentiment: 'positive',
+            source: 'Official Blog',
+            sourceUrl: 'https://cursor.sh/blog/context-aware-completion',
+            timestamp: '2024-01-15T08:00:00Z',
+            relevance: 0.92
+        },
+        {
+            id: 3,
+            type: 'social',
+            agent: 'github-copilot',
+            title: 'GitHub Copilot pricing discussion trending',
+            content: 'Developer community discussing new pricing model changes. Mixed reactions with 60% positive sentiment, concerns about enterprise pricing and feature limitations.',
+            sentiment: 'mixed',
+            source: 'r/programming',
+            sourceUrl: 'https://reddit.com/r/programming/pricing-discussion',
+            timestamp: '2024-01-14T15:30:00Z',
+            relevance: 0.88
+        },
+        {
+            id: 4,
+            type: 'research',
+            agent: 'amp',
+            title: 'Stanford study: AI coding assistants boost productivity by 35%',
+            content: 'Comprehensive study of 2,000 developers shows significant productivity gains, with junior developers benefiting most from AI assistance in debugging and code review tasks. Amp scored highest in the evaluation.',
+            sentiment: 'positive',
+            source: 'arXiv',
+            sourceUrl: 'https://arxiv.org/abs/2024.0001',
+            timestamp: '2024-01-14T12:00:00Z',
+            relevance: 0.90
+        },
+        {
+            id: 5,
+            type: 'perspective',
+            agent: 'claude-code',
+            title: 'The future of pair programming with AI assistants',
+            content: 'Thoughtful analysis on how AI coding tools are reshaping collaborative development practices, exploring both opportunities and challenges for team dynamics. Special focus on Claude Code integration patterns.',
+            sentiment: 'neutral',
+            source: 'Medium',
+            sourceUrl: 'https://medium.com/@techwriter/ai-pair-programming',
+            timestamp: '2024-01-14T09:00:00Z',
+            relevance: 0.85
+        },
+        {
+            id: 6,
+            type: 'research',
+            agent: 'cursor',
+            title: 'MIT evaluation of code completion accuracy',
+            content: 'Technical evaluation comparing different AI coding assistants on completion accuracy across various programming languages and contexts.',
+            sentiment: 'positive',
+            source: 'IEEE',
+            sourceUrl: 'https://ieeexplore.ieee.org/document/12345',
+            timestamp: '2024-01-13T14:00:00Z',
+            relevance: 0.87
+        }
+    ],
+
+    // Initialize query interface
+    init() {
+        this.attachAmpEventListeners();
+        this.attachDatabaseEventListeners();
+        this.setupSuggestionCards();
+        this.setupExampleSearches();
+    },
+
+    // Set up event listeners for Ask Amp
+    attachAmpEventListeners() {
+        const ampQuerySubmit = document.getElementById('ampQuerySubmit');
+        const ampQueryInput = document.getElementById('ampQueryInput');
+        
+        if (ampQuerySubmit && ampQueryInput) {
+            ampQuerySubmit.addEventListener('click', () => this.handleAmpQuery());
+            ampQueryInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    this.handleAmpQuery();
+                }
+            });
+        }
+    },
+
+    // Set up event listeners for Database Search
+    attachDatabaseEventListeners() {
+        const dbSearchSubmit = document.getElementById('dbSearchSubmit');
+        const dbSearchInput = document.getElementById('dbSearchInput');
+        
+        if (dbSearchSubmit && dbSearchInput) {
+            dbSearchSubmit.addEventListener('click', () => this.handleDatabaseSearch());
+            dbSearchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    this.handleDatabaseSearch();
+                }
+            });
+        }
+
+        // Database filters
+        const dbFilters = document.querySelectorAll('#dbQuickFilter, #dbTimeFilter, #dbAgentFilter');
+        dbFilters.forEach(filter => {
+            filter.addEventListener('change', () => this.handleDatabaseSearch());
+        });
+    },
+
+    // Set up quick analysis suggestion clicks
+    setupSuggestionCards() {
+        const suggestionCards = document.querySelectorAll('.quick-analysis .suggestion-card');
+        suggestionCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const query = card.dataset.query;
+                const sources = card.dataset.sources;
+                if (query) {
+                    document.getElementById('ampQueryInput').value = query;
+                    // Set the appropriate source checkboxes
+                    if (sources) {
+                        this.setSourceSelection(sources.split(','));
+                    }
+                    this.handleAmpQuery();
+                }
+            });
+        });
+    },
+
+    // Set up example search clicks
+    setupExampleSearches() {
+        const exampleSearches = document.querySelectorAll('.example-search');
+        exampleSearches.forEach(button => {
+            button.addEventListener('click', () => {
+                const search = button.dataset.search;
+                if (search) {
+                    document.getElementById('dbSearchInput').value = search;
+                    this.handleDatabaseSearch();
+                }
+            });
+        });
+    },
+
+    // Set source selection checkboxes
+    setSourceSelection(sources) {
+        const sourceCheckboxes = document.querySelectorAll('input[name="ampSources"]');
+        sourceCheckboxes.forEach(checkbox => {
+            checkbox.checked = sources.includes(checkbox.value);
+        });
+    },
+
+    // Handle Amp query
+    async handleAmpQuery() {
+        const ampQueryInput = document.getElementById('ampQueryInput');
+        const ampResults = document.getElementById('ampResults');
+        const query = ampQueryInput.value.trim();
+
+        if (!query) return;
+
+        const selectedSources = Array.from(document.querySelectorAll('input[name="ampSources"]:checked')).map(cb => cb.value);
+        const timeframe = document.getElementById('ampTimeframe').value;
+
+        // Show loading state
+        this.showAmpLoadingState();
+
+        // Simulate API call delay
+        setTimeout(() => {
+            const response = this.processAmpQuery(query, selectedSources, timeframe);
+            this.displayAmpResults(response, query, selectedSources);
+        }, 1200);
+    },
+
+    // Process Amp query
+    processAmpQuery(query, sources, timeframe) {
+        const lowerQuery = query.toLowerCase();
+        
+        // Generate contextual response based on query and sources
+        let title = 'AI Analysis Results';
+        let summary = 'Based on your selected data sources, here\'s my analysis:';
+        let insights = [];
+        let sourceLinks = [];
+
+        if (lowerQuery.includes('sentiment')) {
+            title = 'Sentiment Analysis Synthesis';
+            insights = [
+                'Cursor leads with 82% positive sentiment, driven by recent context-aware features',
+                'Amp shows strong momentum at 75% positive, boosted by productivity research',
+                'GitHub Copilot faces headwinds at 50% positive due to pricing concerns',
+                'Social media discussions focus heavily on value-for-money comparisons'
+            ];
+            if (sources.includes('sentiment')) sourceLinks.push({ text: 'Sentiment Trends Data', url: '#sentiment' });
+            if (sources.includes('social')) sourceLinks.push({ text: 'Social Media Analysis', url: '#social' });
+        } else if (lowerQuery.includes('product') || lowerQuery.includes('update')) {
+            title = 'Product Update Impact Analysis';
+            insights = [
+                'Recent Amp v2.3 release generated 95% positive feedback within 48 hours',
+                'Cursor\'s context-aware completion drove 40% accuracy improvement claims',
+                'Update frequency correlates strongly with positive sentiment retention',
+                'Feature announcements peak engagement 3x more than bug fixes'
+            ];
+            if (sources.includes('product-updates')) sourceLinks.push({ text: 'Product Updates Feed', url: '#updates' });
+            if (sources.includes('sentiment')) sourceLinks.push({ text: 'Sentiment Impact Data', url: '#sentiment' });
+        } else if (lowerQuery.includes('research') || lowerQuery.includes('position')) {
+            title = 'Research & Competitive Positioning';
+            insights = [
+                'Amp dominates academic citations with 40% market share in recent papers',
+                'Research focus shifting from "tool comparison" to "workflow integration"',
+                'University adoption rates correlate with research mention frequency',
+                'Citation patterns show increasing cross-platform usage studies'
+            ];
+            if (sources.includes('research')) sourceLinks.push({ text: 'Research Papers', url: '#research' });
+            if (sources.includes('perspectives')) sourceLinks.push({ text: 'Expert Perspectives', url: '#perspectives' });
+        } else {
+            insights = [
+                'Cross-platform sentiment shows overall positive market trajectory',
+                'Data quality is highest during business hours (9 AM - 5 PM PST)',
+                'Weekend discussions focus more on technical implementation details',
+                'Developer community engagement peaks around major release cycles'
+            ];
+            sourceLinks.push({ text: 'Overview Dashboard', url: '#overview' });
+        }
+
+        return {
+            title,
+            summary,
+            insights,
+            sourceLinks,
+            timeframe,
+            confidence: Math.floor(Math.random() * 15) + 85, // 85-99%
+            processingTime: (Math.random() * 0.8 + 0.4).toFixed(1)
+        };
+    },
+
+    // Show Amp loading state
+    showAmpLoadingState() {
+        const ampResults = document.getElementById('ampResults');
+        ampResults.style.display = 'block';
+        ampResults.innerHTML = `
+            <div class="card">
+                <div class="card-content">
+                    <div class="results-header">
+                        <h4>Amp is analyzing...</h4>
+                        <div class="results-meta">
+                            <span class="results-count">Processing sources</span>
+                            <span class="results-time">Please wait</span>
+                        </div>
+                    </div>
+                    <div class="query-result-item" style="margin-top: 1rem;">
+                        <div class="query-result-content">
+                            <i data-lucide="sparkles" style="animation: pulse 2s infinite; margin-right: 0.5rem;"></i>
+                            Synthesizing insights from your selected data sources...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        // Re-initialize Lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    },
+
+    // Display Amp results
+    displayAmpResults(response, originalQuery, selectedSources) {
+        const ampResults = document.getElementById('ampResults');
+        const sourceNames = {
+            'sentiment': 'Sentiment Analysis',
+            'product-updates': 'Product Updates',
+            'research': 'Research Papers',
+            'social': 'Social Media',
+            'perspectives': 'Expert Perspectives'
+        };
+
+        ampResults.style.display = 'block';
+        ampResults.innerHTML = `
+            <div class="card">
+                <div class="card-content">
+                    <div class="results-header">
+                        <h4>${response.title}</h4>
+                        <div class="results-meta">
+                            <span class="results-count">${response.confidence}% confidence</span>
+                            <span class="results-time">in ${response.processingTime}s</span>
+                        </div>
+                    </div>
+                    <div class="query-result-item" style="margin-top: 1rem;">
+                        <div class="query-result-header">
+                            <div class="query-result-title">Query: "${originalQuery}"</div>
+                            <div class="query-result-meta">AI Synthesis • ${response.timeframe} timeframe</div>
+                        </div>
+                        <div class="query-result-content">
+                            <p style="margin-bottom: 1rem; color: hsl(var(--foreground));">${response.summary}</p>
+                            <ul style="color: hsl(var(--muted-foreground)); padding-left: 1rem; margin-bottom: 1.5rem;">
+                                ${response.insights.map(insight => `<li style="margin-bottom: 0.5rem;">${insight}</li>`).join('')}
+                            </ul>
+                            
+                            <div style="border-top: 1px solid hsl(var(--border)); padding-top: 1rem;">
+                                <div style="margin-bottom: 1rem;">
+                                    <strong style="color: hsl(var(--foreground)); font-size: 0.875rem;">Data Sources Used:</strong>
+                                    <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                        ${selectedSources.map(source => `
+                                            <span class="content-tag" style="font-size: 0.75rem;">${sourceNames[source] || source}</span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                
+                                ${response.sourceLinks.length > 0 ? `
+                                    <div>
+                                        <strong style="color: hsl(var(--foreground)); font-size: 0.875rem;">Referenced Sources:</strong>
+                                        <div style="margin-top: 0.5rem;">
+                                            ${response.sourceLinks.map(link => `
+                                                <a href="${link.url}" style="color: hsl(var(--primary)); text-decoration: none; font-size: 0.875rem; margin-right: 1rem;">
+                                                    <i data-lucide="external-link" style="width: 12px; height: 12px; margin-right: 0.25rem;"></i>
+                                                    ${link.text}
+                                                </a>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Re-initialize Lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    },
+
+    // Handle database search
+    handleDatabaseSearch() {
+        const dbSearchInput = document.getElementById('dbSearchInput');
+        const searchQuery = dbSearchInput.value.trim();
+        const quickFilter = document.getElementById('dbQuickFilter').value;
+        const timeFilter = document.getElementById('dbTimeFilter').value;
+        const agentFilter = document.getElementById('dbAgentFilter').value;
+
+        let filteredResults = [...this.mockDatabase];
+
+        // Apply content type filter
+        if (quickFilter !== 'all') {
+            filteredResults = filteredResults.filter(item => item.type === quickFilter);
+        }
+
+        // Apply agent filter
+        if (agentFilter !== 'all') {
+            filteredResults = filteredResults.filter(item => item.agent === agentFilter);
+        }
+
+        // Apply search query if provided
+        if (searchQuery) {
+            const queryLower = searchQuery.toLowerCase();
+            filteredResults = filteredResults.filter(item =>
+                item.title.toLowerCase().includes(queryLower) ||
+                item.content.toLowerCase().includes(queryLower) ||
+                item.source.toLowerCase().includes(queryLower)
+            );
+        }
+
+        // Sort by relevance and recency
+        filteredResults.sort((a, b) => {
+            const scoreA = a.relevance + (new Date(a.timestamp).getTime() / 1e15);
+            const scoreB = b.relevance + (new Date(b.timestamp).getTime() / 1e15);
+            return scoreB - scoreA;
+        });
+
+        this.renderDatabaseResults(filteredResults, searchQuery);
+    },
+
+    // Render database search results
+    renderDatabaseResults(results, searchQuery = '') {
+        const databaseResults = document.getElementById('databaseResults');
+
+        if (results.length === 0) {
+            databaseResults.innerHTML = `
+                <div class="results-placeholder">
+                    <i data-lucide="search-x"></i>
+                    <p>No content found matching "${searchQuery || 'your criteria'}". Try a different search or adjust filters.</p>
+                </div>
+            `;
+        } else {
+            databaseResults.innerHTML = `
+                <div class="results-header" style="margin-bottom: 1rem;">
+                    <h4>Search Results</h4>
+                    <div class="results-meta">
+                        <span class="results-count">${results.length} items found</span>
+                        ${searchQuery ? `<span class="results-query">for "${searchQuery}"</span>` : ''}
+                    </div>
+                </div>
+                <div class="results-content">
+                    ${results.map(result => `
+                        <div class="query-result-item">
+                            <div class="query-result-header">
+                                <div class="query-result-title">${result.title}</div>
+                                <div class="query-result-meta">
+                                    <span class="agent-badge ${result.agent}" style="font-size: 0.75rem; margin-right: 0.5rem;">${result.agent}</span>
+                                    <span class="content-tag ${result.type}" style="font-size: 0.75rem;">${result.type}</span>
+                                </div>
+                            </div>
+                            <div class="query-result-content">
+                                <p>${result.content}</p>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; font-size: 0.75rem; color: hsl(var(--muted-foreground));">
+                                    <span>
+                                        <a href="${result.sourceUrl}" target="_blank" style="color: hsl(var(--primary)); text-decoration: none;">
+                                            ${result.source}
+                                            <i data-lucide="external-link" style="width: 10px; height: 10px; margin-left: 0.25rem;"></i>
+                                        </a>
+                                    </span>
+                                    <span>${new Date(result.timestamp).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Re-initialize Lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+};
+
+// Initialize query interface when DOM is loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => queryInterface.init());
+} else {
+    queryInterface.init();
+}
+
 console.log('🚀 AI Agent Intelligence Dashboard initialized');
 console.log('📊 Ready for Supabase integration');
+console.log('🔍 Query Interface ready for natural language queries');
