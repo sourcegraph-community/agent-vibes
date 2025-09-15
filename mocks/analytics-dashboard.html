@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent Intelligence Dashboard</title>
+    <link rel="stylesheet" href="analytics-dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <div class="brand-icon">AV</div>
+                <span class="brand-text">Agent Vibes</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Dashboard</div>
+                <a href="#overview" class="nav-item active">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Overview</span>
+                </a>
+                <a href="#highlights" class="nav-item">
+                    <i data-lucide="star"></i>
+                    <span>TL;DR Highlights</span>
+                </a>
+                <a href="#sentiment" class="nav-item">
+                    <i data-lucide="trending-up"></i>
+                    <span>Sentiment Trends</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Content</div>
+                <a href="#updates" class="nav-item">
+                    <i data-lucide="bell"></i>
+                    <span>Product Updates</span>
+                </a>
+                <a href="#research" class="nav-item">
+                    <i data-lucide="book-open"></i>
+                    <span>Research Papers</span>
+                </a>
+                <a href="#perspectives" class="nav-item">
+                    <i data-lucide="pen-tool"></i>
+                    <span>Perspective Pieces</span>
+                </a>
+                <a href="#social" class="nav-item">
+                    <i data-lucide="message-circle"></i>
+                    <span>Social Sentiment</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Tools</div>
+                <a href="#timeline" class="nav-item">
+                    <i data-lucide="calendar"></i>
+                    <span>Timeline View</span>
+                </a>
+                <a href="#search" class="nav-item">
+                    <i data-lucide="search"></i>
+                    <span>Search & Filter</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="page-title">
+                    <h1>Agent Vibes Dashboard</h1>
+                    <p class="page-description">Comprehensive insights into AI coding assistants and market sentiment</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="search-bar">
+                    <i data-lucide="search"></i>
+                    <input type="text" placeholder="Search content..." id="globalSearch" />
+                </div>
+                <select class="select" id="timeframeFilter">
+                    <option value="1h">Last Hour</option>
+                    <option value="1d">Last Day</option>
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d" selected>Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                    <option value="1y">Last year</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- Content Sections -->
+        <div class="content-container">
+            <!-- Overview Section -->
+            <section id="overview" class="section">
+                <!-- Key Metrics Cards -->
+                <div class="metrics-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <h3>Overall Sentiment</h3>
+                                <div class="trend-indicator positive">
+                                    <i data-lucide="trending-up"></i>
+                                    <span>+12.5%</span>
+                                </div>
+                            </div>
+                            <p class="card-description">Trending up this month</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="metric-value">74.2%</div>
+                            <div class="metric-subtitle">Positive across all sources</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <h3>Content Analyzed</h3>
+                                <div class="trend-indicator positive">
+                                    <i data-lucide="arrow-up"></i>
+                                    <span>+4.6%</span>
+                                </div>
+                            </div>
+                            <p class="card-description">Steady performance increase</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="metric-value">8,547</div>
+                            <div class="metric-subtitle">Posts, papers, and updates</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <h3>Active Discussions</h3>
+                                <div class="trend-indicator negative">
+                                    <i data-lucide="trending-down"></i>
+                                    <span>-2%</span>
+                                </div>
+                            </div>
+                            <p class="card-description">Down 2% this period</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="metric-value">3,218</div>
+                            <div class="metric-subtitle">Across social platforms</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <h3>Research Papers</h3>
+                                <div class="trend-indicator positive">
+                                    <i data-lucide="trending-up"></i>
+                                    <span>+15.2%</span>
+                                </div>
+                            </div>
+                            <p class="card-description">Strong user retention</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="metric-value">42</div>
+                            <div class="metric-subtitle">New publications this month</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TL;DR Highlights Section -->
+            <section id="highlights" class="section">
+                <div class="section-header">
+                    <h2 class="section-title">TL;DR Highlights</h2>
+                    <div class="section-actions">
+                        <select class="select" id="highlightFilter">
+                            <option value="all">All Categories</option>
+                            <option value="product">Product Updates</option>
+                            <option value="research">Research</option>
+                            <option value="perspective">Perspective Pieces</option>
+                            <option value="social">Social Sentiment</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="highlights-grid">
+                    <div class="highlight-card product" data-category="product">
+                        <div class="highlight-header">
+                            <div class="highlight-badge product">Product Update</div>
+                            <span class="highlight-time">2 hours ago</span>
+                        </div>
+                        <h3 class="highlight-title">Cursor AI introduces new context-aware code completion</h3>
+                        <p class="highlight-summary">Major update brings 40% improvement in code suggestion accuracy with enhanced multi-file context understanding and real-time debugging assistance.</p>
+                        <div class="highlight-meta">
+                            <span class="highlight-source">Official Blog</span>
+                            <span class="highlight-sentiment positive">95% positive</span>
+                        </div>
+                    </div>
+
+                    <div class="highlight-card research" data-category="research">
+                        <div class="highlight-header">
+                            <div class="highlight-badge research">Research</div>
+                            <span class="highlight-time">1 day ago</span>
+                        </div>
+                        <h3 class="highlight-title">Stanford study: AI coding assistants boost productivity by 35%</h3>
+                        <p class="highlight-summary">Comprehensive study of 2,000 developers shows significant productivity gains, with junior developers benefiting most from AI assistance in debugging and code review tasks.</p>
+                        <div class="highlight-meta">
+                            <span class="highlight-source">arXiv</span>
+                            <span class="highlight-impact">High Impact</span>
+                        </div>
+                    </div>
+
+                    <div class="highlight-card social" data-category="social">
+                        <div class="highlight-header">
+                            <div class="highlight-badge social">Social Sentiment</div>
+                            <span class="highlight-time">3 hours ago</span>
+                        </div>
+                        <h3 class="highlight-title">GitHub Copilot discussion trending on Reddit</h3>
+                        <p class="highlight-summary">Developer community discussing new pricing model changes. Mixed reactions with 60% positive sentiment, concerns about enterprise pricing and feature limitations.</p>
+                        <div class="highlight-meta">
+                            <span class="highlight-source">r/programming</span>
+                            <span class="highlight-engagement">1.2k comments</span>
+                        </div>
+                    </div>
+
+                    <div class="highlight-card perspective" data-category="perspective">
+                        <div class="highlight-header">
+                            <div class="highlight-badge perspective">Perspective</div>
+                            <span class="highlight-time">5 hours ago</span>
+                        </div>
+                        <h3 class="highlight-title">The future of pair programming with AI assistants</h3>
+                        <p class="highlight-summary">Thoughtful analysis on how AI coding tools are reshaping collaborative development practices, exploring both opportunities and challenges for team dynamics.</p>
+                        <div class="highlight-meta">
+                            <span class="highlight-source">Medium</span>
+                            <span class="highlight-author">Tech Lead @Meta</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sentiment Trends Section -->
+            <section id="sentiment" class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Sentiment Trends</h2>
+                    <div class="section-actions">
+                        <div class="button-group" id="chartViewToggle">
+                            <button class="button button-outline active" data-view="sentiment">Sentiment</button>
+                            <button class="button button-outline" data-view="share-of-voice">Share of Voice</button>
+                        </div>
+                        <div class="button-group">
+                            <button class="button button-outline" data-period="1h">Last Hour</button>
+                            <button class="button button-outline" data-period="1d">Last Day</button>
+                            <button class="button button-outline active" data-period="7d">Last 7 days</button>
+                            <button class="button button-outline" data-period="30d">Last 30 days</button>
+                            <button class="button button-outline" data-period="90d">Last 90 days</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label class="filter-label">AI Agents:</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="agents" value="amp" checked />
+                                <span class="checkbox-label">Amp</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="agents" value="cursor" checked />
+                                <span class="checkbox-label">Cursor</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="agents" value="github-copilot" />
+                                <span class="checkbox-label">GitHub Copilot</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="agents" value="claude-code" />
+                                <span class="checkbox-label">Claude Code</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="agents" value="windsurf" />
+                                <span class="checkbox-label">Windsurf</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">Sources:</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="sources" value="reddit" checked />
+                                <span class="checkbox-label">Reddit</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="sources" value="x" checked />
+                                <span class="checkbox-label">X (Twitter)</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="sources" value="hackernews" />
+                                <span class="checkbox-label">Hacker News</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="sources" value="medium" />
+                                <span class="checkbox-label">Medium</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-content">
+                        <div class="chart-container">
+                            <canvas id="sentimentChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-summary">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Today's Breakdown</div>
+                            <div class="stat-value">60% positive, 20% neutral, 20% negative</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Net Sentiment Score</div>
+                            <div class="stat-value positive">+40</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Trend Direction</div>
+                            <div class="stat-value positive">Improving</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Product Updates Section -->
+            <section id="updates" class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Product Updates</h2>
+                    <div class="section-actions">
+                        <select class="select" id="agentFilter">
+                            <option value="all">All Agents</option>
+                            <option value="amp">Amp</option>
+                            <option value="cursor">Cursor</option>
+                            <option value="github-copilot">GitHub Copilot</option>
+                            <option value="claude-code">Claude Code</option>
+                            <option value="windsurf">Windsurf</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="content-feed">
+                    <div class="content-item" data-agent="amp" data-type="product">
+                        <div class="content-header">
+                            <div class="agent-badge amp">Amp</div>
+                            <span class="content-time">2 hours ago</span>
+                        </div>
+                        <h3 class="content-title">Amp v2.3 released with enhanced NLP capabilities</h3>
+                        <p class="content-summary">Major update includes enhanced natural language processing, improved code generation accuracy, and new debugging features. Performance improvements show 25% faster response times.</p>
+                        <div class="content-meta">
+                            <span class="content-tag product">Product Release</span>
+                            <span class="content-engagement">
+                                <i data-lucide="thumbs-up"></i>
+                                <span>+95% positive</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="content-item" data-agent="cursor" data-type="product">
+                        <div class="content-header">
+                            <div class="agent-badge cursor">Cursor</div>
+                            <span class="content-time">1 day ago</span>
+                        </div>
+                        <h3 class="content-title">New context-aware code completion algorithm</h3>
+                        <p class="content-summary">Revolutionary update brings 40% improvement in code suggestion accuracy with enhanced multi-file context understanding and real-time debugging assistance.</p>
+                        <div class="content-meta">
+                            <span class="content-tag product">Major Update</span>
+                            <span class="content-engagement">
+                                <i data-lucide="trending-up"></i>
+                                <span>Trending</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="content-item" data-agent="github-copilot" data-type="incident">
+                        <div class="content-header">
+                            <div class="agent-badge github-copilot">GitHub Copilot</div>
+                            <span class="content-time">3 days ago</span>
+                        </div>
+                        <h3 class="content-title">Pricing model updates and enterprise features</h3>
+                        <p class="content-summary">New pricing structure introduces tier-based access to advanced features. Enterprise customers get enhanced security controls and usage analytics.</p>
+                        <div class="content-meta">
+                            <span class="content-tag pricing">Pricing Change</span>
+                            <span class="content-engagement mixed">
+                                <i data-lucide="message-circle"></i>
+                                <span>Mixed reactions</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Research Papers Section -->
+            <section id="research" class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Research Papers</h2>
+                    <div class="section-actions">
+                        <select class="select" id="researchFilter">
+                            <option value="all">All Research</option>
+                            <option value="academic">Academic Papers</option>
+                            <option value="industry">Industry Reports</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="content-feed">
+                    <div class="content-item" data-type="academic">
+                        <div class="content-header">
+                            <div class="source-badge academic">
+                                <i data-lucide="book-open"></i>
+                                <span>Stanford AI Lab</span>
+                            </div>
+                            <span class="content-time">Jan 15, 2025</span>
+                        </div>
+                        <h3 class="content-title">NLP Benchmark Study: Code Generation Performance Analysis</h3>
+                        <p class="content-summary">Comprehensive evaluation of 15 AI coding assistants across 5,000 programming tasks. Introduces CodeBench-2025 benchmark with focus on real-world debugging scenarios.</p>
+                        <div class="content-meta">
+                            <span class="content-tag academic">Academic Paper</span>
+                            <span class="content-impact high">High Impact</span>
+                        </div>
+                    </div>
+
+                    <div class="content-item" data-type="industry">
+                        <div class="content-header">
+                            <div class="source-badge industry">
+                                <i data-lucide="building"></i>
+                                <span>McKinsey Digital</span>
+                            </div>
+                            <span class="content-time">Jan 12, 2025</span>
+                        </div>
+                        <h3 class="content-title">AI Coding Assistants: Enterprise Adoption Report 2025</h3>
+                        <p class="content-summary">Survey of 500 enterprise development teams shows 78% adoption rate. Key drivers include productivity gains (average 30% faster development) and code quality improvements.</p>
+                        <div class="content-meta">
+                            <span class="content-tag industry">Industry Report</span>
+                            <span class="content-impact medium">Medium Impact</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Perspective Pieces Section -->
+            <section id="perspectives" class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Perspective Pieces</h2>
+                    <div class="section-actions">
+                        <select class="select" id="perspectiveFilter">
+                            <option value="all">All Sources</option>
+                            <option value="medium">Medium</option>
+                            <option value="substack">Substack</option>
+                            <option value="blog">Tech Blogs</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="content-feed">
+                    <div class="content-item" data-source="medium">
+                        <div class="content-header">
+                            <div class="source-badge blog">
+                                <i data-lucide="pen-tool"></i>
+                                <span>Medium</span>
+                            </div>
+                            <span class="content-time">5 hours ago</span>
+                        </div>
+                        <h3 class="content-title">The future of pair programming with AI assistants</h3>
+                        <p class="content-summary">Thoughtful analysis on how AI coding tools are reshaping collaborative development practices, exploring both opportunities and challenges for team dynamics.</p>
+                        <div class="content-meta">
+                            <span class="content-tag perspective">Opinion</span>
+                            <span class="content-author">Tech Lead @Meta</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Social Sentiment Section -->
+            <section id="social" class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Social Sentiment</h2>
+                    <div class="section-actions">
+                        <select class="select" id="socialFilter">
+                            <option value="all">All Sources</option>
+                            <option value="reddit">Reddit</option>
+                            <option value="x">X (Twitter)</option>
+                            <option value="hackernews">Hacker News</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="content-feed">
+                    <div class="content-item" data-source="reddit">
+                        <div class="content-header">
+                            <div class="source-badge reddit">
+                                <i data-lucide="message-circle"></i>
+                                <span>r/programming</span>
+                            </div>
+                            <span class="content-time">3 hours ago</span>
+                        </div>
+                        <h3 class="content-title">GitHub Copilot pricing discussion trending</h3>
+                        <p class="content-summary">Developer community discussing new pricing model changes. Mixed reactions with 60% positive sentiment, concerns about enterprise pricing and feature limitations.</p>
+                        <div class="content-meta">
+                            <span class="content-tag discussion">Discussion</span>
+                            <span class="content-engagement">1.2k comments</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Timeline View Section -->
+            <section id="timeline" class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Timeline View</h2>
+                    <div class="section-actions">
+                        <div class="button-group">
+                            <button class="button button-outline active">All Content</button>
+                            <button class="button button-outline">Product Only</button>
+                            <button class="button button-outline">Research Only</button>
+                        </div>
+                        <select class="select" id="timelineTimeframe">
+                            <option value="1h">Last Hour</option>
+                            <option value="1d">Last Day</option>
+                            <option value="7d" selected>Last 7 Days</option>
+                            <option value="30d">Last 30 Days</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="timeline-container">
+                    <!-- Timeline content will be dynamically populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Search & Filter Section -->
+            <section id="search" class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Search & Filter</h2>
+                </div>
+
+                <div class="search-container">
+                    <div class="advanced-search">
+                        <input type="text" class="search-input" placeholder="Search across all content..." />
+                        <button class="button">
+                            <i data-lucide="search"></i>
+                            Search
+                        </button>
+                    </div>
+                    
+                    <div class="filter-grid">
+                        <div class="filter-section">
+                            <h4>Content Type</h4>
+                            <div class="checkbox-group">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" value="product" />
+                                    <span class="checkbox-label">Product Updates</span>
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" value="research" />
+                                    <span class="checkbox-label">Research</span>
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" value="perspective" />
+                                    <span class="checkbox-label">Perspectives</span>
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" value="social" />
+                                    <span class="checkbox-label">Social</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="analytics-dashboard.js"></script>
+</body>
+</html>
