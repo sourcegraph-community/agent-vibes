@@ -118,6 +118,29 @@ export default function Home() {
               </p>
             </div>
           </div>
+          
+          {/* Demo Chat Link */}
+          <div className="mb-12">
+            <div
+              className="rounded-lg p-6 border inline-block"
+              style={{ backgroundColor: '#373737', borderColor: '#5b5b5b' }}
+            >
+              <div className="text-3xl mb-3">🤖</div>
+              <h3 className="text-lg font-semibold mb-2" style={{ color: '#f8f9fa' }}>
+                Try Amp Assistant
+              </h3>
+              <p className="text-sm mb-4" style={{ color: '#f8f9fa' }}>
+                Chat with AI about your data
+              </p>
+              <a
+                href="/chat"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors"
+                style={{ backgroundColor: '#5b5b5b', color: '#f8f9fa' }}
+              >
+                Start Chat →
+              </a>
+            </div>
+          </div>
         </div>
 
         <div className="rounded-xl p-8 border mb-8" style={{ backgroundColor: '#373737', borderColor: '#5b5b5b' }}>

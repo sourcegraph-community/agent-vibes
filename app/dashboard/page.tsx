@@ -535,7 +535,7 @@ export default function DashboardPage() {
                   Real-time sentiment tracking from X posts mentioning AI coding tools
                 </p>
               </div>
-              
+
               <div className="sentiment-content">
                 <SentimentDashboardPreview />
               </div>
@@ -551,7 +551,7 @@ export default function DashboardPage() {
                   Comprehensive sentiment analysis and trend tracking
                 </p>
               </div>
-              
+
               <div className="sentiment-content">
                 <SentimentDashboardPreview />
               </div>

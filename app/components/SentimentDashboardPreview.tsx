@@ -32,7 +32,7 @@ export function SentimentDashboardPreview() {
         setLoading(true);
         const response = await fetch('/api/metrics/sentiment?window=7d');
         if (!response.ok) throw new Error('Failed to fetch sentiment data');
-        
+
         const result = await response.json();
         setData(result);
         setError(null);

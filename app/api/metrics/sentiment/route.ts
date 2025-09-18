@@ -57,13 +57,13 @@ function cleanText(text: string): string {
 
 function detectTool(text: string): string {
   const fullText = text.toLowerCase();
-  
+
   for (const { pattern, tool } of toolPatterns) {
     if (pattern.test(fullText)) {
       return tool;
     }
   }
-  
+
   return 'other';
 }
 
@@ -73,7 +73,7 @@ function calculateEngagementScore(tweet: RawTweet): number {
   const retweets = (tweet.retweetCount || 0) * 3; // Retweets are more valuable
   const replies = (tweet.replyCount || 0) * 2;   // Replies show engagement
   const views = (tweet.viewCount || 0) * 0.01;   // Views are less valuable
-  
+
   return likes + retweets + replies + views;
 }
 
@@ -82,7 +82,7 @@ function processRawTweet(rawTweet: RawTweet): ProcessedTweet {
   const sentimentResult = sentiment.analyze(cleanedText);
   const tool = detectTool(rawTweet.fullText);
   const engagementScore = calculateEngagementScore(rawTweet);
-  
+
   return {
     ...rawTweet,
     sentiment: sentimentResult.score,
@@ -113,11 +113,11 @@ function generateMetrics(processedTweets: ProcessedTweet[]): SentimentMetrics {
   const oneDay = 24 * 60 * 60 * 1000;
   const oneWeek = 7 * oneDay;
   const oneMonth = 30 * oneDay;
-  
+
   const metrics = {
     total: processedTweets.length,
     lastUpdated: now.toISOString(),
-    
+
     // Overall sentiment
     overall: {
       avgSentiment: processedTweets.length > 0 ? processedTweets.reduce((sum, t) => sum + t.sentiment, 0) / processedTweets.length : 0,
@@ -125,28 +125,28 @@ function generateMetrics(processedTweets: ProcessedTweet[]): SentimentMetrics {
       neutral: processedTweets.filter(t => t.sentiment === 0).length,
       negative: processedTweets.filter(t => t.sentiment < 0).length,
     },
-    
+
     // By time windows
     windows: {} as Record<string, any>,
-    
+
     // By tool
     byTool: {} as Record<string, any>,
-    
+
     // Daily breakdown for charts
     daily: {} as Record<string, any>,
   };
-  
+
   // Calculate time windows
   const windows = [
     { name: '24h', ms: oneDay },
     { name: '7d', ms: oneWeek },
     { name: '30d', ms: oneMonth },
   ];
-  
+
   windows.forEach(({ name, ms }) => {
     const cutoff = new Date(now.getTime() - ms);
     const tweets = processedTweets.filter(t => new Date(t.createdAt) > cutoff);
-    
+
     if (tweets.length > 0) {
       metrics.windows[name] = {
         count: tweets.length,
@@ -156,7 +156,7 @@ function generateMetrics(processedTweets: ProcessedTweet[]): SentimentMetrics {
       };
     }
   });
-  
+
   // Calculate by tool
   const toolCounts = {} as Record<string, ProcessedTweet[]>;
   processedTweets.forEach(tweet => {
@@ -165,7 +165,7 @@ function generateMetrics(processedTweets: ProcessedTweet[]): SentimentMetrics {
     }
     toolCounts[tweet.tool].push(tweet);
   });
-  
+
   Object.entries(toolCounts).forEach(([tool, tweets]) => {
     metrics.byTool[tool] = {
       count: tweets.length,
@@ -175,20 +175,20 @@ function generateMetrics(processedTweets: ProcessedTweet[]): SentimentMetrics {
       totalEngagement: tweets.reduce((sum, t) => sum + t.engagementScore, 0),
     };
   });
-  
+
   // Daily breakdown for trend charts
   const dailyBreakdown = {} as Record<string, any>;
   processedTweets.forEach(tweet => {
     const date = new Date(tweet.createdAt).toISOString().split('T')[0];
-    
+
     if (!dailyBreakdown[date]) {
       dailyBreakdown[date] = { tweets: [], totalSentiment: 0 };
     }
-    
+
     dailyBreakdown[date].tweets.push(tweet);
     dailyBreakdown[date].totalSentiment += tweet.sentiment;
   });
-  
+
   Object.entries(dailyBreakdown).forEach(([date, data]) => {
     const tweets = data.tweets;
     metrics.daily[date] = {
@@ -198,7 +198,7 @@ function generateMetrics(processedTweets: ProcessedTweet[]): SentimentMetrics {
       negative: tweets.filter((t: ProcessedTweet) => t.sentiment < 0).length,
     };
   });
-  
+
   return metrics;
 }
 
