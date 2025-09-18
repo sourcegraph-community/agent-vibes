@@ -2,9 +2,7 @@
 - Dev/build/start: `npm run dev` | `npm run build` | `npm run start` (Turbopack)
 - Typecheck/lint/tests: `npm run typecheck`; lint: `npm run lint`; fix: `npm run fix`; combined: `npm run check`; tests: N/A; single-test: N/A
 - App Router: [layout.tsx](app/layout.tsx), [page.tsx](app/page.tsx) (client), [globals.css](app/globals.css)
-- API routes (Knock): [subscribe/route.ts](app/api/notifications/subscribe/route.ts), [send/route.ts](app/api/notifications/send/route.ts) using `@knocklabs/node`
-- Service Worker: [public/sw.js](public/sw.js); registered via [useKnockNotifications.ts](app/hooks/useKnockNotifications.ts)
-- Env vars: `KNOCK_SECRET_API_KEY`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (client), `VAPID_PRIVATE_KEY` (server)
+`VAPID_PRIVATE_KEY` (server)
 - External services: No DB; notifications handled by Knock; persist externally
 - Tailwind: Config in [postcss.config.mjs](postcss.config.mjs); theme via CSS vars in [globals.css](app/globals.css)
 - Config: [next.config.ts](next.config.ts); [tsconfig.json](tsconfig.json) (`strict`, `noEmit`, `bundler`, `@/*`->`./*`, `jsx: preserve`)
