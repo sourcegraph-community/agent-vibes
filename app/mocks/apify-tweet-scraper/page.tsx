@@ -526,7 +526,12 @@ export default async function ApifyTweetScraperPage() {
         </div>
       </main>
 
-      <Script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" strategy="afterInteractive" />
+      <Script
+        src="https://cdn.jsdelivr.net/npm/lucide@0.544.0/dist/umd/lucide.min.js"
+        integrity="sha384-hK2uiaqTSh/v1VqRxmuMQL4xmt5n0DdyBCOItx2fAs7Wv+WC8Tu0yDW1j12JooyM"
+        crossOrigin="anonymous"
+        strategy="afterInteractive"
+      />
       <Script id="lucide-init" strategy="afterInteractive">
         {`if (window.lucide) { window.lucide.createIcons(); }`}
       </Script>

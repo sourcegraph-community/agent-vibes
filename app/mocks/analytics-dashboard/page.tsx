@@ -578,8 +578,18 @@ export default async function AnalyticsDashboardPage() {
         {analyticsPayload}
       </script>
 
-      <Script src="https://cdn.jsdelivr.net/npm/chart.js" strategy="afterInteractive" />
-      <Script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" strategy="afterInteractive" />
+      <Script
+        src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"
+        integrity="sha384-XcdcwHqIPULERb2yDEM4R0XaQKU3YnDsrTmjACBZyfdVVqjh6xQ4/DCMd7XLcA6Y"
+        crossOrigin="anonymous"
+        strategy="afterInteractive"
+      />
+      <Script
+        src="https://cdn.jsdelivr.net/npm/lucide@0.544.0/dist/umd/lucide.min.js"
+        integrity="sha384-hK2uiaqTSh/v1VqRxmuMQL4xmt5n0DdyBCOItx2fAs7Wv+WC8Tu0yDW1j12JooyM"
+        crossOrigin="anonymous"
+        strategy="afterInteractive"
+      />
       <Script id="analytics-dashboard-init" strategy="afterInteractive">
         {`
           (function () {
