@@ -1,0 +1,974 @@
+[{
+  "type": "tweet",
+  "id": "1968539736794087540",
+  "url": "https://x.com/toolmantim/status/1968539736794087540",
+  "twitterUrl": "https://twitter.com/toolmantim/status/1968539736794087540",
+  "text": "@samsaffron @AmpCode Whoops… I will forever get that wrong now. I meant https://t.co/UNHHLbc1dU",
+  "fullText": "@samsaffron @AmpCode Whoops… I will forever get that wrong now. I meant https://t.co/UNHHLbc1dU",
+  "source": "Twitter Web App",
+  "retweetCount": 0,
+  "replyCount": 0,
+  "likeCount": 0,
+  "quoteCount": 0,
+  "viewCount": 10,
+  "createdAt": "Thu Sep 18 04:57:01 +0000 2025",
+  "lang": "en",
+  "bookmarkCount": 0,
+  "isReply": true,
+  "inReplyToId": "1968539458569150518",
+  "conversationId": "1968481297392648343",
+  "inReplyToUserId": "2514731",
+  "inReplyToUsername": "toolmantim",
+  "possiblySensitive": false,
+  "isPinned": false,
+  "author": {
+    "type": "user",
+    "userName": "toolmantim",
+    "url": "https://x.com/toolmantim",
+    "twitterUrl": "https://twitter.com/toolmantim",
+    "id": "2514731",
+    "name": "Tim Lucas",
+    "isVerified": false,
+    "isBlueVerified": false,
+    "profilePicture": "https://pbs.twimg.com/profile_images/1429754830591979522/q3tTJtib_normal.jpg",
+    "coverPicture": "https://pbs.twimg.com/profile_banners/2514731/1407718679",
+    "description": "Venn diagram of sandwiches, climbing, design and programming. Design @ampcode. Prev: co-founder @buildkite, and other stuff too. ❤️ @canarycarla",
+    "location": "Melbourne, Australia",
+    "followers": 3956,
+    "following": 1842,
+    "status": "",
+    "canDm": true,
+    "canMediaTag": true,
+    "createdAt": "Tue Mar 27 16:10:54 +0000 2007",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "toolmantim.com",
+            "expanded_url": "http://toolmantim.com",
+            "url": "https://t.co/zVahW5OfJs",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fastFollowersCount": 0,
+    "favouritesCount": 13195,
+    "hasCustomTimelines": true,
+    "isTranslator": false,
+    "mediaCount": 364,
+    "statusesCount": 2828,
+    "withheldInCountries": [],
+    "affiliatesHighlightedLabel": {},
+    "possiblySensitive": false,
+    "pinnedTweetIds": []
+  },
+  "extendedEntities": {},
+  "card": {
+    "rest_id": "https://t.co/UNHHLbc1dU",
+    "legacy": {
+      "binding_values": [
+        {
+          "key": "photo_image_full_size_large",
+          "value": {
+            "image_value": {
+              "height": 419,
+              "width": 800,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=800x419"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "thumbnail_image",
+          "value": {
+            "image_value": {
+              "height": 150,
+              "width": 267,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=280x150"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "description",
+          "value": {
+            "string_value": "AGENTS.md is a simple, open format for guiding coding agents. Think of it as a README for agents.",
+            "type": "STRING"
+          }
+        },
+        {
+          "key": "domain",
+          "value": {
+            "string_value": "agents.md",
+            "type": "STRING"
+          }
+        },
+        {
+          "key": "thumbnail_image_large",
+          "value": {
+            "image_value": {
+              "height": 320,
+              "width": 569,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=800x320_1"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "summary_photo_image_small",
+          "value": {
+            "image_value": {
+              "height": 202,
+              "width": 386,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=386x202"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "thumbnail_image_original",
+          "value": {
+            "image_value": {
+              "height": 2025,
+              "width": 3600,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=orig"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "photo_image_full_size_small",
+          "value": {
+            "image_value": {
+              "height": 202,
+              "width": 386,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=386x202"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "summary_photo_image_large",
+          "value": {
+            "image_value": {
+              "height": 419,
+              "width": 800,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=800x419"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "thumbnail_image_small",
+          "value": {
+            "image_value": {
+              "height": 81,
+              "width": 144,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=144x144"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "thumbnail_image_x_large",
+          "value": {
+            "image_value": {
+              "height": 1152,
+              "width": 2048,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=png&name=2048x2048_2_exp"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "photo_image_full_size_original",
+          "value": {
+            "image_value": {
+              "height": 2025,
+              "width": 3600,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=orig"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "vanity_url",
+          "value": {
+            "scribe_key": "vanity_url",
+            "string_value": "agents.md",
+            "type": "STRING"
+          }
+        },
+        {
+          "key": "photo_image_full_size",
+          "value": {
+            "image_value": {
+              "height": 314,
+              "width": 600,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=600x314"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "thumbnail_image_color",
+          "value": {
+            "image_color_value": {
+              "palette": [
+                {
+                  "rgb": {
+                    "blue": 255,
+                    "green": 252,
+                    "red": 248
+                  },
+                  "percentage": 58.82
+                },
+                {
+                  "rgb": {
+                    "blue": 255,
+                    "green": 204,
+                    "red": 73
+                  },
+                  "percentage": 27.46
+                },
+                {
+                  "rgb": {
+                    "blue": 252,
+                    "green": 191,
+                    "red": 165
+                  },
+                  "percentage": 5.66
+                },
+                {
+                  "rgb": {
+                    "blue": 35,
+                    "green": 207,
+                    "red": 183
+                  },
+                  "percentage": 1.84
+                },
+                {
+                  "rgb": {
+                    "blue": 161,
+                    "green": 191,
+                    "red": 202
+                  },
+                  "percentage": 0.97
+                }
+              ]
+            },
+            "type": "IMAGE_COLOR"
+          }
+        },
+        {
+          "key": "title",
+          "value": {
+            "string_value": "AGENTS.md",
+            "type": "STRING"
+          }
+        },
+        {
+          "key": "summary_photo_image_color",
+          "value": {
+            "image_color_value": {
+              "palette": [
+                {
+                  "rgb": {
+                    "blue": 255,
+                    "green": 252,
+                    "red": 248
+                  },
+                  "percentage": 58.82
+                },
+                {
+                  "rgb": {
+                    "blue": 255,
+                    "green": 204,
+                    "red": 73
+                  },
+                  "percentage": 27.46
+                },
+                {
+                  "rgb": {
+                    "blue": 252,
+                    "green": 191,
+                    "red": 165
+                  },
+                  "percentage": 5.66
+                },
+                {
+                  "rgb": {
+                    "blue": 35,
+                    "green": 207,
+                    "red": 183
+                  },
+                  "percentage": 1.84
+                },
+                {
+                  "rgb": {
+                    "blue": 161,
+                    "green": 191,
+                    "red": 202
+                  },
+                  "percentage": 0.97
+                }
+              ]
+            },
+            "type": "IMAGE_COLOR"
+          }
+        },
+        {
+          "key": "summary_photo_image_x_large",
+          "value": {
+            "image_value": {
+              "height": 1152,
+              "width": 2048,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=png&name=2048x2048_2_exp"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "summary_photo_image",
+          "value": {
+            "image_value": {
+              "height": 314,
+              "width": 600,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=600x314"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "photo_image_full_size_color",
+          "value": {
+            "image_color_value": {
+              "palette": [
+                {
+                  "rgb": {
+                    "blue": 255,
+                    "green": 252,
+                    "red": 248
+                  },
+                  "percentage": 58.82
+                },
+                {
+                  "rgb": {
+                    "blue": 255,
+                    "green": 204,
+                    "red": 73
+                  },
+                  "percentage": 27.46
+                },
+                {
+                  "rgb": {
+                    "blue": 252,
+                    "green": 191,
+                    "red": 165
+                  },
+                  "percentage": 5.66
+                },
+                {
+                  "rgb": {
+                    "blue": 35,
+                    "green": 207,
+                    "red": 183
+                  },
+                  "percentage": 1.84
+                },
+                {
+                  "rgb": {
+                    "blue": 161,
+                    "green": 191,
+                    "red": 202
+                  },
+                  "percentage": 0.97
+                }
+              ]
+            },
+            "type": "IMAGE_COLOR"
+          }
+        },
+        {
+          "key": "photo_image_full_size_x_large",
+          "value": {
+            "image_value": {
+              "height": 1152,
+              "width": 2048,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=png&name=2048x2048_2_exp"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "card_url",
+          "value": {
+            "scribe_key": "card_url",
+            "string_value": "https://t.co/UNHHLbc1dU",
+            "type": "STRING"
+          }
+        },
+        {
+          "key": "summary_photo_image_original",
+          "value": {
+            "image_value": {
+              "height": 2025,
+              "width": 3600,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=orig"
+            },
+            "type": "IMAGE"
+          }
+        }
+      ],
+      "card_platform": {
+        "platform": {
+          "audience": {
+            "name": "production"
+          },
+          "device": {
+            "name": "Swift",
+            "version": "12"
+          }
+        }
+      },
+      "name": "summary_large_image",
+      "url": "https://t.co/UNHHLbc1dU",
+      "user_refs_results": []
+    }
+  },
+  "place": {},
+  "entities": {
+    "hashtags": [],
+    "symbols": [],
+    "timestamps": [],
+    "urls": [
+      {
+        "display_url": "AGENTS.md",
+        "expanded_url": "http://AGENTS.md",
+        "url": "https://t.co/UNHHLbc1dU",
+        "indices": [
+          72,
+          95
+        ]
+      }
+    ],
+    "user_mentions": [
+      {
+        "id_str": "23302930",
+        "name": "Sam Saffron",
+        "screen_name": "samsaffron",
+        "indices": [
+          0,
+          11
+        ]
+      },
+      {
+        "id_str": "1901022787164401666",
+        "name": "Amp — Research Preview",
+        "screen_name": "AmpCode",
+        "indices": [
+          12,
+          20
+        ]
+      }
+    ]
+  },
+  "isRetweet": false,
+  "isQuote": false,
+  "media": [],
+  "isConversationControlled": false
+},
+{
+  "type": "tweet",
+  "id": "1968539458569150518",
+  "url": "https://x.com/toolmantim/status/1968539458569150518",
+  "twitterUrl": "https://twitter.com/toolmantim/status/1968539458569150518",
+  "text": "@samsaffron @AmpCode nice! Yeah, one thing to keep in mind tho on larger tasks is that token use can vary hugely between tools. btw have you got a decent https://t.co/Z1Z6F0X6AN set up that helps it get stuff done with less searching/futzing (esp for large things that don't change often)?",
+  "fullText": "@samsaffron @AmpCode nice! Yeah, one thing to keep in mind tho on larger tasks is that token use can vary hugely between tools. btw have you got a decent https://t.co/Z1Z6F0X6AN set up that helps it get stuff done with less searching/futzing (esp for large things that don't change often)?",
+  "source": "Twitter Web App",
+  "retweetCount": 0,
+  "replyCount": 1,
+  "likeCount": 0,
+  "quoteCount": 0,
+  "viewCount": 13,
+  "createdAt": "Thu Sep 18 04:55:55 +0000 2025",
+  "lang": "en",
+  "bookmarkCount": 0,
+  "isReply": true,
+  "inReplyToId": "1968525904013050161",
+  "conversationId": "1968481297392648343",
+  "inReplyToUserId": "23302930",
+  "inReplyToUsername": "samsaffron",
+  "possiblySensitive": false,
+  "isPinned": false,
+  "author": {
+    "type": "user",
+    "userName": "toolmantim",
+    "url": "https://x.com/toolmantim",
+    "twitterUrl": "https://twitter.com/toolmantim",
+    "id": "2514731",
+    "name": "Tim Lucas",
+    "isVerified": false,
+    "isBlueVerified": false,
+    "profilePicture": "https://pbs.twimg.com/profile_images/1429754830591979522/q3tTJtib_normal.jpg",
+    "coverPicture": "https://pbs.twimg.com/profile_banners/2514731/1407718679",
+    "description": "Venn diagram of sandwiches, climbing, design and programming. Design @ampcode. Prev: co-founder @buildkite, and other stuff too. ❤️ @canarycarla",
+    "location": "Melbourne, Australia",
+    "followers": 3956,
+    "following": 1842,
+    "status": "",
+    "canDm": true,
+    "canMediaTag": true,
+    "createdAt": "Tue Mar 27 16:10:54 +0000 2007",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "toolmantim.com",
+            "expanded_url": "http://toolmantim.com",
+            "url": "https://t.co/zVahW5OfJs",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fastFollowersCount": 0,
+    "favouritesCount": 13195,
+    "hasCustomTimelines": true,
+    "isTranslator": false,
+    "mediaCount": 364,
+    "statusesCount": 2828,
+    "withheldInCountries": [],
+    "affiliatesHighlightedLabel": {},
+    "possiblySensitive": false,
+    "pinnedTweetIds": []
+  },
+  "extendedEntities": {},
+  "card": {
+    "rest_id": "https://t.co/Z1Z6F0X6AN",
+    "legacy": {
+      "binding_values": [
+        {
+          "key": "photo_image_full_size_large",
+          "value": {
+            "image_value": {
+              "height": 419,
+              "width": 800,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=800x419"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "thumbnail_image",
+          "value": {
+            "image_value": {
+              "height": 150,
+              "width": 267,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=280x150"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "description",
+          "value": {
+            "string_value": "AGENTS.md is a simple, open format for guiding coding agents. Think of it as a README for agents.",
+            "type": "STRING"
+          }
+        },
+        {
+          "key": "domain",
+          "value": {
+            "string_value": "agents.md",
+            "type": "STRING"
+          }
+        },
+        {
+          "key": "thumbnail_image_large",
+          "value": {
+            "image_value": {
+              "height": 320,
+              "width": 569,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=800x320_1"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "summary_photo_image_small",
+          "value": {
+            "image_value": {
+              "height": 202,
+              "width": 386,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=386x202"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "thumbnail_image_original",
+          "value": {
+            "image_value": {
+              "height": 2025,
+              "width": 3600,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=orig"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "photo_image_full_size_small",
+          "value": {
+            "image_value": {
+              "height": 202,
+              "width": 386,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=386x202"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "summary_photo_image_large",
+          "value": {
+            "image_value": {
+              "height": 419,
+              "width": 800,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=800x419"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "thumbnail_image_small",
+          "value": {
+            "image_value": {
+              "height": 81,
+              "width": 144,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=144x144"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "thumbnail_image_x_large",
+          "value": {
+            "image_value": {
+              "height": 1152,
+              "width": 2048,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=png&name=2048x2048_2_exp"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "photo_image_full_size_original",
+          "value": {
+            "image_value": {
+              "height": 2025,
+              "width": 3600,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=orig"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "vanity_url",
+          "value": {
+            "scribe_key": "vanity_url",
+            "string_value": "agents.md",
+            "type": "STRING"
+          }
+        },
+        {
+          "key": "photo_image_full_size",
+          "value": {
+            "image_value": {
+              "height": 314,
+              "width": 600,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=600x314"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "thumbnail_image_color",
+          "value": {
+            "image_color_value": {
+              "palette": [
+                {
+                  "rgb": {
+                    "blue": 255,
+                    "green": 252,
+                    "red": 248
+                  },
+                  "percentage": 58.82
+                },
+                {
+                  "rgb": {
+                    "blue": 255,
+                    "green": 204,
+                    "red": 73
+                  },
+                  "percentage": 27.46
+                },
+                {
+                  "rgb": {
+                    "blue": 252,
+                    "green": 191,
+                    "red": 165
+                  },
+                  "percentage": 5.66
+                },
+                {
+                  "rgb": {
+                    "blue": 35,
+                    "green": 207,
+                    "red": 183
+                  },
+                  "percentage": 1.84
+                },
+                {
+                  "rgb": {
+                    "blue": 161,
+                    "green": 191,
+                    "red": 202
+                  },
+                  "percentage": 0.97
+                }
+              ]
+            },
+            "type": "IMAGE_COLOR"
+          }
+        },
+        {
+          "key": "title",
+          "value": {
+            "string_value": "AGENTS.md",
+            "type": "STRING"
+          }
+        },
+        {
+          "key": "summary_photo_image_color",
+          "value": {
+            "image_color_value": {
+              "palette": [
+                {
+                  "rgb": {
+                    "blue": 255,
+                    "green": 252,
+                    "red": 248
+                  },
+                  "percentage": 58.82
+                },
+                {
+                  "rgb": {
+                    "blue": 255,
+                    "green": 204,
+                    "red": 73
+                  },
+                  "percentage": 27.46
+                },
+                {
+                  "rgb": {
+                    "blue": 252,
+                    "green": 191,
+                    "red": 165
+                  },
+                  "percentage": 5.66
+                },
+                {
+                  "rgb": {
+                    "blue": 35,
+                    "green": 207,
+                    "red": 183
+                  },
+                  "percentage": 1.84
+                },
+                {
+                  "rgb": {
+                    "blue": 161,
+                    "green": 191,
+                    "red": 202
+                  },
+                  "percentage": 0.97
+                }
+              ]
+            },
+            "type": "IMAGE_COLOR"
+          }
+        },
+        {
+          "key": "summary_photo_image_x_large",
+          "value": {
+            "image_value": {
+              "height": 1152,
+              "width": 2048,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=png&name=2048x2048_2_exp"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "summary_photo_image",
+          "value": {
+            "image_value": {
+              "height": 314,
+              "width": 600,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=600x314"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "photo_image_full_size_color",
+          "value": {
+            "image_color_value": {
+              "palette": [
+                {
+                  "rgb": {
+                    "blue": 255,
+                    "green": 252,
+                    "red": 248
+                  },
+                  "percentage": 58.82
+                },
+                {
+                  "rgb": {
+                    "blue": 255,
+                    "green": 204,
+                    "red": 73
+                  },
+                  "percentage": 27.46
+                },
+                {
+                  "rgb": {
+                    "blue": 252,
+                    "green": 191,
+                    "red": 165
+                  },
+                  "percentage": 5.66
+                },
+                {
+                  "rgb": {
+                    "blue": 35,
+                    "green": 207,
+                    "red": 183
+                  },
+                  "percentage": 1.84
+                },
+                {
+                  "rgb": {
+                    "blue": 161,
+                    "green": 191,
+                    "red": 202
+                  },
+                  "percentage": 0.97
+                }
+              ]
+            },
+            "type": "IMAGE_COLOR"
+          }
+        },
+        {
+          "key": "photo_image_full_size_x_large",
+          "value": {
+            "image_value": {
+              "height": 1152,
+              "width": 2048,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=png&name=2048x2048_2_exp"
+            },
+            "type": "IMAGE"
+          }
+        },
+        {
+          "key": "card_url",
+          "value": {
+            "scribe_key": "card_url",
+            "string_value": "https://t.co/Z1Z6F0X6AN",
+            "type": "STRING"
+          }
+        },
+        {
+          "key": "summary_photo_image_original",
+          "value": {
+            "image_value": {
+              "height": 2025,
+              "width": 3600,
+              "url": "https://pbs.twimg.com/card_img/1968058097919987718/BIV5wRwg?format=jpg&name=orig"
+            },
+            "type": "IMAGE"
+          }
+        }
+      ],
+      "card_platform": {
+        "platform": {
+          "audience": {
+            "name": "production"
+          },
+          "device": {
+            "name": "Swift",
+            "version": "12"
+          }
+        }
+      },
+      "name": "summary_large_image",
+      "url": "https://t.co/Z1Z6F0X6AN",
+      "user_refs_results": []
+    }
+  },
+  "place": {},
+  "entities": {
+    "hashtags": [],
+    "symbols": [],
+    "timestamps": [],
+    "urls": [
+      {
+        "display_url": "AGENT.md",
+        "expanded_url": "http://AGENT.md",
+        "url": "https://t.co/Z1Z6F0X6AN",
+        "indices": [
+          154,
+          177
+        ]
+      }
+    ],
+    "user_mentions": [
+      {
+        "id_str": "23302930",
+        "name": "Sam Saffron",
+        "screen_name": "samsaffron",
+        "indices": [
+          0,
+          11
+        ]
+      },
+      {
+        "id_str": "1901022787164401666",
+        "name": "Amp — Research Preview",
+        "screen_name": "AmpCode",
+        "indices": [
+          12,
+          20
+        ]
+      }
+    ]
+  },
+  "isRetweet": false,
+  "isQuote": false,
+  "media": [],
+  "isConversationControlled": false
+},
