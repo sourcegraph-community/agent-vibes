@@ -87,6 +87,10 @@ Notes:
 - The ESLint rule for triple-slash references is disabled for `next-env.d.ts` (Next.js typed routes auto-add a reference).
 - The ESLint cache file (`.eslintcache`) is ignored via `.gitignore`.
 
+## Known Issues
+
+- **Stylistic indent regression (Sep 2025):** `@stylistic/indent` currently trips a stack overflow when linting large TSX trees with TypeScript 5.9 (tracked in [eslint-stylistic#915](https://github.com/eslint-stylistic/eslint-stylistic/issues/915)). As a mitigation we ignore `app/mocks/**` and `mocks/**` in [eslint.config.mjs](file:///home/prinova/CodeProjects/agent-vibes/eslint.config.mjs#L10-L79). Remove those ignores once the upstream fix ships and the rule is safe to re-enable.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

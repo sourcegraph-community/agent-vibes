@@ -7,8 +7,8 @@ import stylistic from '@stylistic/eslint-plugin';
 import globals from 'globals';
 
 export default [
-  // Ignore build artifacts and dependencies
-  { ignores: ['.next/**', 'node_modules/**'] },
+  // Ignore build artifacts, dependencies, and static mock prototypes
+  { ignores: ['.next/**', 'node_modules/**', 'app/mocks/**', 'mocks/**'] },
 
   // Base JS recommended
   js.configs.recommended,
@@ -63,6 +63,14 @@ export default [
     files: ['next-env.d.ts'],
     rules: {
       '@typescript-eslint/triple-slash-reference': 'off',
+    },
+  },
+
+  // Disable stylistic indent rule for large static mock pages that trip recursion limits
+  {
+    files: ['app/mocks/**/*.{ts,tsx}'],
+    rules: {
+      '@stylistic/indent': 'off',
     },
   },
 ];
