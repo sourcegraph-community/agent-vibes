@@ -1,6 +1,6 @@
 {
   "total": 100,
-  "lastUpdated": "2025-09-18T19:37:37.125Z",
+  "lastUpdated": "2025-09-18T20:29:39.629Z",
   "overall": {
     "avgSentiment": 1.77,
     "positive": 53,
@@ -9,15 +9,15 @@
   },
   "windows": {
     "24h": {
-      "count": 44,
-      "avgSentiment": 2.2954545454545454,
-      "positive": 25,
+      "count": 42,
+      "avgSentiment": 2.357142857142857,
+      "positive": 24,
       "negative": 2
     },
     "7d": {
-      "count": 66,
-      "avgSentiment": 1.803030303030303,
-      "positive": 35,
+      "count": 65,
+      "avgSentiment": 1.7846153846153847,
+      "positive": 34,
       "negative": 4
     },
     "30d": {
