@@ -171,6 +171,7 @@ h6 {
     overflow-y: auto;
     z-index: 50;
     transition: transform 0.2s ease-in-out;
+    transform: translateX(0); /* Show on desktop by default */
 }
 
 .sidebar-brand {
