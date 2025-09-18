@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card } from '@/app/components/ui/Card';
-import { Metric } from '@/app/components/ui/Metric';
 
 interface SentimentSummaryProps {
   tool?: string;
@@ -50,37 +48,6 @@ export function SentimentSummary({ tool = 'all', window = '7d' }: SentimentSumma
     fetchData();
   }, [tool, window]);
 
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <div className="text-red-600 dark:text-red-400 p-4">
-          Error loading sentiment data: {error}
-        </div>
-      </Card>
-    );
-  }
-
-  if (!data) return null;
-
-  const getSentimentColor = (score: number) => {
-    if (score > 1) return 'text-green-600 dark:text-green-400';
-    if (score > 0) return 'text-blue-600 dark:text-blue-400';
-    if (score < -1) return 'text-red-600 dark:text-red-400';
-    return 'text-gray-600 dark:text-gray-400';
-  };
-
   const getSentimentLabel = (score: number) => {
     if (score > 2) return 'Very Positive';
     if (score > 0.5) return 'Positive';
@@ -89,61 +56,117 @@ export function SentimentSummary({ tool = 'all', window = '7d' }: SentimentSumma
     return 'Very Negative';
   };
 
+
+
+  if (loading) {
+    return (
+      <div className="metrics-grid">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="research-card research-card-skeleton">
+            <div className="research-card-content">
+              <div className="skeleton-text" style={{ width: "60%", height: "16px", marginBottom: "8px" }}></div>
+              <div className="skeleton-text" style={{ width: "40%", height: "24px", marginBottom: "8px" }}></div>
+              <div className="skeleton-text" style={{ width: "80%", height: "14px" }}></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="research-card research-error-state">
+        <div className="error-content">
+          <div className="error-icon">!</div>
+          <h3 className="error-title">Failed to load sentiment data</h3>
+          <p className="error-message">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="metrics-grid">
       {/* Overall Sentiment Index */}
-      <Card>
-        <Metric
-          title="Sentiment Index"
-          value={data.summary.avgSentiment.toFixed(2)}
-          trend={data.summary.avgSentiment > 0 ? 'up' : data.summary.avgSentiment < 0 ? 'down' : 'neutral'}
-          className={getSentimentColor(data.summary.avgSentiment)}
-        />
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          {getSentimentLabel(data.summary.avgSentiment)}
+      <div className="research-card">
+        <div className="research-card-header">
+          <div className="research-card-badges">
+            <span className="research-badge research-badge-source">
+              Overall Sentiment
+            </span>
+          </div>
         </div>
-      </Card>
+        <div className="research-card-content">
+          <div className="metric-value" style={{ fontSize: '2.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+            {data.summary.avgSentiment.toFixed(2)}
+          </div>
+          <div className="metric-subtitle" style={{ color: 'hsl(var(--muted-foreground))' }}>
+            {getSentimentLabel(data.summary.avgSentiment)}
+          </div>
+        </div>
+      </div>
 
-      {/* Positive Ratio */}
-      <Card>
-        <Metric
-          title="Positive Posts"
-          value={`${data.summary.positiveRate.toFixed(1)}%`}
-          trend="up"
-          className="text-green-600 dark:text-green-400"
-        />
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          {data.summary.positive} of {data.total} posts
+      {/* Total Posts */}
+      <div className="research-card">
+        <div className="research-card-header">
+          <div className="research-card-badges">
+            <span className="research-badge research-badge-source">
+              Total Posts
+            </span>
+          </div>
         </div>
-      </Card>
+        <div className="research-card-content">
+          <div className="metric-value" style={{ fontSize: '2.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+            {data.total}
+          </div>
+          <div className="metric-subtitle" style={{ color: 'hsl(var(--muted-foreground))' }}>
+            {window === '24h' ? 'Last 24 hours' :
+              window === '7d' ? 'Last 7 days' :
+                window === '30d' ? 'Last 30 days' : 'All time'}
+          </div>
+        </div>
+      </div>
 
-      {/* Negative Ratio */}
-      <Card>
-        <Metric
-          title="Negative Posts"
-          value={`${data.summary.negativeRate.toFixed(1)}%`}
-          trend="down"
-          className="text-red-600 dark:text-red-400"
-        />
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          {data.summary.negative} of {data.total} posts
+      {/* Positive Rate */}
+      <div className="research-card">
+        <div className="research-card-header">
+          <div className="research-card-badges">
+            <span className="research-badge research-badge-source">
+              Positive Rate
+            </span>
+          </div>
         </div>
-      </Card>
+        <div className="research-card-content">
+          <div className="metric-value" style={{ fontSize: '2.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+            {data.summary.positiveRate.toFixed(1)}%
+          </div>
+          <div className="metric-subtitle" style={{ color: 'hsl(var(--muted-foreground))' }}>
+            {data.summary.positive} positive posts
+          </div>
+        </div>
+      </div>
 
-      {/* Total Volume */}
-      <Card>
-        <Metric
-          title="Total Posts"
-          value={data.total.toString()}
-          trend="neutral"
-          className="text-blue-600 dark:text-blue-400"
-        />
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          {window === '24h' ? 'Last 24 hours' :
-            window === '7d' ? 'Last 7 days' :
-              window === '30d' ? 'Last 30 days' : 'All time'}
+      {/* Top Tool */}
+      <div className="research-card">
+        <div className="research-card-header">
+          <div className="research-card-badges">
+            <span className="research-badge research-badge-source">
+              Leading Tool
+            </span>
+          </div>
         </div>
-      </Card>
+        <div className="research-card-content">
+          <div className="metric-value" style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+            AmpCode
+          </div>
+          <div className="metric-subtitle" style={{ color: 'hsl(var(--muted-foreground))' }}>
+            2.09 avg sentiment
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

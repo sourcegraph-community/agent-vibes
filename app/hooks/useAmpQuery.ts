@@ -27,26 +27,29 @@ export function useAmpQuery() {
         }),
       });
 
+      // Check for HTTP errors but don't consume the body
       if (!response.ok) {
-        throw new Error(`Query failed: ${response.statusText}`);
+        throw new Error(`Query failed: ${response.status} ${response.statusText}`);
       }
 
+      // Try streaming first, fallback to text if no stream
       const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
-      }
+      
+      if (reader) {
+        // Handle streaming response
+        let fullResponse = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      let fullResponse = '';
-
-      // Read the stream
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        // Decode the chunk
-        const chunk = new TextDecoder().decode(value);
-        fullResponse += chunk;
-        setLatestResponse(fullResponse);
+          const chunk = new TextDecoder().decode(value);
+          fullResponse += chunk;
+          setLatestResponse(fullResponse);
+        }
+      } else {
+        // Handle non-streaming response
+        const text = await response.text();
+        setLatestResponse(text);
       }
 
     } catch (err) {

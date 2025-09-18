@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card } from '@/app/components/ui/Card';
 
 interface ToolComparison {
   tool: string;
@@ -44,18 +43,15 @@ export function ToolSentimentBar({ window = '7d' }: ToolSentimentBarProps) {
     fetchData();
   }, [window]);
 
-  const getSentimentColor = (score: number) => {
-    if (score > 1) return 'bg-green-500';
-    if (score > 0) return 'bg-blue-500';
-    if (score < -1) return 'bg-red-500';
-    return 'bg-gray-400';
+  const getSentimentBadgeClass = (score: number) => {
+    return 'research-badge-source'; // consistent muted styling
   };
 
-  const getSentimentTextColor = (score: number) => {
-    if (score > 1) return 'text-green-600 dark:text-green-400';
-    if (score > 0) return 'text-blue-600 dark:text-blue-400';
-    if (score < -1) return 'text-red-600 dark:text-red-400';
-    return 'text-gray-600 dark:text-gray-400';
+  const getBarColor = (score: number) => {
+    if (score > 1) return 'hsl(var(--success))'; // muted green
+    if (score > 0) return 'hsl(var(--muted-foreground))'; // muted neutral
+    if (score < -1) return 'hsl(var(--error))'; // muted red
+    return 'hsl(var(--muted))'; // neutral
   };
 
   const getBarWidth = (count: number, maxCount: number) => {
@@ -64,115 +60,135 @@ export function ToolSentimentBar({ window = '7d' }: ToolSentimentBarProps) {
 
   if (loading) {
     return (
-      <Card>
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Tool Sentiment Comparison
-          </h3>
+      <div className="research-card research-card-skeleton">
+        <div className="research-card-header">
+          <div className="research-card-badges">
+            <div className="skeleton-badge" style={{ width: "120px" }}></div>
+          </div>
+        </div>
+        <div className="research-card-content">
           <div className="space-y-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
-                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            {[...Array(3)].map((_, i) => (
+              <div key={i}>
+                <div className="skeleton-text" style={{ width: "60%", height: "16px", marginBottom: "8px" }}></div>
+                <div className="skeleton-text" style={{ width: "100%", height: "24px" }}></div>
               </div>
             ))}
           </div>
         </div>
-      </Card>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card>
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Tool Sentiment Comparison
-          </h3>
-          <div className="text-red-600 dark:text-red-400">
-            Error loading comparison data: {error}
-          </div>
+      <div className="research-card research-error-state">
+        <div className="error-content">
+          <div className="error-icon">!</div>
+          <h3 className="error-title">Failed to load comparison data</h3>
+          <p className="error-message">{error}</p>
         </div>
-      </Card>
+      </div>
     );
   }
 
   if (data.length === 0) {
     return (
-      <Card>
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Tool Sentiment Comparison
-          </h3>
-          <div className="text-gray-500 dark:text-gray-400 text-center py-8">
-            No comparison data available
-          </div>
+      <div className="research-card research-empty-state">
+        <div className="empty-content">
+          <div className="empty-icon">-</div>
+          <h3 className="empty-title">No comparison data</h3>
+          <p className="empty-message">
+            No tool comparison data available for the selected time period
+          </p>
         </div>
-      </Card>
+      </div>
     );
   }
 
   const maxCount = Math.max(...data.map(d => d.count));
 
   return (
-    <Card>
-      <div className="p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-          AI Tool Sentiment Comparison
-        </h3>
+    <div className="research-card">
+      <div className="research-card-header">
+        <div className="research-card-badges">
+          <span className="research-badge research-badge-source">
+            Tool Comparison
+          </span>
+        </div>
+      </div>
 
-        <div className="space-y-4">
+      <div className="research-card-content">
+        <div className="space-y-8">
           {data.map((tool, index) => (
-            <div key={tool.tool} className="group">
+            <div key={tool.tool} className="tool-comparison-item">
               {/* Tool header */}
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-4">
+                  <span className="research-label" style={{ textTransform: 'none', fontSize: '1.125rem', fontWeight: '600' }}>
                     {tool.tool}
                   </span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {tool.count} posts
+                  <span className={`research-badge ${getSentimentBadgeClass(tool.avgSentiment)}`} style={{ fontSize: '0.875rem' }}>
+                    {tool.avgSentiment.toFixed(2)}
                   </span>
                 </div>
-                <div className={`font-semibold ${getSentimentTextColor(tool.avgSentiment)}`}>
-                  {tool.avgSentiment.toFixed(2)}
+                <div className="research-citations">
+                  {tool.count} posts
                 </div>
               </div>
 
               {/* Sentiment bar */}
-              <div className="relative">
+              <div className="relative mb-4">
                 {/* Background bar */}
-                <div className="w-full h-6 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="w-full rounded overflow-hidden"
+                  style={{ 
+                    height: '2rem', 
+                    backgroundColor: 'hsl(var(--muted))'
+                  }}
+                >
                   {/* Sentiment colored bar */}
                   <div
-                    className={`h-full transition-all duration-300 ${getSentimentColor(tool.avgSentiment)}`}
-                    style={{ width: `${getBarWidth(tool.count, maxCount)}%` }}
-                  />
-                </div>
-
-                {/* Positive/Negative breakdown overlay */}
-                <div className="absolute inset-0 flex items-center justify-end pr-2">
-                  <span className="text-xs text-white font-medium">
-                    +{tool.positive} / -{tool.negative}
-                  </span>
+                    className="h-full transition-all duration-300 relative flex items-center"
+                    style={{ 
+                      width: `${getBarWidth(tool.count, maxCount)}%`,
+                      backgroundColor: getBarColor(tool.avgSentiment),
+                      minWidth: '60px'
+                    }}
+                  >
+                    {/* Positive/Negative breakdown overlay */}
+                    <div className="absolute inset-0 flex items-center justify-end pr-4">
+                      <span 
+                        className="text-sm font-medium"
+                        style={{ color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.7)' }}
+                      >
+                        {tool.positive}+ | {tool.negative}-
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Engagement info */}
-              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Engagement: {Math.round(tool.totalEngagement).toLocaleString()}
+              <div className="research-authors" style={{ borderTop: 'none', paddingTop: '0', marginTop: '1rem' }}>
+                <span className="research-label">Engagement:</span>
+                <span className="research-authors-list">
+                  {Math.round(tool.totalEngagement).toLocaleString()} total interactions
+                </span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Footer note */}
-        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Bar width represents post volume. Color and number show average sentiment score (-5 to +5).
-          </p>
+        <div className="research-card-footer">
+          <div className="research-authors" style={{ borderTop: 'none' }}>
+            <span className="research-authors-list" style={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
+              Bar width represents post volume. Color and score show average sentiment (-5 to +5).
+            </span>
+          </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

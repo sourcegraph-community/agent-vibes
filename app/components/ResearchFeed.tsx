@@ -183,9 +183,9 @@ export default function ResearchFeed({ className }: ResearchFeedProps) {
 
           <div className="research-card-content">
             <h3 className="research-card-title">
-              {paper.pdf ? (
+              {paper.abstractUrl ? (
                 <a
-                  href={paper.pdf}
+                  href={paper.abstractUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="research-title-link"
@@ -197,7 +197,9 @@ export default function ResearchFeed({ className }: ResearchFeedProps) {
               )}
             </h3>
 
-            <p className="research-card-abstract">{paper.abstract}</p>
+            {paper.abstract !== "Abstract not available" && (
+              <p className="research-card-abstract">{paper.abstract}</p>
+            )}
 
             <div className="research-card-footer">
               <div className="research-authors">

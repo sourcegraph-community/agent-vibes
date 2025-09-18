@@ -1,46 +1,51 @@
 @import "tailwindcss/preflight";
 @import "tailwindcss/utilities";
 
-/* CSS Variables for theming - Based on analytics-dashboard.css */
+/* CSS Variables for theming - Professional Dark Dashboard Theme */
 :root {
-    /* Neutral Dark Theme - Like shadcn/ui */
-    --background: 0 0% 3.9%;           /* Very dark background */
-    --foreground: 0 0% 98%;            /* White foreground */
+    /* Core Dark Theme - Matching dashboard screenshots */
+    --background: 0 0% 7%;             /* Deep dark background like dashboard */
+    --foreground: 0 0% 95%;            /* Clean white text */
     
-    /* Card */
-    --card: 0 0% 3.9%;                 /* Same as background */
-    --card-foreground: 0 0% 98%;       /* White foreground */
+    /* Card backgrounds - Slightly lighter than main background */
+    --card: 0 0% 10%;                  /* Dark card background */
+    --card-foreground: 0 0% 95%;       /* White text on cards */
+    
+    /* Sidebar and navigation */
+    --sidebar: 0 0% 5%;                /* Darker sidebar background */
+    --sidebar-foreground: 0 0% 80%;    /* Muted text in sidebar */
+    --sidebar-active: 0 0% 95%;        /* Active sidebar item text */
     
     /* Popover */
-    --popover: 0 0% 3.9%;              /* Same as background */
-    --popover-foreground: 0 0% 98%;    /* White foreground */
+    --popover: 0 0% 10%;               /* Dark popover */
+    --popover-foreground: 0 0% 95%;    /* White text */
     
-    /* Primary */
-    --primary: 0 0% 98%;               /* White */
-    --primary-foreground: 0 0% 9%;     /* Very dark */
+    /* Primary - Clean white accents */
+    --primary: 0 0% 95%;               /* White primary */
+    --primary-foreground: 0 0% 10%;    /* Dark text on primary */
     
-    /* Secondary */
-    --secondary: 0 0% 14.9%;           /* Dark gray */
-    --secondary-foreground: 0 0% 98%;  /* White */
+    /* Secondary - Subtle gray accents */
+    --secondary: 0 0% 18%;             /* Subtle gray background */
+    --secondary-foreground: 0 0% 95%;  /* White text */
     
-    /* Muted */
-    --muted: 0 0% 14.9%;               /* Dark gray */
-    --muted-foreground: 0 0% 63.9%;    /* Medium gray */
+    /* Muted elements */
+    --muted: 0 0% 15%;                 /* Muted background */
+    --muted-foreground: 0 0% 60%;      /* Muted text - readable but subdued */
     
-    /* Accent */
-    --accent: 0 0% 14.9%;              /* Dark gray */
-    --accent-foreground: 0 0% 98%;     /* White */
+    /* Accent for interactive elements */
+    --accent: 0 0% 18%;                /* Interactive element background */
+    --accent-foreground: 0 0% 95%;     /* Text on accent */
     
-    /* Destructive */
-    --destructive: 0 62.8% 30.6%;      /* Muted red */
-    --destructive-foreground: 0 0% 98%; /* White */
+    /* Destructive - Subtle red */
+    --destructive: 0 50% 35%;          /* Muted red */
+    --destructive-foreground: 0 0% 95%; /* White text on red */
     
-    /* Border */
-    --border: 0 0% 14.9%;              /* Dark gray border */
-    --input: 0 0% 14.9%;               /* Dark gray input */
+    /* Borders - Subtle but visible */
+    --border: 0 0% 20%;                /* Visible but subtle borders */
+    --input: 0 0% 15%;                 /* Input backgrounds */
     
-    /* Ring */
-    --ring: 0 0% 83.1%;                /* Light gray ring */
+    /* Focus rings */
+    --ring: 0 0% 40%;                  /* Focus ring color */
     
     /* Subtle Agent Distinctions - Different grays and opacity */
     --agent-1: 0 0% 90%;               /* Lightest gray - Amp */
@@ -482,21 +487,21 @@ body {
 }
 
 .research-badge-source {
-    background: linear-gradient(135deg, hsl(220 70% 50%) 0%, hsl(220 70% 60%) 100%);
-    color: white;
-    border-color: hsl(220 70% 40%);
+    background: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+    border-color: hsl(var(--border));
 }
 
 .research-badge-category {
-    background: linear-gradient(135deg, hsl(260 70% 50%) 0%, hsl(260 70% 60%) 100%);
-    color: white;
-    border-color: hsl(260 70% 40%);
+    background: hsl(var(--muted));
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--border));
 }
 
 .research-badge-score {
-    background: linear-gradient(135deg, hsl(120 60% 35%) 0%, hsl(120 60% 45%) 100%);
-    color: white;
-    border-color: hsl(120 60% 30%);
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border-color: hsl(var(--border));
 }
 
 .research-card-meta {

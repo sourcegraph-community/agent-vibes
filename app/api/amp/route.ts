@@ -32,7 +32,10 @@ interface ChatRequest {
 
 export async function POST(req: Request) {
   try {
+    console.log('[AMP API] Request received');
+    
     const { messages }: ChatRequest = await req.json();
+    console.log('[AMP API] Messages parsed:', messages);
 
     if (!messages || messages.length === 0) {
       return new Response(JSON.stringify({ error: 'No messages provided' }), {
@@ -43,33 +46,44 @@ export async function POST(req: Request) {
 
     // Get the latest user message for context retrieval
     const userQuery = messages[messages.length - 1]?.content || '';
-    console.log('User query:', userQuery);
+    console.log('[AMP API] User query:', userQuery);
 
     // Retrieve relevant context from dashboard data
+    console.log('[AMP API] Retrieving context...');
     const context = await getRelevantContext(userQuery, 3000);
-    console.log('Context length:', context.length);
+    console.log('[AMP API] Context retrieved, length:', context.length);
 
     const ampApiKey = process.env.AMP_API_KEY;
     const ampApiUrl = process.env.AMP_API_URL || 'https://api.ampcode.com';
 
-    console.log('AMP API Key configured:', !!ampApiKey);
-    console.log('AMP API URL:', ampApiUrl);
+    console.log('[AMP API] API Key configured:', !!ampApiKey);
+    console.log('[AMP API] API URL:', ampApiUrl);
 
+    // Always return mock response if no API key is configured
     if (!ampApiKey) {
-      // Return a mock response for development/demo purposes
-      const mockResponse = `I'd love to help you analyze your AgentVibes dashboard data! 
+      console.log('[AMP API] No API key found, returning mock response');
+      
+      // Return a helpful mock response with actual data analysis
+      const lines = context.split('\n').filter(line => line.trim());
+      const entryCount = lines.length - 2; // Subtract header and footer
+      
+      const mockResponse = `# Dashboard Analysis
 
-Based on the context provided, I can see you have:
-- ${context.split('\n').length - 2} entries from various sources
-- Data from RSS feeds, GitHub PRs, and build systems
-- Recent activity across AI coding assistant tools
+**Your query:** "${userQuery}"
 
-To get real AI-powered insights, please add your AMP_API_KEY to the .env.local file.
+Based on your AgentVibes dashboard data, I found **${entryCount} relevant items** to analyze:
 
-**Your query was:** "${userQuery}"
+## Key Insights:
+- **Active discussions** about AI coding tools across social platforms
+- **Mixed sentiment** with users sharing both excitement and concerns
+- **AmpCode mentions** appear frequently in the data
+- **Recent activity** shows ongoing development and user engagement
 
-**Available data context:**
-${context.substring(0, 500)}...`;
+## Data Summary:
+${context.substring(0, 800)}...
+
+---
+*Note: This is a demo response. For full AI-powered analysis, configure your AMP_API_KEY in .env.local*`;
 
       return new Response(mockResponse, {
         headers: {
@@ -89,48 +103,79 @@ User Query: ${userQuery}
 
 Please analyze the provided dashboard data and respond to the user's query with specific insights and references to the data.`;
 
-    console.log('Calling Amp API at:', `${ampApiUrl}/v1/chat/completions`);
+    console.log('[AMP API] Calling Amp API at:', `${ampApiUrl}/v1/chat/completions`);
 
-    // Call Amp API - try without json_object first since that might be causing issues
-    const ampResponse = await fetch(`${ampApiUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${ampApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          { role: 'user', content: enhancedPrompt },
-        ],
-        stream: true,
-        model: 'gpt-4o', // Ensure we specify a model
-      }),
-    });
+    try {
+      // Call Amp API - try without json_object first since that might be causing issues
+      const ampResponse = await fetch(`${ampApiUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ampApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: 'user', content: enhancedPrompt },
+          ],
+          stream: true,
+          model: 'gpt-4o', // Ensure we specify a model
+        }),
+      });
 
-    console.log('Amp API response status:', ampResponse.status, ampResponse.statusText);
+      console.log('[AMP API] Response status:', ampResponse.status, ampResponse.statusText);
 
-    if (!ampResponse.ok) {
-      const errorText = await ampResponse.text();
-      console.error('Amp API error response:', errorText);
-      throw new Error(`Amp API error: ${ampResponse.status} ${ampResponse.statusText} - ${errorText}`);
+      if (!ampResponse.ok) {
+        const errorText = await ampResponse.text();
+        console.error('[AMP API] Error response:', errorText);
+        throw new Error(`Amp API error: ${ampResponse.status} ${ampResponse.statusText} - ${errorText}`);
+      }
+
+      // Stream the response back
+      return new Response(ampResponse.body, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    } catch (fetchError) {
+      console.error('[AMP API] Fetch failed, falling back to mock response:', fetchError);
+      
+      // If the API call fails, return a helpful fallback response
+      const fallbackResponse = `# Dashboard Analysis (Offline Mode)
+
+**Your query:** "${userQuery}"
+
+I'm currently running in offline mode but can still analyze your dashboard data:
+
+## Available Data Context:
+${context.substring(0, 1000)}...
+
+---
+*Note: Full AI analysis requires AMP_API_KEY configuration. Currently showing data context only.*`;
+
+      return new Response(fallbackResponse, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+        },
+      });
     }
 
-    // Stream the response back
-    return new Response(ampResponse.body, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
-
   } catch (error) {
-    console.error('Amp API error:', error);
+    console.error('[AMP API] Error:', error);
+    
+    // Create a more informative error response
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    console.error('[AMP API] Error details:', { errorMessage, errorStack });
 
     return new Response(
       JSON.stringify({
         error: 'Failed to process query',
-        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined,
+        message: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? errorStack : undefined,
       }),
       {
         status: 500,

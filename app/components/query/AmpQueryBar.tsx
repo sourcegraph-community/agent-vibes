@@ -43,6 +43,7 @@ export function AmpQueryBar({
 
   const handleSuggestionSelect = (suggestion: string) => {
     setQuery(suggestion);
+    setIsFocused(false);
     onQuery(suggestion);
   };
 
@@ -64,7 +65,7 @@ export function AmpQueryBar({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             placeholder={placeholder}
             className="
               w-full pl-11 pr-12 py-3
@@ -90,8 +91,8 @@ export function AmpQueryBar({
         </div>
       </form>
 
-      {/* Smart suggestions when focused */}
-      {isFocused && (
+      {/* Smart suggestions when focused and no query typed */}
+      {isFocused && !query.trim() && (
         <div className="absolute z-50 w-full mt-2">
           <SmartSuggestions
             currentView={currentView}

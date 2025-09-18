@@ -7,6 +7,7 @@ import { Sidebar } from '../components/Sidebar';
 import ResearchFeed from '../components/ResearchFeed';
 import { AmpQueryInterface } from '../components/query/AmpQueryInterface';
 import { SentimentDashboardPreview } from '../components/SentimentDashboardPreview';
+import TimelineView from '../components/TimelineView';
 
 import {
   TrendingUp,
@@ -68,6 +69,45 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getProductUpdates = () => {
+    return entries.filter(entry => {
+      const category = entry.category?.toLowerCase() || '';
+      const title = entry.title?.toLowerCase() || '';
+      const source = typeof entry.source === 'string' ? entry.source.toLowerCase() : '';
+      
+      return (
+        category === 'product' || 
+        title.includes('cursor') ||
+        title.includes('copilot') ||
+        title.includes('openai') ||
+        title.includes('anthropic') ||
+        title.includes('github') ||
+        source.includes('github')
+      );
+    }).slice(0, 8);
+  };
+
+  const getPerspectivePieces = () => {
+    return entries.filter(entry => {
+      const category = entry.category?.toLowerCase() || '';
+      const title = entry.title?.toLowerCase() || '';
+      const source = typeof entry.source === 'string' ? entry.source.toLowerCase() : '';
+      
+      return (
+        category === 'perspective' ||
+        title.includes('techcrunch') ||
+        title.includes('verge') ||
+        title.includes('infoq') ||
+        title.includes('stackoverflow') ||
+        title.includes('dev.to') ||
+        title.includes('latent space') ||
+        title.includes('aws') ||
+        title.includes('automation') ||
+        title.includes('ai')
+      );
+    }).slice(0, 8);
   };
 
   const calculateMetrics = () => {
@@ -558,8 +598,161 @@ export default function DashboardPage() {
             </section>
           )}
 
+          {/* Product Updates Section */}
+          {activeSection === 'updates' && (
+            <section id="updates" className="section">
+              <div className="section-header">
+                <h2 className="section-title">Product Updates</h2>
+                <p className="section-description">
+                  Latest releases, features, and announcements from AI coding tools
+                </p>
+                <div className="section-actions">
+                  <select className="select">
+                    <option value="all">All Products</option>
+                    <option value="cursor">Cursor</option>
+                    <option value="copilot">GitHub Copilot</option>
+                    <option value="anthropic">Claude</option>
+                    <option value="openai">OpenAI</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="updates-grid">
+                {isLoading ? (
+                  <div className="loading-container">
+                    <div className="loading-icon">⏳</div>
+                    <p className="loading-text">Loading product updates...</p>
+                  </div>
+                ) : getProductUpdates().length > 0 ? (
+                  getProductUpdates().map((update) => (
+                    <div key={update.id} className={`update-card ${typeof update.source === 'string' ? update.source.replace(/\s+/g, '-') : 'unknown'}`}>
+                      <div className="update-header">
+                        <div className="update-badge product">{update.metadata?.feedTitle || 'Product Update'}</div>
+                        <span className="update-time">{formatTimeAgo(update.publishedAt)}</span>
+                      </div>
+                      <h3 className="update-title">
+                        {update.url ? (
+                          <a href={update.url} target="_blank" rel="noopener noreferrer" className="update-link">
+                            {update.title}
+                          </a>
+                        ) : (
+                          update.title
+                        )}
+                      </h3>
+                      <p className="update-summary">
+                        {update.summary || 'No summary available'}
+                      </p>
+                      <div className="update-meta">
+                        <span className="update-source">{update.url ? new URL(update.url).hostname : 'Unknown'}</span>
+                        {update.sentiment && (
+                          <span className={`update-sentiment ${update.sentiment > 0.1 ? 'positive' : 'neutral'}`}>
+                            {Math.round(update.sentiment * 100)}% positive
+                          </span>
+                        )}
+                      </div>
+                      {update.classification && (
+                        <div className="update-tags">
+                          <span className="tag">{update.classification}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="loading-container">
+                    <p className="loading-text">No product updates available yet. RSS feeds may still be loading.</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Perspective Pieces Section */}
+          {activeSection === 'perspectives' && (
+            <section id="perspectives" className="section">
+              <div className="section-header">
+                <h2 className="section-title">Perspective Pieces</h2>
+                <p className="section-description">
+                  Industry analysis, developer insights, and thought leadership on AI coding tools
+                </p>
+                <div className="section-actions">
+                  <select className="select">
+                    <option value="all">All Sources</option>
+                    <option value="techcrunch">TechCrunch</option>
+                    <option value="theverge">The Verge</option>
+                    <option value="infoq">InfoQ</option>
+                    <option value="stackoverflow">Stack Overflow</option>
+                    <option value="devto">Dev.to</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="perspectives-grid">
+                {isLoading ? (
+                  <div className="loading-container">
+                    <div className="loading-icon">⏳</div>
+                    <p className="loading-text">Loading perspective pieces...</p>
+                  </div>
+                ) : getPerspectivePieces().length > 0 ? (
+                  getPerspectivePieces().map((perspective) => (
+                    <div key={perspective.id} className={`perspective-card ${typeof perspective.source === 'string' ? perspective.source.replace(/\s+/g, '-') : 'unknown'}`}>
+                      <div className="perspective-header">
+                        <div className="perspective-badge perspective">{perspective.metadata?.feedTitle || 'Perspective'}</div>
+                        <span className="perspective-time">{formatTimeAgo(perspective.publishedAt)}</span>
+                      </div>
+                      <h3 className="perspective-title">
+                        {perspective.url ? (
+                          <a href={perspective.url} target="_blank" rel="noopener noreferrer" className="perspective-link">
+                            {perspective.title}
+                          </a>
+                        ) : (
+                          perspective.title
+                        )}
+                      </h3>
+                      <p className="perspective-summary">
+                        {perspective.summary || 'No summary available'}
+                      </p>
+                      <div className="perspective-meta">
+                        <span className="perspective-source">{perspective.url ? new URL(perspective.url).hostname : 'Unknown'}</span>
+                        {perspective.sentiment && (
+                          <span className={`perspective-sentiment ${perspective.sentiment > 0.1 ? 'positive' : 'neutral'}`}>
+                            {Math.round(perspective.sentiment * 100)}% positive
+                          </span>
+                        )}
+                      </div>
+                      {perspective.classification && (
+                        <div className="perspective-tags">
+                          <span className="tag">{perspective.classification}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="loading-container">
+                    <p className="loading-text">No perspective pieces available yet. RSS feeds may still be loading.</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Timeline View Section */}
+          {activeSection === 'timeline' && (
+            <section id="timeline" className="section">
+              <div className="section-header">
+                <h2 className="section-title">Timeline View</h2>
+                <p className="section-description">
+                  Chronological view of all activity across research, products, sentiment, and industry perspectives
+                </p>
+              </div>
+
+              <div className="timeline-content">
+                <TimelineView className="dashboard-timeline" />
+              </div>
+            </section>
+          )}
+
           {/* Other sections placeholder */}
-          {!['overview', 'highlights', 'research', 'query', 'sentiment', 'social'].includes(activeSection) && (
+          {!['overview', 'highlights', 'research', 'query', 'sentiment', 'social', 'updates', 'perspectives', 'timeline'].includes(activeSection) && (
             <section className="space-y-6">
               <h2 className="text-2xl font-semibold capitalize">{activeSection.replace('-', ' ')}</h2>
               <Card>

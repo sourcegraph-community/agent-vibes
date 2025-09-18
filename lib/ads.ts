@@ -94,13 +94,23 @@ function mapAdsDocToPaper(doc: RawAdsDoc): Paper {
     link.url?.includes('arxiv.org'),
   );
 
-  // Extract arXiv ID from bibcode or links for PDF construction
+  // Extract arXiv ID from bibcode or links for PDF and abstract URLs
   let pdfUrl = arxivLink?.url || '';
+  let abstractUrl = '';
+  
   if (!pdfUrl && doc.bibcode) {
-    // Try to construct arXiv URL from bibcode if available
-    const arxivMatch = doc.bibcode.match(/(\d{4}\.\d{4,5})/);
+    // Extract arXiv ID from bibcode format like "2023arXiv231213010H"
+    const arxivMatch = doc.bibcode.match(/\d{4}arXiv(\d{4})(\d{5})[A-Z]/);
     if (arxivMatch) {
-      pdfUrl = `https://arxiv.org/pdf/${arxivMatch[1]}.pdf`;
+      const arxivId = `${arxivMatch[1]}.${arxivMatch[2]}`;
+      pdfUrl = `https://arxiv.org/pdf/${arxivId}.pdf`;
+      abstractUrl = `https://arxiv.org/abs/${arxivId}`;
+    }
+  } else if (pdfUrl && pdfUrl.includes('arxiv.org/pdf/')) {
+    // If we have a PDF URL, construct the abstract URL
+    const arxivId = pdfUrl.match(/arxiv\.org\/pdf\/([^.]+\.\d+)/)?.[1];
+    if (arxivId) {
+      abstractUrl = `https://arxiv.org/abs/${arxivId}`;
     }
   }
 
@@ -149,15 +159,13 @@ function mapAdsDocToPaper(doc: RawAdsDoc): Paper {
     }
   }
 
-  // Handle abstract - if it's too short or meaningless, use a fallback
+  // Handle abstract - only show meaningful abstracts
   const rawAbstract = doc.abstract?.[0] || '';
   let processedAbstract = 'Abstract not available';
-
-  if (rawAbstract && rawAbstract.length > 10) {
+  
+  // Only show abstracts that are longer than 20 characters (meaningful content)
+  if (rawAbstract && rawAbstract.length > 20) {
     processedAbstract = truncateAbstract(rawAbstract);
-  } else if (rawAbstract && rawAbstract.length <= 10) {
-    // If we have a very short abstract (like single letters), skip showing it
-    processedAbstract = 'Abstract not available';
   }
 
   return {
@@ -169,6 +177,7 @@ function mapAdsDocToPaper(doc: RawAdsDoc): Paper {
     abstract: processedAbstract,
     citations: doc.citation_count || 0,
     pdf: pdfUrl,
+    abstractUrl: abstractUrl,
     score: doc.score,
     createdAt: new Date(),
   };

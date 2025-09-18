@@ -214,14 +214,19 @@ export async function searchEntries(query: ContextualQuery): Promise<QueryResult
 }
 
 export async function getRelevantContext(userQuery: string, maxTokens: number = 3000): Promise<string> {
-  const searchResult = await searchEntries({
-    query: userQuery,
-    maxResults: 20,
-  });
+  try {
+    console.log('[CONTEXT] Getting context for query:', userQuery);
+    
+    const searchResult = await searchEntries({
+      query: userQuery,
+      maxResults: 20,
+    });
 
-  if (searchResult.entries.length === 0) {
-    return "No relevant data found in the current dataset.";
-  }
+    console.log('[CONTEXT] Search completed, entries found:', searchResult.entries.length);
+
+    if (searchResult.entries.length === 0) {
+      return "No relevant data found in the current dataset.";
+    }
 
   let context = `Context from AgentVibes Dashboard Data (${searchResult.entries.length} relevant items):\n\n`;
   let tokenCount = context.length;
@@ -237,7 +242,13 @@ export async function getRelevantContext(userQuery: string, maxTokens: number = 
 
   context += `\nTotal entries available: ${searchResult.totalCount} | Search took: ${searchResult.searchTime}ms`;
 
+  console.log('[CONTEXT] Context generated, length:', context.length);
   return context;
+  
+  } catch (error) {
+    console.error('[CONTEXT] Error generating context:', error);
+    return `Error loading dashboard data: ${error instanceof Error ? error.message : 'Unknown error'}. Using fallback context.`;
+  }
 }
 
 // Utility to refresh cache manually

@@ -82,7 +82,7 @@ export function QueryResults({
         {/* Streaming content */}
         <div className="prose prose-sm max-w-none dark:prose-invert">
           {streamingContent ? (
-            <div className="whitespace-pre-wrap">
+            <div className="whitespace-pre-wrap text-sm leading-relaxed">
               {streamingContent}
               {isStreaming && (
                 <span className="inline-block w-2 h-4 bg-blue-500 animate-pulse ml-1" />

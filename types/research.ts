@@ -48,7 +48,8 @@ export interface Paper {
   arxivClass: string;
   abstract: string;
   citations: number;
-  pdf: string;          // first arXiv link
+  pdf: string;          // PDF link
+  abstractUrl?: string; // arXiv abstract page link
   score?: number;       // relevance score from ADS API
   createdAt?: Date;     // when added to our system
 }

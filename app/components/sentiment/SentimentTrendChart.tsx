@@ -54,10 +54,10 @@ export function SentimentTrendChart({ tool = 'all', window = '7d' }: SentimentTr
   };
 
   const getSentimentColor = (score: number) => {
-    if (score > 1) return 'bg-green-500';
-    if (score > 0) return 'bg-blue-500';
-    if (score < -1) return 'bg-red-500';
-    return 'bg-gray-400';
+    if (score > 1) return 'bg-slate-300';
+    if (score > 0) return 'bg-slate-400';
+    if (score < -1) return 'bg-slate-600';
+    return 'bg-slate-500';
   };
 
   const getBarHeight = (score: number, maxScore: number, minScore: number) => {
@@ -154,19 +154,19 @@ export function SentimentTrendChart({ tool = 'all', window = '7d' }: SentimentTr
         {/* Legend */}
         <div className="flex items-center justify-center gap-6 mt-4 text-sm text-gray-600 dark:text-gray-400">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded"></div>
+            <div className="w-3 h-3 bg-slate-300 rounded"></div>
             <span>Very Positive (1+)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded"></div>
+            <div className="w-3 h-3 bg-slate-400 rounded"></div>
             <span>Positive (0+)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-gray-400 rounded"></div>
+            <div className="w-3 h-3 bg-slate-500 rounded"></div>
             <span>Neutral (0)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-500 rounded"></div>
+            <div className="w-3 h-3 bg-slate-600 rounded"></div>
             <span>Negative (-1)</span>
           </div>
         </div>

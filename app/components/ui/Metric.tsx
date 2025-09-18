@@ -12,14 +12,14 @@ interface MetricProps {
 }
 
 const trendIcons = {
-  up: <TrendingUp className="h-4 w-4 text-green-500" />,
-  down: <TrendingDown className="h-4 w-4 text-red-500" />,
+  up: <TrendingUp className="h-4 w-4 text-slate-400" />,
+  down: <TrendingDown className="h-4 w-4 text-slate-500" />,
   neutral: <Minus className="h-4 w-4 text-muted-foreground" />,
 };
 
 const trendColors = {
-  up: 'text-green-500',
-  down: 'text-red-500',
+  up: 'text-slate-400',
+  down: 'text-slate-500',
   neutral: 'text-muted-foreground',
 };
 
