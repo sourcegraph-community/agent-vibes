@@ -1,7 +1,7 @@
 [
   {
     "id": "nasa-monthly-2023-01",
-    "title": "NASA monthly archive (Jan 2023)",
+    "title": "NASA monthly archive (Jan 2024)",
     "description": "Collects NASA tweets posted between 2023-01-01 and 2023-02-01 using segmented search queries.",
     "input": "inputs/nasa-monthly-2023-01.json",
     "output": "outputs/nasa-monthly-2023-01.json",

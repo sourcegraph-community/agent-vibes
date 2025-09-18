@@ -4,30 +4,18 @@ This folder provides deterministic fixtures for the **Tweet Scraper V2 – X / T
 
 ## Folder Structure
 
-- `inputs/` – JSON payloads that can be sent to the actor.
-- `outputs/` – Representative JSON datasets produced by the actor for the paired inputs.
-- `scenarios.json` – Registry that maps high-level test cases to their fixture files.
-
-## Scenarios
-
-| Scenario | Description | Input | Output |
-| --- | --- | --- | --- |
-| `nasa-monthly-2023-01` | Captures NASA tweets for January 2023 using `from`, `since`, `until` search segments. | `inputs/nasa-monthly-2023-01.json` | `outputs/nasa-monthly-2023-01.json` |
-| `hashtag-conversation-doge` | Fetches replies to a conversation that includes the `#DogeMission` hashtag. | `inputs/hashtag-conversation-doge.json` | `outputs/hashtag-conversation-doge.json` |
-
-Each output file contains only a concise slice of the actor response while preserving field structure, enabling snapshot assertions without overwhelming fixtures.
+- `data/`
+  - `inputs/` – JSON payloads that can be sent to the actor.
+  - `outputs/` – Representative JSON datasets produced by the actor for the paired inputs.
+  - `scenarios.json` – Registry mapping test cases to their fixture files.
+- `apify-tweet-scraper.css` – Styling shared by the Next.js mock route.
 
 ## Usage
 
-1. **Pair the files.** Load the relevant input fixture and assert against the matching output fixture.
-2. **Extend cautiously.** When adding scenarios, update `scenarios.json` to include metadata (`id`, `title`, `input`, `output`, `notes`). Keep payloads minimal but structurally accurate.
-3. **Stay deterministic.** For any generated fields (timestamps, counts), freeze them in the fixture so downstream tests remain stable.
+1. **Primary source:** The Next.js route at `/mocks/apify-tweet-scraper` hydrates directly from the files in `data/` and applies `apify-tweet-scraper.css`, so the rendered dashboard stays synchronized with the mock fixtures.
+2. **Local experiments:** If you need a standalone HTML mock again, duplicate the route markup or create an HTML shell that imports the same CSS and data files.
 
-## Pricing & Policy Notes
+## Notes
 
-- Fixtures encode the actor’s guidance around batching (`~800 tweets/search`) and minimum item counts (≥ 50 per query) to reflect production usage rules.
-- Monitoring-style polling is intentionally excluded; avoid adding such scenarios per actor restrictions.
-
-## Next Steps
-
-A lightweight tooling layer will be introduced separately to stream these fixtures into local mocks and contract tests. See the main project tracking issue for progress updates.
+- Keep payloads minimal but structurally accurate. Freeze generated fields (timestamps, counts) so downstream tests remain stable.
+- Update `scenarios.json` whenever new scenarios are added; the Next.js page will pick up differences automatically.
