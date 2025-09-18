@@ -1,12 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useKnockNotifications } from './hooks/useKnockNotifications';
+import { useState } from 'react';
 
 export default function Home() {
   const [notificationStatus, setNotificationStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle');
-  const [userId] = useState(() => `user-${Math.random().toString(36).substr(2, 9)}`);
-  const { subscribeToKnock } = useKnockNotifications();
 
   const handleNotificationRequest = async () => {
     if (!('Notification' in window)) {
@@ -20,8 +17,6 @@ export default function Home() {
         body: "You're all set! We'll notify you when we launch.",
         icon: '/favicon.ico'
       });
-      // Also subscribe to Knock
-      await subscribeToKnock(userId);
       return;
     }
 
@@ -35,9 +30,6 @@ export default function Home() {
         body: "You're all set! We'll notify you when we launch.",
         icon: '/favicon.ico'
       });
-      
-      // Also subscribe to Knock for future notifications
-      await subscribeToKnock(userId);
     } else {
       setNotificationStatus('denied');
     }
@@ -85,39 +77,14 @@ export default function Home() {
               <p className="text-sm" style={{color: '#f8f9fa'}}>Monitor the competitive landscape</p>
             </div>
             <div className="rounded-lg p-6 border" style={{backgroundColor: '#373737', borderColor: '#5b5b5b'}}>
-              <div className="text-3xl mb-3">⚡</div>
-              <h3 className="text-lg font-semibold mb-2" style={{color: '#f8f9fa'}}>Tech Developments</h3>
-              <p className="text-sm" style={{color: '#f8f9fa'}}>Stay ahead of innovation</p>
+              <div className="text-3xl mb-3">⏲️</div>
+              <h3 className="text-lg font-semibold mb-2" style={{color: '#f8f9fa'}}>Coming soon</h3>
+              <p className="text-sm" style={{color: '#f8f9fa'}}>Stay tuned</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl p-8 border mb-8" style={{backgroundColor: '#373737', borderColor: '#5b5b5b'}}>
-          <h2 className="text-2xl font-semibold mb-4" style={{color: '#f8f9fa'}}>Coming Soon</h2>
-          <p className="mb-6" style={{color: '#f8f9fa'}}>
-            We're building something extraordinary. Get notified when we launch.
-          </p>
-          <div className="flex justify-center">
-            <button 
-              onClick={handleNotificationRequest}
-              disabled={notificationStatus === 'requesting'}
-              className="px-8 py-4 rounded-lg font-semibold hover:opacity-90 transition-opacity duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{backgroundColor: '#5b5b5b', color: '#f8f9fa'}}
-            >
-              {getButtonText()}
-            </button>
-          </div>
-          {notificationStatus === 'denied' && (
-            <p className="text-sm mt-4" style={{color: '#ff6b6b'}}>
-              Notifications blocked. Please enable them in your browser settings.
-            </p>
-          )}
-          {notificationStatus === 'granted' && (
-            <p className="text-sm mt-4" style={{color: '#51cf66'}}>
-              Perfect! You'll be notified when AgentVibes launches.
-            </p>
-          )}
-        </div>
+        
 
         <div className="text-sm" style={{color: '#5b5b5b'}}>
           Built with ❤️ for the coding agent community

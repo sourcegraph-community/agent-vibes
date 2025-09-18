@@ -8,8 +8,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "@knocklabs/client": "^0.18.0",
-    "@knocklabs/node": "^1.16.0",
     "next": "15.5.2",
     "react": "19.1.0",
     "react-dom": "19.1.0"
