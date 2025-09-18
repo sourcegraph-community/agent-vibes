@@ -5,7 +5,6 @@
 - **Mock data accuracy**: Align Apify output fixture statistics (item counts) with the truncated sample data.
 - **Tweet metric fallback**: Update `formatSampleStat` in `app/mocks/apify-tweet-scraper/page.tsx` to show em dashes instead of zero when counts are unavailable.
 - **Analytics interactivity**: Implement client-side behavior for overview filters (timeframe buttons, agent/source checkboxes) beyond the primary chart.
-- **Duped documentation**: Remove the redundant “Checks & Formatting” block and resolve the `# AI Agent Dashboard Design Guide.md` duplicate under `mocks/analytics-dashboard`.
 - **CDN resilience** *(optional)*: Add fallbacks or version monitoring for pinned Chart.js and Lucide assets.
 
 ## Verification Checklist
