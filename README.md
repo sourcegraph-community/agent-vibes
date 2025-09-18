@@ -20,6 +20,15 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Mock Dashboards
+
+Two data-driven mock dashboards are bundled for rapid prototyping:
+
+- **Apify Tweet Scraper:** Visit [http://localhost:3000/mocks/apify-tweet-scraper](http://localhost:3000/mocks/apify-tweet-scraper) while running `npm run dev`. The page hydrates from JSON fixtures in `mocks/apify-tweet-scraper/data/` and reuses the shared CSS skin.
+- **Agent Intelligence Dashboard:** Visit [http://localhost:3000/mocks/analytics-dashboard](http://localhost:3000/mocks/analytics-dashboard). Metrics, highlights, and sentiment series are sourced from `mocks/analytics-dashboard/data/dashboard.json` and rendered with Chart.js + Lucide icons.
+
+Update the JSON files to adjust copy, stats, or chart data—the routes re-read fixtures on every request.
+
 ## Checks & Formatting
 
 Install dependencies (including dev tools):
