@@ -5,33 +5,19 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "start": "next start",
-    "typecheck": "tsc -p . --noEmit",
-    "typecheck:watch": "tsc -p . --noEmit --watch --preserveWatchOutput",
-    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --cache",
-    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix --cache",
-    "check": "npm run typecheck && npm run lint",
-    "fix": "npm run lint:fix",
-    "check:fix": "npm run typecheck && npm run lint:fix"
+    "start": "next start"
   },
   "dependencies": {
+    "next": "15.5.2",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "next": "15.5.2"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4",
-    "eslint": "^9",
-    "@eslint/js": "^9",
-    "typescript-eslint": "^8",
-    "eslint-plugin-react": "^7",
-    "eslint-plugin-react-hooks": "^5",
-    "globals": "^15",
-    "@stylistic/eslint-plugin": "^2"
+    "typescript": "^5"
   }
 }
