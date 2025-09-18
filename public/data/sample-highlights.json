@@ -1,0 +1,26 @@
+{
+  "highlights": [
+    {
+      "id": "highlight-1",
+      "title": "Featured: Advanced AI Research",
+      "summary": "Cutting-edge research in artificial intelligence and machine learning applications.",
+      "url": "https://example.com/highlight-1",
+      "publishedAt": "2025-09-18T12:00:00.000Z",
+      "category": "research",
+      "source": "sample",
+      "featured": true,
+      "tags": ["ai", "research", "featured"]
+    },
+    {
+      "id": "highlight-2",
+      "title": "Product Innovation Spotlight",
+      "summary": "Innovative product development strategies and emerging market trends.",
+      "url": "https://example.com/highlight-2", 
+      "publishedAt": "2025-09-18T10:00:00.000Z",
+      "category": "product",
+      "source": "sample",
+      "featured": true,
+      "tags": ["product", "innovation", "featured"]
+    }
+  ]
+}

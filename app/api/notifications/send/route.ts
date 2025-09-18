@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     if (!userId || !title || !body) {
       return NextResponse.json(
         { error: 'Missing required fields' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         body,
-        url: process.env.NEXT_PUBLIC_APP_URL || 'https://agentvibes.com'
-      }
+        url: process.env.NEXT_PUBLIC_APP_URL || 'https://agentvibes.com',
+      },
     });
 
     return NextResponse.json({ success: true });
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     console.error('Error sending notification:', error);
     return NextResponse.json(
       { error: 'Failed to send notification' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

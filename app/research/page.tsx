@@ -16,14 +16,21 @@ export default function ResearchPage() {
             Latest CS research from arXiv on coding agents, AI programming assistants, and code generation
           </p>
         </div>
-        
+
         <div className="page-actions">
-          <div className="filter-controls">
-            <select className="select" defaultValue="recent">
-              <option value="recent">Most Recent</option>
-              <option value="citations">Most Cited</option>
-              <option value="relevant">Most Relevant</option>
-            </select>
+          <div className="research-stats">
+            <div className="stat-item">
+              <span className="stat-label">Source:</span>
+              <span className="stat-value">NASA ADS API</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Query:</span>
+              <span className="stat-value">Coding Agent Research</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Sort:</span>
+              <span className="stat-value">Relevance Score</span>
+            </div>
           </div>
         </div>
       </header>

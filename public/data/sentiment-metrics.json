@@ -1,0 +1,212 @@
+{
+  "total": 100,
+  "lastUpdated": "2025-09-18T19:37:37.125Z",
+  "overall": {
+    "avgSentiment": 1.77,
+    "positive": 53,
+    "neutral": 42,
+    "negative": 5
+  },
+  "windows": {
+    "24h": {
+      "count": 44,
+      "avgSentiment": 2.2954545454545454,
+      "positive": 25,
+      "negative": 2
+    },
+    "7d": {
+      "count": 66,
+      "avgSentiment": 1.803030303030303,
+      "positive": 35,
+      "negative": 4
+    },
+    "30d": {
+      "count": 89,
+      "avgSentiment": 1.7752808988764044,
+      "positive": 47,
+      "negative": 5
+    }
+  },
+  "byTool": {
+    "AmpCode": {
+      "count": 64,
+      "avgSentiment": 2.109375,
+      "positive": 37,
+      "negative": 4,
+      "totalEngagement": 260.6700000000001
+    },
+    "other": {
+      "count": 24,
+      "avgSentiment": 0.7916666666666666,
+      "positive": 9,
+      "negative": 0,
+      "totalEngagement": 296.34000000000003
+    },
+    "Cody": {
+      "count": 10,
+      "avgSentiment": 2.1,
+      "positive": 6,
+      "negative": 0,
+      "totalEngagement": 645.1300000000001
+    },
+    "Cursor": {
+      "count": 2,
+      "avgSentiment": 1,
+      "positive": 1,
+      "negative": 1,
+      "totalEngagement": 31.26
+    }
+  },
+  "daily": {
+    "2025-09-18": {
+      "count": 19,
+      "avgSentiment": 2.4210526315789473,
+      "positive": 12,
+      "negative": 2
+    },
+    "2025-09-17": {
+      "count": 28,
+      "avgSentiment": 1.9642857142857142,
+      "positive": 13,
+      "negative": 0
+    },
+    "2025-09-16": {
+      "count": 6,
+      "avgSentiment": 1.5,
+      "positive": 3,
+      "negative": 0
+    },
+    "2025-09-15": {
+      "count": 3,
+      "avgSentiment": -3.6666666666666665,
+      "positive": 1,
+      "negative": 2
+    },
+    "2025-09-14": {
+      "count": 5,
+      "avgSentiment": 0.6,
+      "positive": 1,
+      "negative": 0
+    },
+    "2025-09-11": {
+      "count": 4,
+      "avgSentiment": 1.75,
+      "positive": 3,
+      "negative": 0
+    },
+    "2025-09-10": {
+      "count": 2,
+      "avgSentiment": 0,
+      "positive": 0,
+      "negative": 0
+    },
+    "2025-09-09": {
+      "count": 6,
+      "avgSentiment": 1.3333333333333333,
+      "positive": 2,
+      "negative": 0
+    },
+    "2025-09-13": {
+      "count": 1,
+      "avgSentiment": 2,
+      "positive": 1,
+      "negative": 0
+    },
+    "2025-09-12": {
+      "count": 3,
+      "avgSentiment": 4,
+      "positive": 3,
+      "negative": 0
+    },
+    "2025-09-08": {
+      "count": 3,
+      "avgSentiment": 1,
+      "positive": 1,
+      "negative": 0
+    },
+    "2025-09-07": {
+      "count": 2,
+      "avgSentiment": 2,
+      "positive": 1,
+      "negative": 0
+    },
+    "2025-09-05": {
+      "count": 1,
+      "avgSentiment": 7,
+      "positive": 1,
+      "negative": 0
+    },
+    "2025-09-02": {
+      "count": 1,
+      "avgSentiment": 3,
+      "positive": 1,
+      "negative": 0
+    },
+    "2025-09-01": {
+      "count": 1,
+      "avgSentiment": 4,
+      "positive": 1,
+      "negative": 0
+    },
+    "2025-08-31": {
+      "count": 1,
+      "avgSentiment": 2,
+      "positive": 1,
+      "negative": 0
+    },
+    "2025-08-27": {
+      "count": 1,
+      "avgSentiment": 1,
+      "positive": 1,
+      "negative": 0
+    },
+    "2025-08-24": {
+      "count": 1,
+      "avgSentiment": 5,
+      "positive": 1,
+      "negative": 0
+    },
+    "2025-08-22": {
+      "count": 1,
+      "avgSentiment": -2,
+      "positive": 0,
+      "negative": 1
+    },
+    "2025-08-15": {
+      "count": 1,
+      "avgSentiment": 6,
+      "positive": 1,
+      "negative": 0
+    },
+    "2025-08-12": {
+      "count": 1,
+      "avgSentiment": 0,
+      "positive": 0,
+      "negative": 0
+    },
+    "2025-08-08": {
+      "count": 2,
+      "avgSentiment": 1.5,
+      "positive": 1,
+      "negative": 0
+    },
+    "2025-08-07": {
+      "count": 1,
+      "avgSentiment": 0,
+      "positive": 0,
+      "negative": 0
+    },
+    "2025-07-29": {
+      "count": 4,
+      "avgSentiment": 1.5,
+      "positive": 2,
+      "negative": 0
+    },
+    "2025-07-28": {
+      "count": 2,
+      "avgSentiment": 2,
+      "positive": 2,
+      "negative": 0
+    }
+  }
+}

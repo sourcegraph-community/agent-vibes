@@ -1,0 +1,36 @@
+{
+  "entries": [
+    {
+      "id": "sample-1",
+      "title": "Sample AI Research Article",
+      "summary": "A comprehensive look at emerging AI technologies and their applications in modern software development.",
+      "url": "https://example.com/sample-1",
+      "content": "<h1>Sample AI Research</h1><p>This is sample content for fallback purposes.</p>",
+      "publishedAt": "2025-09-18T12:00:00.000Z",
+      "category": "research",
+      "source": "sample",
+      "tags": ["ai", "research", "technology"],
+      "metadata": {
+        "feedTitle": "Sample Feed",
+        "author": "Sample Author",
+        "categories": ["research", "ai"]
+      }
+    },
+    {
+      "id": "sample-2", 
+      "title": "Product Development Insights",
+      "summary": "Key insights into modern product development methodologies and best practices.",
+      "url": "https://example.com/sample-2",
+      "content": "<h1>Product Development</h1><p>Sample content about product development practices.</p>",
+      "publishedAt": "2025-09-18T10:00:00.000Z",
+      "category": "product",
+      "source": "sample",
+      "tags": ["product", "development", "business"],
+      "metadata": {
+        "feedTitle": "Sample Feed",
+        "author": "Sample Author",
+        "categories": ["product", "business"]
+      }
+    }
+  ]
+}

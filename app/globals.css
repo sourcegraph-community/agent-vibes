@@ -1,35 +1,110 @@
-@import "@tailwindcss/base";
-@import "@tailwindcss/components";
-@import "@tailwindcss/utilities";
+@import "tailwindcss/preflight";
+@import "tailwindcss/utilities";
 
-/* CSS Variables for theming */
+/* CSS Variables for theming - Based on analytics-dashboard.css */
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --card: #111111;
-  --card-foreground: #ededed;
-  --popover: #111111;
-  --popover-foreground: #ededed;
-  --primary: #ffffff;
-  --primary-foreground: #0a0a0a;
-  --secondary: #262626;
-  --secondary-foreground: #fafafa;
-  --muted: #262626;
-  --muted-foreground: #a1a1aa;
-  --accent: #262626;
-  --accent-foreground: #fafafa;
-  --destructive: #dc2626;
-  --destructive-foreground: #fafafa;
-  --border: #262626;
-  --input: #262626;
-  --ring: #d4d4d8;
-  --radius: 0.75rem;
+    /* Neutral Dark Theme - Like shadcn/ui */
+    --background: 0 0% 3.9%;           /* Very dark background */
+    --foreground: 0 0% 98%;            /* White foreground */
+    
+    /* Card */
+    --card: 0 0% 3.9%;                 /* Same as background */
+    --card-foreground: 0 0% 98%;       /* White foreground */
+    
+    /* Popover */
+    --popover: 0 0% 3.9%;              /* Same as background */
+    --popover-foreground: 0 0% 98%;    /* White foreground */
+    
+    /* Primary */
+    --primary: 0 0% 98%;               /* White */
+    --primary-foreground: 0 0% 9%;     /* Very dark */
+    
+    /* Secondary */
+    --secondary: 0 0% 14.9%;           /* Dark gray */
+    --secondary-foreground: 0 0% 98%;  /* White */
+    
+    /* Muted */
+    --muted: 0 0% 14.9%;               /* Dark gray */
+    --muted-foreground: 0 0% 63.9%;    /* Medium gray */
+    
+    /* Accent */
+    --accent: 0 0% 14.9%;              /* Dark gray */
+    --accent-foreground: 0 0% 98%;     /* White */
+    
+    /* Destructive */
+    --destructive: 0 62.8% 30.6%;      /* Muted red */
+    --destructive-foreground: 0 0% 98%; /* White */
+    
+    /* Border */
+    --border: 0 0% 14.9%;              /* Dark gray border */
+    --input: 0 0% 14.9%;               /* Dark gray input */
+    
+    /* Ring */
+    --ring: 0 0% 83.1%;                /* Light gray ring */
+    
+    /* Subtle Agent Distinctions - Different grays and opacity */
+    --agent-1: 0 0% 90%;               /* Lightest gray - Amp */
+    --agent-2: 0 0% 80%;               /* Light gray - Cursor */
+    --agent-3: 0 0% 70%;               /* Medium gray - GitHub */
+    --agent-4: 0 0% 60%;               /* Medium-dark gray - Claude */
+    --agent-5: 0 0% 50%;               /* Dark gray - Windsurf */
+    
+    /* Content Type Distinctions - Subtle variations */
+    --content-primary: 0 0% 98%;       /* Product updates - brightest */
+    --content-secondary: 0 0% 85%;     /* Research - bright */
+    --content-tertiary: 0 0% 70%;      /* Perspectives - medium */
+    --content-quaternary: 0 0% 55%;    /* Social - dimmer */
+    
+    /* Minimal Status Colors - Very muted */
+    --success: 120 5% 70%;             /* Very muted green */
+    --warning: 45 5% 70%;              /* Very muted yellow */
+    --error: 0 5% 70%;                 /* Very muted red */
+    
+    /* Spacing Scale */
+    --spacing-0: 0;
+    --spacing-1: 0.25rem;
+    --spacing-2: 0.5rem;
+    --spacing-3: 0.75rem;
+    --spacing-4: 1rem;
+    --spacing-5: 1.25rem;
+    --spacing-6: 1.5rem;
+    --spacing-7: 1.75rem;
+    --spacing-8: 2rem;
+    --spacing-10: 2.5rem;
+    --spacing-12: 3rem;
+    --spacing-16: 4rem;
+    --spacing-20: 5rem;
+    --spacing-24: 6rem;
+    
+    /* Typography Scale */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 1.875rem;
+    --text-4xl: 2.25rem;
+    
+    /* Border Radius */
+    --radius-sm: 0.125rem;
+    --radius: 0.375rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    
+    /* Font Family */
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
   font-feature-settings: "rlig" 1, "calt" 1;
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Research Feed Styles */
@@ -40,15 +115,16 @@ body {
 }
 
 .content-item {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.5rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
   transition: border-color 0.2s;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 }
 
 .content-item:hover {
-  border-color: var(--accent);
+  border-color: hsl(var(--ring));
 }
 
 .content-header {
@@ -270,4 +346,431 @@ body {
   .page-container {
     padding: 1rem;
   }
+}
+
+/* Research Page Styling */
+.research-stats {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-value {
+    font-weight: 500;
+    color: hsl(var(--foreground));
+}
+
+/* Research Time Filter */
+.research-time-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.research-filter-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: hsl(var(--foreground));
+}
+
+.research-filter-select {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.375rem;
+    color: hsl(var(--foreground));
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    min-width: 140px;
+    transition: border-color 0.2s ease;
+}
+
+.research-filter-select:hover {
+    border-color: hsl(var(--ring));
+}
+
+.research-filter-select:focus {
+    outline: none;
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+}
+
+/* Research Feed Container */
+.research-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.research-feed .feed-controls {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+.research-feed .feed-meta {
+    margin-bottom: 1.5rem;
+    padding: 0.75rem;
+    background: hsl(var(--muted) / 0.3);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    color: hsl(var(--muted-foreground));
+}
+
+/* Research Card Styles */
+.research-card {
+    background: hsl(var(--card));
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin: 0 0 2rem 0;
+    transition: border-color 0.2s ease;
+    
+    /* Ensure visible separation */
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    
+    /* Add more prominent shadow for definition */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.research-card:hover {
+    border-color: hsl(var(--ring));
+}
+
+.research-card:last-child {
+    margin-bottom: 0;
+}
+
+.research-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.research-card-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.research-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.375rem 0.75rem;
+    border-radius: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.research-badge-source {
+    background: linear-gradient(135deg, hsl(220 70% 50%) 0%, hsl(220 70% 60%) 100%);
+    color: white;
+    border-color: hsl(220 70% 40%);
+}
+
+.research-badge-category {
+    background: linear-gradient(135deg, hsl(260 70% 50%) 0%, hsl(260 70% 60%) 100%);
+    color: white;
+    border-color: hsl(260 70% 40%);
+}
+
+.research-badge-score {
+    background: linear-gradient(135deg, hsl(120 60% 35%) 0%, hsl(120 60% 45%) 100%);
+    color: white;
+    border-color: hsl(120 60% 30%);
+}
+
+.research-card-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    text-align: right;
+}
+
+.research-published {
+    font-size: 0.875rem;
+    color: hsl(var(--foreground));
+    font-weight: 500;
+}
+
+.research-citations {
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
+}
+
+.research-card-content {
+    margin-bottom: 1rem;
+}
+
+.research-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 1rem;
+    color: hsl(var(--foreground));
+    letter-spacing: -0.025em;
+}
+
+.research-title-link {
+    color: hsl(var(--foreground));
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: block;
+}
+
+.research-title-link:hover {
+    color: hsl(220 70% 50%);
+    text-decoration: none;
+}
+
+.research-card-abstract {
+    color: hsl(var(--muted-foreground));
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.research-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    border-top: 1px solid hsl(var(--border));
+    padding-top: 0.75rem;
+}
+
+.research-authors {
+    flex: 1;
+    min-width: 0;
+}
+
+.research-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 0.5rem;
+}
+
+.research-authors-list {
+    font-size: 0.875rem;
+    color: hsl(var(--foreground));
+}
+
+.research-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.research-action-link {
+    font-size: 0.75rem;
+    color: hsl(var(--primary));
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+.research-action-link:hover {
+    background: hsl(var(--secondary));
+    border-color: hsl(var(--ring));
+}
+
+.research-bibcode {
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
+    font-family: monospace;
+}
+
+/* Research Card States */
+.research-error-state,
+.research-empty-state {
+    text-align: center;
+    border: 2px dashed hsl(var(--border));
+    background: hsl(var(--muted) / 0.3);
+}
+
+.error-content,
+.empty-content {
+    padding: 2rem;
+}
+
+.error-icon,
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.error-title,
+.empty-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: hsl(var(--foreground));
+}
+
+.error-message,
+.empty-message {
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 1.5rem;
+}
+
+.retry-button {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+    background: hsl(var(--primary) / 0.9);
+    transform: translateY(-1px);
+}
+
+/* Research Card Skeleton Loading */
+.research-card-skeleton {
+    background: hsl(var(--card));
+    border: 2px solid hsl(var(--border));
+    opacity: 0.6;
+}
+
+.skeleton-badge {
+    height: 24px;
+    background: hsl(var(--muted));
+    border-radius: 1rem;
+    animation: skeleton-pulse 2s ease-in-out infinite;
+}
+
+.skeleton-text {
+    background: hsl(var(--muted));
+    border-radius: 0.25rem;
+    animation: skeleton-pulse 2s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
+}
+
+/* Dashboard Research Integration */
+.dashboard-research-feed .feed-controls {
+    margin-bottom: 1.5rem;
+}
+
+.research-content {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .research-stats {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .stat-item {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .research-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .research-card-meta {
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .research-card-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .research-card-actions {
+        align-self: stretch;
+        justify-content: space-between;
+    }
+}
+
+/* Query Interface - prevent large background decorations */
+.query-interface-container {
+  position: relative;
+  z-index: 20;
+  background: hsl(var(--background));
+}
+
+.query-interface-container::before,
+.query-interface-container::after {
+  display: none !important;
+}
+
+/* Hide any large sparkle decorations */
+.section:has(.query-interface-container)::before,
+.section:has(.query-interface-container)::after {
+  display: none !important;
+}
+
+/* Aggressive fix for background sparkle decorations */
+#query::before,
+#query::after,
+#query *::before,
+#query *::after {
+  display: none !important;
+}
+
+/* Force clean background for query section */
+#query {
+  background: hsl(var(--background)) !important;
+  position: relative;
+  z-index: 30;
+}
+
+/* Nuclear option: hide all large shapes in query section */
+#query * {
+  overflow: hidden;
+}
+
+#query svg,
+#query img,
+#query canvas {
+  max-width: 48px !important;
+  max-height: 48px !important;
 }

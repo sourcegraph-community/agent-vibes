@@ -1,65 +1,203 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AgentVibes 🚀
 
-## Getting Started
+**Your pulse on the coding agent landscape**
 
-First, run the development server:
+A comprehensive intelligence platform designed to track market sentiment, competitive landscape, and technological developments in the AI coding agent space with real-time updates and intelligent notifications.
 
+## 🎯 Features
+
+### **Multi-Source Intelligence Gathering**
+- **15+ RSS Feeds**: GitHub, TechCrunch, The Verge, InfoQ, StackOverflow, Dev.to, and more
+- **Reddit Integration**: r/programming, r/MachineLearning, r/ExperiencedDevs via Apify scrapers
+- **Hacker News**: AI-focused content via Algolia API
+- **Changelog Tracking**: Windsurf, Cursor, Claude Code, and other tool updates
+- **Research Papers**: arXiv CS papers via NASA ADS API
+
+### **Real-Time Dashboard**
+- **Live Updates**: Supabase real-time subscriptions
+- **Smart Filtering**: Source-based and keyword filtering
+- **Analytics Tracking**: User engagement and content popularity
+- **Mobile Responsive**: Works across all devices
+
+### **Intelligent Notifications**
+- **Multi-Channel**: Web push, email via Knock workflows
+- **Smart Categorization**: High-value, urgent, and digest notifications  
+- **User Preferences**: Customizable notification settings
+- **Breaking News**: Instant alerts for critical updates
+
+### **Production Ready**
+- **Scalable Architecture**: PostgreSQL (Supabase) + Prisma ORM
+- **Error Handling**: Comprehensive retry logic and monitoring
+- **Caching**: Multi-layer caching for performance
+- **Security**: Environment-based secrets and API key management
+
+## 🏗 Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Next.js 15 (App Router) - Frontend & API Routes           │
+├─────────────────────────────────────────────────────────────┤
+│ Data Sources: RSS + Apify + APIs + Web Scrapers            │
+│ • 10 RSS feeds (GitHub, TechCrunch, etc.)                  │
+│ • 3 Reddit communities via Apify                           │
+│ • Hacker News via Algolia API                              │
+│ • 4 Changelog scrapers (HTML + Markdown)                   │
+│ • NASA ADS for research papers                             │
+├─────────────────────────────────────────────────────────────┤
+│ Ingestion Pipeline: 5min cron → Process → Store → Notify   │
+├─────────────────────────────────────────────────────────────┤
+│ Database: Supabase PostgreSQL (SQLite for local dev)       │
+├─────────────────────────────────────────────────────────────┤
+│ Notifications: Knock workflows + Web Push                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+- Supabase account (production)
+- Apify account
+- Knock account
+
+### Installation
+
+1. **Clone and install dependencies**
+```bash
+git clone <your-repo>
+cd agent-vibes
+npm install
+```
+
+2. **Set up environment variables**
+```bash
+cp env.example .env.local
+```
+
+Fill in your credentials:
+```bash
+# Database (use SQLite for local dev)
+DATABASE_URL="file:./dev.db"
+
+# Supabase (production)
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="your_service_role_key"
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your_anon_key"
+
+# Apify
+APIFY_TOKEN="your_apify_token"
+
+# Knock
+KNOCK_SECRET_API_KEY="your_knock_secret_key"
+
+# NASA ADS
+ADS_API_TOKEN="your_ads_token"
+```
+
+3. **Initialize database**
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+4. **Start development server**
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit http://localhost:3000/dashboard for the main interface.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📊 Dashboard
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Homepage**: `/` - Landing page with notification signup
+- **Dashboard**: `/dashboard` - Real-time intelligence feed  
+- **Research**: `/research` - Academic papers feed
+- **API**: `/api/entries` - REST API for entries
 
-## Checks & Formatting
+## 🔧 API Endpoints
 
-Install dependencies (including dev tools):
+### Entries
+- `GET /api/entries` - Get entries with filtering
+- `POST /api/entries` - Manual ingestion trigger
 
+### Notifications  
+- `POST /api/notifications/test` - Send test notification
+- `POST /api/notifications/subscribe-dashboard` - Subscribe user
+
+### Cron Jobs
+- `GET /api/cron/ingest` - 5-minute ingestion job (Vercel)
+
+## 🛠 Development
+
+### Adding New Data Sources
+
+1. **RSS Feed**: Add to `lib/sources/config.ts`
+2. **API Integration**: Extend handler in `lib/ingest/utils.ts`
+3. **Custom Scraper**: Use Apify or create custom handler
+
+### Testing Ingestion
 ```bash
-npm i
+curl -X POST http://localhost:3000/api/entries
 ```
 
-Run local checks:
-
+### Testing Notifications
 ```bash
-# TypeScript + ESLint (no fixes)
-npm run check
-
-# TypeScript + ESLint with fixes and formatting
-npm run check:fix
-
-# Individually
-npm run typecheck
-npm run lint
-npm run lint:fix
+curl -X POST http://localhost:3000/api/notifications/test
 ```
 
-Notes:
-- ESLint v9 flat config is used; see `eslint.config.mjs`.
-- Formatting is handled via ESLint Stylistic (no Prettier). Use `npm run check:fix` to format.
-- The ESLint rule for triple-slash references is disabled for `next-env.d.ts` (Next.js typed routes auto-add a reference).
-- The ESLint cache file (`.eslintcache`) is ignored via `.gitignore`.
+## 📦 Tech Stack
 
-## Learn More
+- **Framework**: Next.js 15 with App Router
+- **Database**: Prisma + PostgreSQL (Supabase) / SQLite (dev)
+- **Real-time**: Supabase subscriptions
+- **Styling**: Tailwind CSS v4
+- **Data Sources**: RSS Parser, Apify, REST APIs
+- **Notifications**: Knock + Web Push
+- **Deployment**: Vercel
+- **TypeScript**: Strict mode enabled
 
-To learn more about Next.js, take a look at the following resources:
+## 🚀 Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Deploy to Vercel**
+```bash
+npm run build
+vercel --prod
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. **Set environment variables** in Vercel dashboard
 
-## Deploy on Vercel
+3. **Configure Supabase** database URL for production
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+4. **Set up cron jobs** - Vercel handles this automatically via `vercel.json`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📈 Monitoring
+
+- **Ingestion logs**: Check Vercel function logs
+- **Database**: Supabase dashboard
+- **Notifications**: Knock dashboard  
+- **Analytics**: Built-in event tracking
+
+## 🔐 Security
+
+- API keys stored in environment variables
+- Rate limiting on ingestion
+- Input validation and sanitization
+- CORS configured for production domains
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)  
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+## 📄 License
+
+MIT License - see LICENSE file for details
+
+---
+
+**Built with ❤️ for the coding agent community**

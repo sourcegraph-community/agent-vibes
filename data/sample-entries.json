@@ -1,0 +1,90 @@
+[
+  {
+    "id": "cursor-update-2024-12-18",
+    "title": "Cursor Editor Releases Advanced AI Code Completion",
+    "summary": "New release includes improved context awareness, better multi-file editing, and enhanced debugging capabilities with AI assistance.",
+    "url": "https://cursor.so/blog/advanced-ai-completion",
+    "publishedAt": "2024-12-18T10:30:00Z",
+    "source": "rss",
+    "category": "product",
+    "sentiment": 0.8,
+    "tags": ["cursor", "ai-completion", "debugging"]
+  },
+  {
+    "id": "copilot-github-pr-1234",
+    "title": "GitHub Copilot Chat: Add support for workspace-wide refactoring",
+    "summary": "Major PR implementing workspace-wide refactoring capabilities in Copilot Chat, allowing developers to make large-scale code changes with AI assistance.",
+    "url": "https://github.com/github/copilot-chat/pull/1234",
+    "publishedAt": "2024-12-18T08:15:00Z",
+    "source": "github_pr",
+    "category": "product",
+    "sentiment": 0.7,
+    "tags": ["copilot", "refactoring", "workspace"]
+  },
+  {
+    "id": "arxiv-llm-reasoning-2024",
+    "title": "Chain-of-Thought Prompting Improves Reasoning in Large Language Models",
+    "summary": "Research paper demonstrating how chain-of-thought prompting significantly improves the reasoning capabilities of large language models in coding tasks.",
+    "url": "https://arxiv.org/abs/2024.12345",
+    "publishedAt": "2024-12-17T14:22:00Z",
+    "source": "rss",
+    "category": "research",
+    "sentiment": 0.6,
+    "tags": ["chain-of-thought", "reasoning", "llm"]
+  },
+  {
+    "id": "ads-build-success-dec18",
+    "title": "ADS Build Pipeline: 98% success rate this week",
+    "summary": "Automated deployment system showing excellent stability with 98% successful builds, average build time of 4.2 minutes.",
+    "url": "https://ads.internal/builds/week-50-2024",
+    "publishedAt": "2024-12-18T12:00:00Z",
+    "source": "ads_build",
+    "category": "product",
+    "sentiment": 0.9,
+    "tags": ["builds", "deployment", "performance"]
+  },
+  {
+    "id": "medium-ai-future-2024",
+    "title": "The Future of AI-Assisted Programming: Beyond Code Completion",
+    "summary": "Thought leadership piece exploring how AI coding assistants will evolve beyond simple code completion to become true programming partners.",
+    "url": "https://medium.com/ai-programming/future-beyond-completion",
+    "publishedAt": "2024-12-17T16:45:00Z",
+    "source": "rss",
+    "category": "perspective",
+    "sentiment": 0.75,
+    "tags": ["future", "ai-programming", "evolution"]
+  },
+  {
+    "id": "reddit-cursor-discussion",
+    "title": "Cursor vs VS Code with Copilot: Developer Experience Comparison",
+    "summary": "Active Reddit discussion comparing developer experiences between Cursor's AI-first approach and traditional VS Code with GitHub Copilot extensions.",
+    "url": "https://reddit.com/r/programming/cursor-vs-vscode",
+    "publishedAt": "2024-12-18T09:20:00Z",
+    "source": "rss",
+    "category": "social",
+    "sentiment": 0.4,
+    "tags": ["cursor", "vscode", "comparison"]
+  },
+  {
+    "id": "codeium-feature-release",
+    "title": "Codeium Introduces Context-Aware Code Generation",
+    "summary": "Latest Codeium update brings context-aware code generation that understands entire project structure and coding patterns.",
+    "url": "https://codeium.com/blog/context-aware-generation",
+    "publishedAt": "2024-12-17T11:30:00Z",
+    "source": "rss",
+    "category": "product",
+    "sentiment": 0.85,
+    "tags": ["codeium", "context-aware", "code-generation"]
+  },
+  {
+    "id": "stackblitz-ai-integration",
+    "title": "StackBlitz Bolt: AI-Powered Full-Stack Development in Browser",
+    "summary": "StackBlitz announces Bolt, an AI-powered tool that enables full-stack development directly in the browser with intelligent code scaffolding.",
+    "url": "https://stackblitz.com/blog/introducing-bolt",
+    "publishedAt": "2024-12-16T13:45:00Z",
+    "source": "rss",
+    "category": "product",
+    "sentiment": 0.82,
+    "tags": ["stackblitz", "bolt", "full-stack"]
+  }
+]

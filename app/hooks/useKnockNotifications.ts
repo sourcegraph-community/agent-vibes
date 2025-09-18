@@ -40,13 +40,13 @@ export const useKnockNotifications = () => {
     try {
       // Get service worker registration
       const registration = await navigator.serviceWorker.ready;
-      
+
       // Subscribe to push notifications
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(
-          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BEl62iUYgUivxIkv69yViEuiBIa40HI80j4bMvOx1cUoNjMu84VDJMzHhZCk8EUc7Y67ZFhMfbJcK6CdRmEKf0Y'
-        )
+          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BEl62iUYgUivxIkv69yViEuiBIa40HI80j4bMvOx1cUoNjMu84VDJMzHhZCk8EUc7Y67ZFhMfbJcK6CdRmEKf0Y',
+        ),
       });
 
       // Send subscription to our backend
@@ -57,8 +57,8 @@ export const useKnockNotifications = () => {
         },
         body: JSON.stringify({
           subscription,
-          userId
-        })
+          userId,
+        }),
       });
 
       if (!response.ok) {
@@ -74,6 +74,6 @@ export const useKnockNotifications = () => {
   };
 
   return {
-    subscribeToKnock
+    subscribeToKnock,
   };
 };

@@ -1,0 +1,911 @@
+{
+  "scanDate": "2025-09-18T18:34:58.452Z",
+  "summary": {
+    "totalFiles": 23,
+    "sourceTypes": {
+      "scrape": 2,
+      "api": 6,
+      "github": 8,
+      "rss": 3,
+      "ads": 1
+    },
+    "activeSourcesCount": 12
+  },
+  "sourceFiles": [
+    {
+      "file": "lib/sources/apify.ts",
+      "sourceType": "scrape",
+      "updateCadence": "unknown",
+      "classes": [
+        "ApifySourceHandler",
+        "RedditApifyHandler",
+        "WebScrapingApifyHandler"
+      ],
+      "interfaces": [],
+      "functions": [
+        "createApifyHandler"
+      ],
+      "endpoints": [],
+      "urls": [
+        "https://www.reddit.com/r/${subreddit}"
+      ],
+      "hasKeywords": true,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.454Z"
+    },
+    {
+      "file": "lib/sources/base.ts",
+      "sourceType": "api",
+      "updateCadence": "unknown",
+      "classes": [
+        "BaseSourceHandler"
+      ],
+      "interfaces": [],
+      "functions": [],
+      "endpoints": [],
+      "urls": [
+        "https://agentvibes.com)"
+      ],
+      "hasKeywords": true,
+      "hasHealthCheck": true,
+      "lastModified": "2025-09-18T18:34:58.455Z"
+    },
+    {
+      "file": "lib/sources/changelog.ts",
+      "sourceType": "github",
+      "updateCadence": "unknown",
+      "classes": [
+        "MarkdownChangelogHandler",
+        "HTMLChangelogHandler"
+      ],
+      "interfaces": [],
+      "functions": [
+        "createChangelogHandler"
+      ],
+      "endpoints": [],
+      "urls": [],
+      "hasKeywords": true,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.455Z"
+    },
+    {
+      "file": "lib/sources/config.ts",
+      "sourceType": "github",
+      "updateCadence": "unknown",
+      "classes": [],
+      "interfaces": [],
+      "functions": [
+        "getActiveRSSConfigs",
+        "getActiveAPIConfigs",
+        "getActiveScrapeConfigs"
+      ],
+      "endpoints": [
+        "https://api.cursor-changelog.com/api/versions/rss",
+        "https://github.blog/tag/copilot/feed/",
+        "https://github.blog/changelog/feed/",
+        "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml",
+        "https://www.infoq.com/ai-ml/rss/",
+        "https://stackoverflow.blog/feed/",
+        "https://dev.to/feed/tag/ai",
+        "https://latentspace.dev/feed.xml",
+        "https://openai.com/blog/rss/",
+        "https://www.anthropic.com/news/rss",
+        "https://www.reddit.com/r/programming",
+        "https://www.reddit.com/r/MachineLearning",
+        "https://www.reddit.com/r/ExperiencedDevs",
+        "https://hn.algolia.com/api/v1/search_by_date",
+        "https://windsurf.com/changelog",
+        "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md",
+        "https://cursor.com/changelog"
+      ],
+      "urls": [
+        "https://api.cursor-changelog.com/api/versions/rss",
+        "https://github.blog/tag/copilot/feed/",
+        "https://github.blog/changelog/feed/",
+        "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml",
+        "https://www.infoq.com/ai-ml/rss/",
+        "https://stackoverflow.blog/feed/",
+        "https://dev.to/feed/tag/ai",
+        "https://latentspace.dev/feed.xml",
+        "https://openai.com/blog/rss/",
+        "https://www.anthropic.com/news/rss",
+        "https://www.reddit.com/r/programming",
+        "https://www.reddit.com/r/MachineLearning",
+        "https://www.reddit.com/r/ExperiencedDevs",
+        "https://hn.algolia.com/api/v1/search_by_date",
+        "https://windsurf.com/changelog",
+        "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md",
+        "https://cursor.com/changelog"
+      ],
+      "hasKeywords": true,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.455Z"
+    },
+    {
+      "file": "lib/sources/hackernews.ts",
+      "sourceType": "api",
+      "updateCadence": "unknown",
+      "classes": [
+        "HackerNewsSourceHandler"
+      ],
+      "interfaces": [
+        "HNSearchResult",
+        "HNHit"
+      ],
+      "functions": [],
+      "endpoints": [],
+      "urls": [
+        "https://hn.algolia.com/api/v1/search_by_date",
+        "https://news.ycombinator.com",
+        "https://news.ycombinator.com/item?id=${hit.objectID}"
+      ],
+      "hasKeywords": true,
+      "hasHealthCheck": true,
+      "lastModified": "2025-09-18T18:34:58.456Z"
+    },
+    {
+      "file": "lib/sources/rss.ts",
+      "sourceType": "rss",
+      "updateCadence": "unknown",
+      "classes": [
+        "RSSSourceHandler"
+      ],
+      "interfaces": [],
+      "functions": [],
+      "endpoints": [],
+      "urls": [],
+      "hasKeywords": true,
+      "hasHealthCheck": true,
+      "lastModified": "2025-09-18T18:34:58.456Z"
+    },
+    {
+      "file": "lib/ads.ts",
+      "sourceType": "ads",
+      "updateCadence": "unknown",
+      "classes": [],
+      "interfaces": [],
+      "functions": [
+        "searchAdsCodingAgents",
+        "getAdsDocument"
+      ],
+      "endpoints": [],
+      "urls": [
+        "https://api.adsabs.harvard.edu/v1",
+        "https://arxiv.org/pdf/${arxivMatch[1]}.pdf"
+      ],
+      "hasKeywords": false,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.456Z"
+    },
+    {
+      "file": "lib/db.ts",
+      "sourceType": "unknown",
+      "updateCadence": "unknown",
+      "classes": [],
+      "interfaces": [],
+      "functions": [],
+      "endpoints": [],
+      "urls": [],
+      "hasKeywords": false,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.456Z"
+    },
+    {
+      "file": "lib/ingest/runAll.ts",
+      "sourceType": "unknown",
+      "updateCadence": "unknown",
+      "classes": [],
+      "interfaces": [
+        "IngestStats"
+      ],
+      "functions": [
+        "runAllIngestion",
+        "triggerNewEntryNotifications"
+      ],
+      "endpoints": [],
+      "urls": [],
+      "hasKeywords": false,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.457Z"
+    },
+    {
+      "file": "lib/ingest/utils.ts",
+      "sourceType": "api",
+      "updateCadence": "unknown",
+      "classes": [],
+      "interfaces": [],
+      "functions": [
+        "createSourceHandler",
+        "crawlSource",
+        "initializeSourcesFromConfig"
+      ],
+      "endpoints": [],
+      "urls": [],
+      "hasKeywords": true,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.457Z"
+    },
+    {
+      "file": "lib/notifications.ts",
+      "sourceType": "api",
+      "updateCadence": "daily",
+      "classes": [],
+      "interfaces": [
+        "NotificationStats"
+      ],
+      "functions": [
+        "sendNewEntriesNotification",
+        "subscribeUserToNotifications",
+        "sendTestNotification"
+      ],
+      "endpoints": [],
+      "urls": [
+        "https://agentvibes.com/test"
+      ],
+      "hasKeywords": false,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.458Z"
+    },
+    {
+      "file": "lib/sources/apify.ts",
+      "sourceType": "scrape",
+      "updateCadence": "unknown",
+      "classes": [
+        "ApifySourceHandler",
+        "RedditApifyHandler",
+        "WebScrapingApifyHandler"
+      ],
+      "interfaces": [],
+      "functions": [
+        "createApifyHandler"
+      ],
+      "endpoints": [],
+      "urls": [
+        "https://www.reddit.com/r/${subreddit}"
+      ],
+      "hasKeywords": true,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.458Z"
+    },
+    {
+      "file": "lib/sources/base.ts",
+      "sourceType": "api",
+      "updateCadence": "unknown",
+      "classes": [
+        "BaseSourceHandler"
+      ],
+      "interfaces": [],
+      "functions": [],
+      "endpoints": [],
+      "urls": [
+        "https://agentvibes.com)"
+      ],
+      "hasKeywords": true,
+      "hasHealthCheck": true,
+      "lastModified": "2025-09-18T18:34:58.458Z"
+    },
+    {
+      "file": "lib/sources/changelog.ts",
+      "sourceType": "github",
+      "updateCadence": "unknown",
+      "classes": [
+        "MarkdownChangelogHandler",
+        "HTMLChangelogHandler"
+      ],
+      "interfaces": [],
+      "functions": [
+        "createChangelogHandler"
+      ],
+      "endpoints": [],
+      "urls": [],
+      "hasKeywords": true,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.458Z"
+    },
+    {
+      "file": "lib/sources/config.ts",
+      "sourceType": "github",
+      "updateCadence": "unknown",
+      "classes": [],
+      "interfaces": [],
+      "functions": [
+        "getActiveRSSConfigs",
+        "getActiveAPIConfigs",
+        "getActiveScrapeConfigs"
+      ],
+      "endpoints": [
+        "https://api.cursor-changelog.com/api/versions/rss",
+        "https://github.blog/tag/copilot/feed/",
+        "https://github.blog/changelog/feed/",
+        "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml",
+        "https://www.infoq.com/ai-ml/rss/",
+        "https://stackoverflow.blog/feed/",
+        "https://dev.to/feed/tag/ai",
+        "https://latentspace.dev/feed.xml",
+        "https://openai.com/blog/rss/",
+        "https://www.anthropic.com/news/rss",
+        "https://www.reddit.com/r/programming",
+        "https://www.reddit.com/r/MachineLearning",
+        "https://www.reddit.com/r/ExperiencedDevs",
+        "https://hn.algolia.com/api/v1/search_by_date",
+        "https://windsurf.com/changelog",
+        "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md",
+        "https://cursor.com/changelog"
+      ],
+      "urls": [
+        "https://api.cursor-changelog.com/api/versions/rss",
+        "https://github.blog/tag/copilot/feed/",
+        "https://github.blog/changelog/feed/",
+        "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml",
+        "https://www.infoq.com/ai-ml/rss/",
+        "https://stackoverflow.blog/feed/",
+        "https://dev.to/feed/tag/ai",
+        "https://latentspace.dev/feed.xml",
+        "https://openai.com/blog/rss/",
+        "https://www.anthropic.com/news/rss",
+        "https://www.reddit.com/r/programming",
+        "https://www.reddit.com/r/MachineLearning",
+        "https://www.reddit.com/r/ExperiencedDevs",
+        "https://hn.algolia.com/api/v1/search_by_date",
+        "https://windsurf.com/changelog",
+        "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md",
+        "https://cursor.com/changelog"
+      ],
+      "hasKeywords": true,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.458Z"
+    },
+    {
+      "file": "lib/sources/hackernews.ts",
+      "sourceType": "api",
+      "updateCadence": "unknown",
+      "classes": [
+        "HackerNewsSourceHandler"
+      ],
+      "interfaces": [
+        "HNSearchResult",
+        "HNHit"
+      ],
+      "functions": [],
+      "endpoints": [],
+      "urls": [
+        "https://hn.algolia.com/api/v1/search_by_date",
+        "https://news.ycombinator.com",
+        "https://news.ycombinator.com/item?id=${hit.objectID}"
+      ],
+      "hasKeywords": true,
+      "hasHealthCheck": true,
+      "lastModified": "2025-09-18T18:34:58.458Z"
+    },
+    {
+      "file": "lib/sources/rss.ts",
+      "sourceType": "rss",
+      "updateCadence": "unknown",
+      "classes": [
+        "RSSSourceHandler"
+      ],
+      "interfaces": [],
+      "functions": [],
+      "endpoints": [],
+      "urls": [],
+      "hasKeywords": true,
+      "hasHealthCheck": true,
+      "lastModified": "2025-09-18T18:34:58.458Z"
+    },
+    {
+      "file": "lib/supabase.ts",
+      "sourceType": "unknown",
+      "updateCadence": "unknown",
+      "classes": [],
+      "interfaces": [],
+      "functions": [],
+      "endpoints": [],
+      "urls": [],
+      "hasKeywords": false,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.458Z"
+    },
+    {
+      "file": "scripts/inventory.mjs",
+      "sourceType": "github",
+      "updateCadence": "daily",
+      "classes": [
+        "names"
+      ],
+      "interfaces": [],
+      "functions": [],
+      "endpoints": [],
+      "urls": [
+        "https://example.com/sample"
+      ],
+      "hasKeywords": true,
+      "hasHealthCheck": true,
+      "lastModified": "2025-09-18T18:34:58.459Z"
+    },
+    {
+      "file": "scripts/simple-test.js",
+      "sourceType": "github",
+      "updateCadence": "unknown",
+      "classes": [],
+      "interfaces": [],
+      "functions": [],
+      "endpoints": [],
+      "urls": [
+        "https://github.blog/changelog/feed/",
+        "https://stackoverflow.blog/feed/",
+        "https://www.infoq.com/ai-ml/rss/",
+        "http://localhost:3000/dashboard"
+      ],
+      "hasKeywords": false,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.459Z"
+    },
+    {
+      "file": "scripts/test-components.js",
+      "sourceType": "github",
+      "updateCadence": "unknown",
+      "classes": [],
+      "interfaces": [],
+      "functions": [],
+      "endpoints": [],
+      "urls": [
+        "https://github.blog/changelog/feed/"
+      ],
+      "hasKeywords": false,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.459Z"
+    },
+    {
+      "file": "scripts/test-local.js",
+      "sourceType": "github",
+      "updateCadence": "unknown",
+      "classes": [],
+      "interfaces": [],
+      "functions": [],
+      "endpoints": [],
+      "urls": [
+        "https://github.blog/changelog/feed/",
+        "http://localhost:3000/api/entries?limit=1"
+      ],
+      "hasKeywords": false,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.459Z"
+    },
+    {
+      "file": "scripts/test-rss-only.js",
+      "sourceType": "rss",
+      "updateCadence": "unknown",
+      "classes": [],
+      "interfaces": [],
+      "functions": [],
+      "endpoints": [],
+      "urls": [
+        "http://localhost:3000/dashboard"
+      ],
+      "hasKeywords": true,
+      "hasHealthCheck": false,
+      "lastModified": "2025-09-18T18:34:58.459Z"
+    }
+  ],
+  "configuredSources": [
+    {
+      "sourceId": "cursor-changelog",
+      "name": "Cursor Changelog",
+      "type": "RSS",
+      "endpoint": "https://api.cursor-changelog.com/api/versions/rss",
+      "isActive": true,
+      "updateCadence": "weekly",
+      "keywords": [
+        "cursor",
+        "ai",
+        "editor",
+        "coding"
+      ],
+      "category": "product"
+    },
+    {
+      "sourceId": "github-copilot-blog",
+      "name": "GitHub Copilot Blog",
+      "type": "RSS",
+      "endpoint": "https://github.blog/tag/copilot/feed/",
+      "isActive": true,
+      "updateCadence": "hourly",
+      "keywords": [
+        "copilot",
+        "ai",
+        "coding",
+        "assistant"
+      ],
+      "category": "perspective"
+    },
+    {
+      "sourceId": "github-changelog",
+      "name": "GitHub Changelog",
+      "type": "RSS",
+      "endpoint": "https://github.blog/changelog/feed/",
+      "isActive": true,
+      "updateCadence": "weekly",
+      "keywords": [
+        "api",
+        "copilot",
+        "codespace",
+        "actions"
+      ],
+      "category": "product"
+    },
+    {
+      "sourceId": "techcrunch-ai",
+      "name": "TechCrunch AI",
+      "type": "RSS",
+      "endpoint": "https://techcrunch.com/category/artificial-intelligence/feed/",
+      "isActive": true,
+      "updateCadence": "hourly",
+      "keywords": [
+        "coding",
+        "developer",
+        "programming",
+        "ai assistant",
+        "copilot",
+        "cursor",
+        "windsurf"
+      ],
+      "category": "perspective"
+    },
+    {
+      "sourceId": "the-verge-ai",
+      "name": "The Verge AI",
+      "type": "RSS",
+      "endpoint": "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml",
+      "isActive": true,
+      "updateCadence": "hourly",
+      "keywords": [
+        "coding",
+        "developer",
+        "programming",
+        "ai assistant",
+        "copilot"
+      ],
+      "category": "perspective"
+    },
+    {
+      "sourceId": "infoq-ai/ml",
+      "name": "InfoQ AI/ML",
+      "type": "RSS",
+      "endpoint": "https://www.infoq.com/ai-ml/rss/",
+      "isActive": true,
+      "updateCadence": "hourly",
+      "keywords": [
+        "coding",
+        "development",
+        "programming",
+        "ai assistant"
+      ],
+      "category": "research"
+    },
+    {
+      "sourceId": "stackoverflow-blog",
+      "name": "StackOverflow Blog",
+      "type": "RSS",
+      "endpoint": "https://stackoverflow.blog/feed/",
+      "isActive": true,
+      "updateCadence": "hourly",
+      "keywords": [
+        "ai",
+        "copilot",
+        "coding",
+        "developer"
+      ],
+      "category": "perspective"
+    },
+    {
+      "sourceId": "dev.to-ai",
+      "name": "Dev.to AI",
+      "type": "RSS",
+      "endpoint": "https://dev.to/feed/tag/ai",
+      "isActive": true,
+      "updateCadence": "hourly",
+      "keywords": [
+        "coding",
+        "programming",
+        "assistant",
+        "copilot"
+      ],
+      "category": "perspective"
+    },
+    {
+      "sourceId": "latent-space",
+      "name": "Latent Space",
+      "type": "RSS",
+      "endpoint": "https://latentspace.dev/feed.xml",
+      "isActive": true,
+      "updateCadence": "hourly",
+      "keywords": [
+        "coding",
+        "agent",
+        "development",
+        "programming"
+      ],
+      "category": "perspective"
+    },
+    {
+      "sourceId": "openai-blog",
+      "name": "OpenAI Blog",
+      "type": "RSS",
+      "endpoint": "https://openai.com/blog/rss/",
+      "isActive": true,
+      "updateCadence": "hourly",
+      "keywords": [
+        "codex",
+        "developer",
+        "api",
+        "coding"
+      ],
+      "category": "perspective"
+    },
+    {
+      "sourceId": "anthropic-news",
+      "name": "Anthropic News",
+      "type": "RSS",
+      "endpoint": "https://www.anthropic.com/news/rss",
+      "isActive": true,
+      "updateCadence": "hourly",
+      "keywords": [
+        "claude",
+        "coding",
+        "developer",
+        "assistant"
+      ],
+      "category": "perspective"
+    },
+    {
+      "sourceId": "reddit-programming",
+      "name": "Reddit Programming",
+      "type": "API",
+      "endpoint": "https://www.reddit.com/r/programming",
+      "isActive": false,
+      "updateCadence": "2hours",
+      "keywords": [
+        "ai",
+        "copilot",
+        "cursor",
+        "windsurf",
+        "coding assistant",
+        "chatgpt",
+        "claude"
+      ],
+      "category": "social"
+    },
+    {
+      "sourceId": "reddit-machine-learning",
+      "name": "Reddit Machine Learning",
+      "type": "API",
+      "endpoint": "https://www.reddit.com/r/MachineLearning",
+      "isActive": false,
+      "updateCadence": "2hours",
+      "keywords": [
+        "coding",
+        "development",
+        "ai assistant",
+        "programming",
+        "llm"
+      ],
+      "category": "social"
+    },
+    {
+      "sourceId": "reddit-experienced-devs",
+      "name": "Reddit Experienced Devs",
+      "type": "API",
+      "endpoint": "https://www.reddit.com/r/ExperiencedDevs",
+      "isActive": false,
+      "updateCadence": "2hours",
+      "keywords": [
+        "ai tools",
+        "copilot",
+        "productivity",
+        "coding assistant"
+      ],
+      "category": "social"
+    },
+    {
+      "sourceId": "hacker-news-ai",
+      "name": "Hacker News AI",
+      "type": "API",
+      "endpoint": "https://hn.algolia.com/api/v1/search_by_date",
+      "isActive": true,
+      "updateCadence": "2hours",
+      "keywords": [
+        "ai",
+        "copilot",
+        "cursor",
+        "windsurf",
+        "coding agent",
+        "claude",
+        "chatgpt"
+      ],
+      "category": "perspective"
+    },
+    {
+      "sourceId": "windsurf-changelog",
+      "name": "Windsurf Changelog",
+      "type": "SCRAPE",
+      "endpoint": "https://windsurf.com/changelog",
+      "isActive": false,
+      "updateCadence": "weekly",
+      "keywords": [
+        "windsurf",
+        "ai",
+        "editor",
+        "feature",
+        "update"
+      ],
+      "category": "product"
+    },
+    {
+      "sourceId": "claude-code-changelog",
+      "name": "Claude Code Changelog",
+      "type": "SCRAPE",
+      "endpoint": "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md",
+      "isActive": false,
+      "updateCadence": "weekly",
+      "keywords": [
+        "claude",
+        "code",
+        "extension",
+        "vscode"
+      ],
+      "category": "product"
+    },
+    {
+      "sourceId": "cursor-changelog-(web)",
+      "name": "Cursor Changelog (Web)",
+      "type": "SCRAPE",
+      "endpoint": "https://cursor.com/changelog",
+      "isActive": false,
+      "updateCadence": "weekly",
+      "keywords": [
+        "cursor",
+        "ai",
+        "editor",
+        "feature",
+        "update"
+      ],
+      "category": "product"
+    }
+  ],
+  "sourceMapping": {
+    "cursor-changelog": {
+      "category": "product",
+      "updateCadence": "weekly",
+      "type": "rss"
+    },
+    "github-copilot-blog": {
+      "category": "perspective",
+      "updateCadence": "hourly",
+      "type": "rss"
+    },
+    "github-changelog": {
+      "category": "product",
+      "updateCadence": "weekly",
+      "type": "rss"
+    },
+    "techcrunch-ai": {
+      "category": "perspective",
+      "updateCadence": "hourly",
+      "type": "rss"
+    },
+    "the-verge-ai": {
+      "category": "perspective",
+      "updateCadence": "hourly",
+      "type": "rss"
+    },
+    "infoq-ai/ml": {
+      "category": "research",
+      "updateCadence": "hourly",
+      "type": "rss"
+    },
+    "stackoverflow-blog": {
+      "category": "perspective",
+      "updateCadence": "hourly",
+      "type": "rss"
+    },
+    "dev.to-ai": {
+      "category": "perspective",
+      "updateCadence": "hourly",
+      "type": "rss"
+    },
+    "latent-space": {
+      "category": "perspective",
+      "updateCadence": "hourly",
+      "type": "rss"
+    },
+    "openai-blog": {
+      "category": "perspective",
+      "updateCadence": "hourly",
+      "type": "rss"
+    },
+    "anthropic-news": {
+      "category": "perspective",
+      "updateCadence": "hourly",
+      "type": "rss"
+    },
+    "reddit-programming": {
+      "category": "social",
+      "updateCadence": "2hours",
+      "type": "api"
+    },
+    "reddit-machine-learning": {
+      "category": "social",
+      "updateCadence": "2hours",
+      "type": "api"
+    },
+    "reddit-experienced-devs": {
+      "category": "social",
+      "updateCadence": "2hours",
+      "type": "api"
+    },
+    "hacker-news-ai": {
+      "category": "perspective",
+      "updateCadence": "2hours",
+      "type": "api"
+    },
+    "windsurf-changelog": {
+      "category": "product",
+      "updateCadence": "weekly",
+      "type": "scrape"
+    },
+    "claude-code-changelog": {
+      "category": "product",
+      "updateCadence": "weekly",
+      "type": "scrape"
+    },
+    "cursor-changelog-(web)": {
+      "category": "product",
+      "updateCadence": "weekly",
+      "type": "scrape"
+    }
+  },
+  "sampleOutputs": {
+    "rss": {
+      "id": "sample-id-123",
+      "title": "Sample Entry Title",
+      "summary": "Sample summary text...",
+      "url": "https://example.com/sample",
+      "publishedAt": "2024-01-15T10:30:00Z",
+      "source": "rss",
+      "category": "product",
+      "content": "Full RSS content here...",
+      "tags": [
+        "ai",
+        "coding",
+        "assistant"
+      ]
+    },
+    "api": {
+      "id": "sample-id-123",
+      "title": "Sample Entry Title",
+      "summary": "Sample summary text...",
+      "url": "https://example.com/sample",
+      "publishedAt": "2024-01-15T10:30:00Z",
+      "source": "github_pr",
+      "category": "product",
+      "metadata": {
+        "author": "developer",
+        "repository": "org/repo",
+        "prNumber": 123
+      }
+    },
+    "scrape": {
+      "id": "sample-id-123",
+      "title": "Sample Entry Title",
+      "summary": "Sample summary text...",
+      "url": "https://example.com/sample",
+      "publishedAt": "2024-01-15T10:30:00Z",
+      "source": "scrape",
+      "category": "product"
+    }
+  }
+}

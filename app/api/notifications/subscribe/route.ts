@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     if (!subscription || !userId) {
       return NextResponse.json(
         { error: 'Missing subscription or userId' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     // Set the push subscription for the user
     await knock.users.setChannelData(userId, 'web-push', {
-      tokens: [subscription]
+      tokens: [subscription],
     });
 
     return NextResponse.json({ success: true });
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     console.error('Error subscribing to notifications:', error);
     return NextResponse.json(
       { error: 'Failed to subscribe' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

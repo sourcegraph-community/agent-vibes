@@ -1,4 +1,17 @@
 /**
+ * Time window for filtering papers
+ */
+export type TimeWindow = '3m' | '1m' | '1w' | '3d' | '1d' | 'all';
+
+/**
+ * ADS API search options
+ */
+export interface AdsSearchOptions {
+  rows?: number;
+  window?: TimeWindow;
+}
+
+/**
  * ADS API Response Types
  */
 export interface RawAdsDoc {
@@ -9,6 +22,7 @@ export interface RawAdsDoc {
   arxiv_class?: string[];
   abstract?: string[];
   citation_count?: number;
+  score?: number;
   links_data?: {
     url: string;
     title: string;
@@ -35,6 +49,7 @@ export interface Paper {
   abstract: string;
   citations: number;
   pdf: string;          // first arXiv link
+  score?: number;       // relevance score from ADS API
   createdAt?: Date;     // when added to our system
 }
 

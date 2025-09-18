@@ -11,7 +11,7 @@ self.addEventListener('push', function(event) {
   } catch (e) {
     data = {
       title: 'AgentVibes',
-      body: event.data.text() || 'New notification'
+      body: event.data.text() || 'New notification',
     };
   }
 
@@ -22,24 +22,24 @@ self.addEventListener('push', function(event) {
     image: data.image,
     data: {
       url: data.url || '/',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     },
     actions: [
       {
         action: 'open',
-        title: 'Open App'
+        title: 'Open App',
       },
       {
         action: 'close',
-        title: 'Dismiss'
-      }
+        title: 'Dismiss',
+      },
     ],
     requireInteraction: true,
-    tag: 'agentvibes-notification'
+    tag: 'agentvibes-notification',
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'AgentVibes', options)
+    self.registration.showNotification(data.title || 'AgentVibes', options),
   );
 });
 
@@ -53,7 +53,7 @@ self.addEventListener('notificationclick', function(event) {
 
   // Default action or 'open' action
   const urlToOpen = event.notification.data?.url || '/';
-  
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(function(clientList) {
@@ -64,12 +64,12 @@ self.addEventListener('notificationclick', function(event) {
             return client.focus();
           }
         }
-        
+
         // If not open, open a new window/tab
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
         }
-      })
+      }),
   );
 });
 
@@ -79,7 +79,7 @@ self.addEventListener('activate', function(event) {
   event.waitUntil(self.clients.claim());
 });
 
-// Handle service worker installation  
+// Handle service worker installation
 self.addEventListener('install', function(event) {
   console.log('Service Worker installed');
   self.skipWaiting();
