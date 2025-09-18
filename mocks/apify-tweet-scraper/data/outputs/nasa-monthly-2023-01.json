@@ -1,0 +1,73 @@
+{
+  "actor": "tweet-scraper-v2-x",
+  "scenario": "nasa-monthly-2023-01",
+  "query": "from:NASA since:2023-01-01 until:2023-02-01",
+  "retrievedAt": "2024-06-15T12:00:00.000Z",
+  "statistics": {
+    "limit": 400,
+    "items": 96,
+    "durationMillis": 8421,
+    "searchRuns": 1
+  },
+  "items": [
+    {
+      "type": "tweet",
+      "id": "1619782871036164096",
+      "url": "https://x.com/NASA/status/1619782871036164096",
+      "text": "A stellar farewell to the month! 🌌 Our #Artemis mission prep continues while Webb peers deeper into the cosmos.",
+      "retweetCount": 3841,
+      "replyCount": 615,
+      "likeCount": 21457,
+      "quoteCount": 292,
+      "createdAt": "Tue Jan 31 23:59:18 +0000 2023",
+      "lang": "en",
+      "isReply": false,
+      "isQuote": false,
+      "author": {
+        "type": "user",
+        "userName": "NASA",
+        "id": "11348282",
+        "name": "NASA",
+        "isVerified": true,
+        "followers": 70562103,
+        "following": 208
+      },
+      "media": [],
+      "place": {},
+      "source": "Twitter Web App"
+    },
+    {
+      "type": "tweet",
+      "id": "1617954410841309184",
+      "url": "https://x.com/NASA/status/1617954410841309184",
+      "text": "Inside the Vehicle Assembly Building, the teams are rehearsing Artemis II procedures. Watch how we ready the next crewed mission: https://t.co/mission",
+      "retweetCount": 1952,
+      "replyCount": 410,
+      "likeCount": 12877,
+      "quoteCount": 164,
+      "createdAt": "Thu Jan 26 18:04:52 +0000 2023",
+      "lang": "en",
+      "isReply": false,
+      "isQuote": false,
+      "author": {
+        "type": "user",
+        "userName": "NASA",
+        "id": "11348282",
+        "name": "NASA",
+        "isVerified": true,
+        "followers": 70562103,
+        "following": 208
+      },
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/FnYrmission.jpg",
+          "width": 2048,
+          "height": 1152
+        }
+      ],
+      "place": {},
+      "source": "Twitter Media Studio"
+    }
+  ]
+}

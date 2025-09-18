@@ -1,0 +1,400 @@
+{
+  "meta": {
+    "title": "Agent Vibes Dashboard",
+    "description": "Comprehensive insights into AI coding assistants and market sentiment",
+    "timeframes": ["1h", "1d", "7d", "30d", "90d", "1y"],
+    "defaultTimeframe": "30d",
+    "lastUpdated": "2025-01-15T12:00:00Z"
+  },
+  "overview": {
+    "metrics": [
+      {
+        "id": "overall-sentiment",
+        "title": "Overall Sentiment",
+        "description": "Trending up this month",
+        "value": 74.2,
+        "unit": "%",
+        "trend": {
+          "direction": "positive",
+          "label": "+12.5%"
+        },
+        "subtitle": "Positive across all sources"
+      },
+      {
+        "id": "content-analyzed",
+        "title": "Content Analyzed",
+        "description": "Steady performance increase",
+        "value": 8547,
+        "unit": "items",
+        "trend": {
+          "direction": "positive",
+          "label": "+4.6%"
+        },
+        "subtitle": "Posts, papers, and updates"
+      },
+      {
+        "id": "active-discussions",
+        "title": "Active Discussions",
+        "description": "Down 2% this period",
+        "value": 3218,
+        "unit": "threads",
+        "trend": {
+          "direction": "negative",
+          "label": "-2%"
+        },
+        "subtitle": "Across social platforms"
+      },
+      {
+        "id": "research-papers",
+        "title": "Research Papers",
+        "description": "Strong user retention",
+        "value": 42,
+        "unit": "publications",
+        "trend": {
+          "direction": "positive",
+          "label": "+15.2%"
+        },
+        "subtitle": "New publications this month"
+      }
+    ],
+    "highlights": [
+      {
+        "id": "cursor-product-update",
+        "category": "product",
+        "badge": "Product Update",
+        "time": "2 hours ago",
+        "title": "Cursor AI introduces new context-aware code completion",
+        "summary": "Major update brings 40% improvement in code suggestion accuracy with enhanced multi-file context understanding and real-time debugging assistance.",
+        "meta": {
+          "source": "Official Blog",
+          "sentiment": 95,
+          "sentimentLabel": "positive"
+        }
+      },
+      {
+        "id": "stanford-research",
+        "category": "research",
+        "badge": "Research",
+        "time": "1 day ago",
+        "title": "Stanford study: AI coding assistants boost productivity by 35%",
+        "summary": "Comprehensive study of 2,000 developers shows significant productivity gains, with junior developers benefiting most from AI assistance in debugging and code review tasks.",
+        "meta": {
+          "source": "arXiv",
+          "impact": "High Impact"
+        }
+      },
+      {
+        "id": "github-social",
+        "category": "social",
+        "badge": "Social Sentiment",
+        "time": "3 hours ago",
+        "title": "GitHub Copilot discussion trending on Reddit",
+        "summary": "Developer community discussing new pricing model changes. Mixed reactions with 60% positive sentiment, concerns about enterprise pricing and feature limitations.",
+        "meta": {
+          "source": "r/programming",
+          "engagement": "1.2k comments"
+        }
+      },
+      {
+        "id": "ai-perspective",
+        "category": "perspective",
+        "badge": "Perspective",
+        "time": "5 hours ago",
+        "title": "The future of pair programming with AI assistants",
+        "summary": "Thoughtful analysis on how AI coding tools are reshaping collaborative development practices, exploring both opportunities and challenges for team dynamics.",
+        "meta": {
+          "source": "Medium",
+          "author": "Tech Lead @Meta"
+        }
+      }
+    ]
+  },
+  "sentiment": {
+    "defaultView": "sentiment",
+    "defaultTimeframe": "7d",
+    "agents": [
+      "amp",
+      "cursor",
+      "github-copilot",
+      "claude-code",
+      "windsurf"
+    ],
+    "sources": [
+      "reddit",
+      "x",
+      "hackernews",
+      "medium"
+    ],
+    "trends": {
+      "1h": {
+        "labels": ["58 min", "56 min", "54 min", "52 min", "50 min", "48 min"],
+        "datasets": {
+          "amp": {
+            "positive": [74, 75, 76, 75, 74, 75],
+            "neutral": [16, 15, 14, 15, 16, 15],
+            "negative": [10, 10, 10, 10, 10, 10]
+          },
+          "cursor": {
+            "positive": [79, 80, 81, 80, 79, 80],
+            "neutral": [11, 10, 9, 10, 11, 10],
+            "negative": [10, 10, 10, 10, 10, 10]
+          }
+        }
+      },
+      "1d": {
+        "labels": ["12:00 AM", "4:00 AM", "8:00 AM", "12:00 PM", "4:00 PM", "8:00 PM"],
+        "datasets": {
+          "amp": {
+            "positive": [70, 72, 75, 78, 76, 74],
+            "neutral": [18, 16, 15, 12, 14, 16],
+            "negative": [12, 12, 10, 10, 10, 10]
+          },
+          "cursor": {
+            "positive": [75, 78, 80, 82, 81, 79],
+            "neutral": [15, 12, 10, 8, 9, 11],
+            "negative": [10, 10, 10, 10, 10, 10]
+          },
+          "github-copilot": {
+            "positive": [58, 57, 55, 54, 52, 50],
+            "neutral": [27, 28, 30, 31, 32, 34],
+            "negative": [15, 15, 15, 15, 16, 16]
+          }
+        }
+      },
+      "7d": {
+        "labels": ["Jan 8", "Jan 9", "Jan 10", "Jan 11", "Jan 12", "Jan 13", "Jan 14"],
+        "datasets": {
+          "amp": {
+            "positive": [65, 68, 72, 75, 73, 78, 75],
+            "neutral": [20, 18, 16, 15, 17, 12, 20],
+            "negative": [15, 14, 12, 10, 10, 10, 5]
+          },
+          "cursor": {
+            "positive": [70, 72, 75, 78, 76, 80, 82],
+            "neutral": [18, 16, 14, 12, 14, 10, 10],
+            "negative": [12, 12, 11, 10, 10, 10, 8]
+          },
+          "github-copilot": {
+            "positive": [60, 58, 55, 52, 48, 45, 50],
+            "neutral": [25, 27, 30, 32, 35, 38, 30],
+            "negative": [15, 15, 15, 16, 17, 17, 20]
+          },
+          "claude-code": {
+            "positive": [68, 70, 67, 65, 67, 69, 68],
+            "neutral": [20, 18, 21, 23, 21, 19, 22],
+            "negative": [12, 12, 12, 12, 12, 12, 10]
+          },
+          "windsurf": {
+            "positive": [55, 57, 60, 58, 56, 59, 62],
+            "neutral": [30, 28, 25, 27, 29, 26, 23],
+            "negative": [15, 15, 15, 15, 15, 15, 15]
+          }
+        }
+      },
+      "30d": {
+        "labels": ["Dec 15", "Dec 22", "Dec 29", "Jan 5", "Jan 12"],
+        "datasets": {
+          "amp": {
+            "positive": [62, 65, 70, 73, 75],
+            "neutral": [23, 21, 18, 17, 20],
+            "negative": [15, 14, 12, 10, 5]
+          },
+          "cursor": {
+            "positive": [65, 68, 72, 76, 82],
+            "neutral": [22, 20, 16, 14, 10],
+            "negative": [13, 12, 12, 10, 8]
+          },
+          "github-copilot": {
+            "positive": [58, 57, 55, 52, 50],
+            "neutral": [28, 29, 31, 33, 34],
+            "negative": [14, 14, 14, 15, 16]
+          }
+        }
+      },
+      "90d": {
+        "labels": ["Nov", "Dec", "Jan"],
+        "datasets": {
+          "amp": {
+            "positive": [58, 62, 68],
+            "neutral": [25, 23, 21],
+            "negative": [17, 15, 11]
+          },
+          "cursor": {
+            "positive": [60, 65, 72],
+            "neutral": [24, 22, 18],
+            "negative": [16, 13, 10]
+          },
+          "github-copilot": {
+            "positive": [55, 52, 48],
+            "neutral": [30, 32, 34],
+            "negative": [15, 16, 18]
+          }
+        }
+      },
+      "1y": {
+        "labels": ["Mar", "Jun", "Sep", "Dec"],
+        "datasets": {
+          "amp": {
+            "positive": [50, 55, 60, 68],
+            "neutral": [30, 28, 25, 22],
+            "negative": [20, 17, 15, 10]
+          },
+          "cursor": {
+            "positive": [55, 60, 66, 72],
+            "neutral": [25, 23, 20, 18],
+            "negative": [20, 17, 14, 10]
+          },
+          "github-copilot": {
+            "positive": [48, 50, 52, 50],
+            "neutral": [32, 33, 34, 35],
+            "negative": [20, 17, 14, 15]
+          }
+        }
+      }
+    },
+    "shareOfVoice": {
+      "1h": {
+        "labels": ["58 min", "56 min", "54 min", "52 min", "50 min", "48 min"],
+        "datasets": {
+          "amp": [20, 21, 21, 20, 21, 21],
+          "cursor": [30, 31, 30, 31, 30, 31],
+          "github-copilot": [28, 27, 28, 27, 28, 27],
+          "claude-code": [11, 10, 11, 11, 10, 10],
+          "windsurf": [11, 11, 10, 11, 11, 11]
+        }
+      },
+      "1d": {
+        "labels": ["12:00 AM", "4:00 AM", "8:00 AM", "12:00 PM", "4:00 PM", "8:00 PM"],
+        "datasets": {
+          "amp": [18, 19, 20, 21, 22, 20],
+          "cursor": [28, 29, 30, 31, 32, 30],
+          "github-copilot": [30, 29, 28, 27, 26, 28],
+          "claude-code": [12, 12, 11, 10, 9, 11],
+          "windsurf": [12, 11, 11, 11, 11, 11]
+        }
+      },
+      "7d": {
+        "labels": ["Jan 8", "Jan 9", "Jan 10", "Jan 11", "Jan 12", "Jan 13", "Jan 14"],
+        "datasets": {
+          "amp": [15, 16, 18, 20, 19, 22, 21],
+          "cursor": [25, 27, 26, 28, 30, 29, 31],
+          "github-copilot": [35, 33, 32, 30, 28, 27, 26],
+          "claude-code": [12, 13, 14, 12, 13, 12, 11],
+          "windsurf": [13, 11, 10, 10, 10, 10, 11]
+        }
+      },
+      "30d": {
+        "labels": ["Dec 15", "Dec 22", "Dec 29", "Jan 5", "Jan 12"],
+        "datasets": {
+          "amp": [14, 16, 18, 19, 21],
+          "cursor": [23, 25, 27, 29, 31],
+          "github-copilot": [38, 35, 32, 30, 26],
+          "claude-code": [13, 12, 13, 12, 11],
+          "windsurf": [12, 12, 10, 10, 11]
+        }
+      },
+      "90d": {
+        "labels": ["Nov", "Dec", "Jan"],
+        "datasets": {
+          "amp": [13, 15, 18],
+          "cursor": [22, 24, 27],
+          "github-copilot": [40, 38, 34],
+          "claude-code": [14, 13, 12],
+          "windsurf": [11, 10, 9]
+        }
+      },
+      "1y": {
+        "labels": ["Mar", "Jun", "Sep", "Dec"],
+        "datasets": {
+          "amp": [12, 14, 16, 18],
+          "cursor": [20, 22, 24, 26],
+          "github-copilot": [42, 40, 37, 34],
+          "claude-code": [14, 13, 12, 12],
+          "windsurf": [12, 11, 11, 10]
+        }
+      }
+    },
+    "summary": [
+      {
+        "label": "Today's Breakdown",
+        "value": "60% positive, 20% neutral, 20% negative"
+      },
+      {
+        "label": "Net Sentiment Score",
+        "value": "+40",
+        "state": "positive"
+      },
+      {
+        "label": "Trend Direction",
+        "value": "Improving",
+        "state": "positive"
+      }
+    ]
+  },
+  "feeds": {
+    "productUpdates": [
+      {
+        "agent": "amp",
+        "time": "2 hours ago",
+        "title": "Amp v2.3 released with enhanced NLP capabilities",
+        "summary": "Major update includes enhanced natural language processing, improved code generation accuracy, and new debugging features. Performance improvements show 25% faster response times.",
+        "tag": "Product Release",
+        "sentiment": "+95% positive"
+      },
+      {
+        "agent": "cursor",
+        "time": "1 day ago",
+        "title": "New context-aware code completion algorithm",
+        "summary": "Revolutionary update brings 40% improvement in code suggestion accuracy with enhanced multi-file context understanding and real-time debugging assistance.",
+        "tag": "Major Update",
+        "sentiment": "Trending"
+      },
+      {
+        "agent": "github-copilot",
+        "time": "3 days ago",
+        "title": "Pricing model updates and enterprise features",
+        "summary": "New pricing structure introduces tier-based access to advanced features. Enterprise customers get enhanced security controls and usage analytics.",
+        "tag": "Pricing Change",
+        "sentiment": "Mixed reactions"
+      }
+    ],
+    "research": [
+      {
+        "source": "Stanford AI Lab",
+        "time": "Jan 15, 2025",
+        "title": "NLP Benchmark Study: Code Generation Performance Analysis",
+        "summary": "Comprehensive evaluation of 15 AI coding assistants across 5,000 programming tasks. Introduces CodeBench-2025 benchmark with focus on real-world debugging scenarios.",
+        "tag": "Academic Paper",
+        "impact": "High Impact"
+      },
+      {
+        "source": "McKinsey Digital",
+        "time": "Jan 12, 2025",
+        "title": "AI Coding Assistants: Enterprise Adoption Report 2025",
+        "summary": "Survey of 500 enterprise development teams shows 78% adoption rate. Key drivers include productivity gains (average 30% faster development) and code quality improvements.",
+        "tag": "Industry Report",
+        "impact": "Medium Impact"
+      }
+    ],
+    "perspectives": [
+      {
+        "source": "Medium",
+        "time": "5 hours ago",
+        "title": "The future of pair programming with AI assistants",
+        "summary": "Thoughtful analysis on how AI coding tools are reshaping collaborative development practices, exploring both opportunities and challenges for team dynamics.",
+        "tag": "Opinion",
+        "author": "Tech Lead @Meta"
+      }
+    ],
+    "social": [
+      {
+        "source": "r/programming",
+        "time": "3 hours ago",
+        "title": "GitHub Copilot pricing discussion trending",
+        "summary": "Developer community discussing new pricing model changes. Mixed reactions with 60% positive sentiment, concerns about enterprise pricing and feature limitations.",
+        "tag": "Discussion",
+        "engagement": "1.2k comments"
+      }
+    ]
+  }
+}

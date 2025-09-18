@@ -1,0 +1,79 @@
+{
+  "actor": "tweet-scraper-v2-x",
+  "scenario": "hashtag-conversation-doge",
+  "query": "conversation_id:1728108619189874825 #DogeMission",
+  "retrievedAt": "2024-06-12T10:32:00.000Z",
+  "statistics": {
+    "limit": 120,
+    "items": 58,
+    "durationMillis": 6120,
+    "searchRuns": 1
+  },
+  "items": [
+    {
+      "type": "tweet",
+      "id": "1728110234452392346",
+      "url": "https://x.com/spacelab/status/1728110234452392346",
+      "text": "Replying to @elonmusk Mission control is go for launch. #DogeMission is going to be legendary!",
+      "retweetCount": 312,
+      "replyCount": 95,
+      "likeCount": 2145,
+      "quoteCount": 41,
+      "bookmarkCount": 19,
+      "createdAt": "Fri Nov 24 17:56:02 +0000 2023",
+      "lang": "en",
+      "searchTerm": "conversation_id:1728108619189874825 #DogeMission",
+      "isReply": true,
+      "conversationId": "1728108619189874825",
+      "author": {
+        "type": "user",
+        "userName": "spacelab",
+        "id": "70192812",
+        "name": "Space Lab",
+        "isVerified": true,
+        "isBlueVerified": true,
+        "followers": 1823419,
+        "following": 411
+      },
+      "media": [],
+      "place": {},
+      "source": "Twitter Web App"
+    },
+    {
+      "type": "tweet",
+      "id": "1728111456782341123",
+      "url": "https://x.com/doge_artist/status/1728111456782341123",
+      "text": "RT @cb_doge: The posts on 𝕏 gets ~ 100 billion impressions every day. #DogeMission",
+      "retweetCount": 154,
+      "replyCount": 12,
+      "likeCount": 838,
+      "quoteCount": 18,
+      "bookmarkCount": 7,
+      "createdAt": "Fri Nov 24 18:01:07 +0000 2023",
+      "lang": "en",
+      "searchTerm": "conversation_id:1728108619189874825 #DogeMission",
+      "isRetweet": true,
+      "retweetedStatusId": "1728107610631729415",
+      "conversationId": "1728108619189874825",
+      "author": {
+        "type": "user",
+        "userName": "doge_artist",
+        "id": "941234123",
+        "name": "Doge Artist",
+        "isVerified": false,
+        "followers": 54213,
+        "following": 512
+      },
+      "media": [
+        {
+          "type": "video",
+          "url": "https://video.twimg.com/amplify_video/1727821919171313664/vid/1280x720/VvbDj9laYWdX1dfX.mp4",
+          "bitrate": 2176000,
+          "durationMillis": 3566
+        }
+      ],
+      "place": {},
+      "source": "Twitter for Android"
+    }
+  ]
+}

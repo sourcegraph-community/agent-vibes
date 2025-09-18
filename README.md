@@ -116,6 +116,15 @@ Visit http://localhost:3000/dashboard for the main interface.
 - **Research**: `/research` - Academic papers feed
 - **API**: `/api/entries` - REST API for entries
 
+## Mock Dashboards
+
+Two data-driven mock dashboards are bundled for rapid prototyping:
+
+- **Apify Tweet Scraper:** Visit [http://localhost:3000/mocks/apify-tweet-scraper](http://localhost:3000/mocks/apify-tweet-scraper) while running `npm run dev`. The page hydrates from JSON fixtures in `mocks/apify-tweet-scraper/data/` and reuses the shared CSS skin.
+- **Agent Intelligence Dashboard:** Visit [http://localhost:3000/mocks/analytics-dashboard](http://localhost:3000/mocks/analytics-dashboard). Metrics, highlights, and sentiment series are sourced from `mocks/analytics-dashboard/data/dashboard.json` and rendered with Chart.js + Lucide icons.
+
+Update the JSON files to adjust copy, stats, or chart data—the routes re-read fixtures on every request.
+
 ## 🔧 API Endpoints
 
 ### Entries
@@ -157,6 +166,10 @@ curl -X POST http://localhost:3000/api/notifications/test
 - **Notifications**: Knock + Web Push
 - **Deployment**: Vercel
 - **TypeScript**: Strict mode enabled
+
+## Known Issues
+
+- **Stylistic indent regression (Sep 2025):** `@stylistic/indent` currently trips a stack overflow when linting large TSX trees with TypeScript 5.9 (tracked in [eslint-stylistic#915](https://github.com/eslint-stylistic/eslint-stylistic/issues/915)). As a mitigation we ignore `app/mocks/**` and `mocks/**` in [eslint.config.mjs](file:///home/prinova/CodeProjects/agent-vibes/eslint.config.mjs#L10-L79). Remove those ignores once the upstream fix ships and the rule is safe to re-enable.
 
 ## 🚀 Deployment
 

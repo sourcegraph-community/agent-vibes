@@ -1,0 +1,21 @@
+{
+  "includeSearchTerms": false,
+  "onlyImage": false,
+  "onlyQuote": false,
+  "onlyTwitterBlue": false,
+  "onlyVerifiedUsers": false,
+  "onlyVideo": false,
+  "searchTerms": [
+    "from:NASA since:2023-01-01 until:2023-02-01"
+  ],
+  "sort": "Latest",
+  "tweetLanguage": "en",
+  "maxItems": 400,
+  "start": "2023-01-01T00:00:00Z",
+  "end": "2023-02-01T00:00:00Z",
+  "customMapFunction": null,
+  "metadata": {
+    "description": "Monthly NASA archive aligned with Apify actor batching guidance.",
+    "expectedMinimumItems": 50
+  }
+}
