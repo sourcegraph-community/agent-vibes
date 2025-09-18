@@ -20,6 +20,35 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Checks & Formatting
+
+Install dependencies (including dev tools):
+
+```bash
+npm i
+```
+
+Run local checks:
+
+```bash
+# TypeScript + ESLint (no fixes)
+npm run check
+
+# TypeScript + ESLint with fixes and formatting
+npm run check:fix
+
+# Individually
+npm run typecheck
+npm run lint
+npm run lint:fix
+```
+
+Notes:
+- ESLint v9 flat config is used; see `eslint.config.mjs`.
+- Formatting is handled via ESLint Stylistic (no Prettier). Use `npm run check:fix` to format.
+- The ESLint rule for triple-slash references is disabled for `next-env.d.ts` (Next.js typed routes auto-add a reference).
+- The ESLint cache file (`.eslintcache`) is ignored via `.gitignore`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
