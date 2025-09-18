@@ -4,9 +4,10 @@ A minimalistic, dark-themed analytics dashboard providing comprehensive insights
 
 ## Files
 
-- **analytics-dashboard.html** - Main HTML structure with semantic markup
+- **data/dashboard.json** - Canonical fixture powering the Next.js mock route
 - **analytics-dashboard.css** - Dark theme styling with responsive design and accessibility features
-- **analytics-dashboard.js** - Interactive functionality including Chart.js integration and filtering
+- **analytics-dashboard.html** - Legacy static reference mock (optional)
+- **analytics-dashboard.js** - Original interactive prototype script (optional)
 - **README.md** - This documentation
 
 ## Features
@@ -64,12 +65,8 @@ A minimalistic, dark-themed analytics dashboard providing comprehensive insights
 
 ## Usage
 
-Simply open `analytics-dashboard.html` in a web browser. The dashboard includes:
-
-- Sample data for all visualizations
-- Interactive chart with multiple agents
-- Functioning filters and navigation
-- Responsive design demonstration
+- **Next.js mock route:** Visit `/mocks/analytics-dashboard` while running `npm run dev`. The page hydrates directly from `data/dashboard.json`, renders the full dashboard layout, and initializes the sentiment chart via Chart.js.
+- **Static reference:** You can still open `analytics-dashboard.html` locally if you need the original prototype markup; keep `analytics-dashboard.css` co-located for styling.
 
 ## Color Palette
 

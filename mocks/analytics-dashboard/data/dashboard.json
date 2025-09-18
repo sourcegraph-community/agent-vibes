@@ -1,0 +1,255 @@
+{
+  "meta": {
+    "title": "Agent Vibes Dashboard",
+    "description": "Comprehensive insights into AI coding assistants and market sentiment",
+    "timeframes": ["1h", "1d", "7d", "30d", "90d", "1y"],
+    "defaultTimeframe": "30d",
+    "lastUpdated": "2025-01-15T12:00:00Z"
+  },
+  "overview": {
+    "metrics": [
+      {
+        "id": "overall-sentiment",
+        "title": "Overall Sentiment",
+        "description": "Trending up this month",
+        "value": 74.2,
+        "unit": "%",
+        "trend": {
+          "direction": "positive",
+          "label": "+12.5%"
+        },
+        "subtitle": "Positive across all sources"
+      },
+      {
+        "id": "content-analyzed",
+        "title": "Content Analyzed",
+        "description": "Steady performance increase",
+        "value": 8547,
+        "unit": "items",
+        "trend": {
+          "direction": "positive",
+          "label": "+4.6%"
+        },
+        "subtitle": "Posts, papers, and updates"
+      },
+      {
+        "id": "active-discussions",
+        "title": "Active Discussions",
+        "description": "Down 2% this period",
+        "value": 3218,
+        "unit": "threads",
+        "trend": {
+          "direction": "negative",
+          "label": "-2%"
+        },
+        "subtitle": "Across social platforms"
+      },
+      {
+        "id": "research-papers",
+        "title": "Research Papers",
+        "description": "Strong user retention",
+        "value": 42,
+        "unit": "publications",
+        "trend": {
+          "direction": "positive",
+          "label": "+15.2%"
+        },
+        "subtitle": "New publications this month"
+      }
+    ],
+    "highlights": [
+      {
+        "id": "cursor-product-update",
+        "category": "product",
+        "badge": "Product Update",
+        "time": "2 hours ago",
+        "title": "Cursor AI introduces new context-aware code completion",
+        "summary": "Major update brings 40% improvement in code suggestion accuracy with enhanced multi-file context understanding and real-time debugging assistance.",
+        "meta": {
+          "source": "Official Blog",
+          "sentiment": 95,
+          "sentimentLabel": "positive"
+        }
+      },
+      {
+        "id": "stanford-research",
+        "category": "research",
+        "badge": "Research",
+        "time": "1 day ago",
+        "title": "Stanford study: AI coding assistants boost productivity by 35%",
+        "summary": "Comprehensive study of 2,000 developers shows significant productivity gains, with junior developers benefiting most from AI assistance in debugging and code review tasks.",
+        "meta": {
+          "source": "arXiv",
+          "impact": "High Impact"
+        }
+      },
+      {
+        "id": "github-social",
+        "category": "social",
+        "badge": "Social Sentiment",
+        "time": "3 hours ago",
+        "title": "GitHub Copilot discussion trending on Reddit",
+        "summary": "Developer community discussing new pricing model changes. Mixed reactions with 60% positive sentiment, concerns about enterprise pricing and feature limitations.",
+        "meta": {
+          "source": "r/programming",
+          "engagement": "1.2k comments"
+        }
+      },
+      {
+        "id": "ai-perspective",
+        "category": "perspective",
+        "badge": "Perspective",
+        "time": "5 hours ago",
+        "title": "The future of pair programming with AI assistants",
+        "summary": "Thoughtful analysis on how AI coding tools are reshaping collaborative development practices, exploring both opportunities and challenges for team dynamics.",
+        "meta": {
+          "source": "Medium",
+          "author": "Tech Lead @Meta"
+        }
+      }
+    ]
+  },
+  "sentiment": {
+    "defaultView": "sentiment",
+    "defaultTimeframe": "7d",
+    "agents": [
+      "amp",
+      "cursor",
+      "github-copilot",
+      "claude-code",
+      "windsurf"
+    ],
+    "sources": [
+      "reddit",
+      "x",
+      "hackernews",
+      "medium"
+    ],
+    "trends": {
+      "7d": {
+        "labels": ["Jan 8", "Jan 9", "Jan 10", "Jan 11", "Jan 12", "Jan 13", "Jan 14"],
+        "datasets": {
+          "amp": {
+            "positive": [65, 68, 72, 75, 73, 78, 75],
+            "neutral": [20, 18, 16, 15, 17, 12, 20],
+            "negative": [15, 14, 12, 10, 10, 10, 5]
+          },
+          "cursor": {
+            "positive": [70, 72, 75, 78, 76, 80, 82],
+            "neutral": [18, 16, 14, 12, 14, 10, 10],
+            "negative": [12, 12, 11, 10, 10, 10, 8]
+          },
+          "github-copilot": {
+            "positive": [60, 58, 55, 52, 48, 45, 50],
+            "neutral": [25, 27, 30, 32, 35, 38, 30],
+            "negative": [15, 15, 15, 16, 17, 17, 20]
+          },
+          "claude-code": {
+            "positive": [68, 70, 67, 65, 67, 69, 68],
+            "neutral": [20, 18, 21, 23, 21, 19, 22],
+            "negative": [12, 12, 12, 12, 12, 12, 10]
+          },
+          "windsurf": {
+            "positive": [55, 57, 60, 58, 56, 59, 62],
+            "neutral": [30, 28, 25, 27, 29, 26, 23],
+            "negative": [15, 15, 15, 15, 15, 15, 15]
+          }
+        }
+      }
+    },
+    "shareOfVoice": {
+      "7d": {
+        "labels": ["Jan 8", "Jan 9", "Jan 10", "Jan 11", "Jan 12", "Jan 13", "Jan 14"],
+        "datasets": {
+          "amp": [15, 16, 18, 20, 19, 22, 21],
+          "cursor": [25, 27, 26, 28, 30, 29, 31],
+          "github-copilot": [35, 33, 32, 30, 28, 27, 26],
+          "claude-code": [12, 13, 14, 12, 13, 12, 11],
+          "windsurf": [13, 11, 10, 10, 10, 10, 11]
+        }
+      }
+    },
+    "summary": [
+      {
+        "label": "Today's Breakdown",
+        "value": "60% positive, 20% neutral, 20% negative"
+      },
+      {
+        "label": "Net Sentiment Score",
+        "value": "+40",
+        "state": "positive"
+      },
+      {
+        "label": "Trend Direction",
+        "value": "Improving",
+        "state": "positive"
+      }
+    ]
+  },
+  "feeds": {
+    "productUpdates": [
+      {
+        "agent": "amp",
+        "time": "2 hours ago",
+        "title": "Amp v2.3 released with enhanced NLP capabilities",
+        "summary": "Major update includes enhanced natural language processing, improved code generation accuracy, and new debugging features. Performance improvements show 25% faster response times.",
+        "tag": "Product Release",
+        "sentiment": "+95% positive"
+      },
+      {
+        "agent": "cursor",
+        "time": "1 day ago",
+        "title": "New context-aware code completion algorithm",
+        "summary": "Revolutionary update brings 40% improvement in code suggestion accuracy with enhanced multi-file context understanding and real-time debugging assistance.",
+        "tag": "Major Update",
+        "sentiment": "Trending"
+      },
+      {
+        "agent": "github-copilot",
+        "time": "3 days ago",
+        "title": "Pricing model updates and enterprise features",
+        "summary": "New pricing structure introduces tier-based access to advanced features. Enterprise customers get enhanced security controls and usage analytics.",
+        "tag": "Pricing Change",
+        "sentiment": "Mixed reactions"
+      }
+    ],
+    "research": [
+      {
+        "source": "Stanford AI Lab",
+        "time": "Jan 15, 2025",
+        "title": "NLP Benchmark Study: Code Generation Performance Analysis",
+        "summary": "Comprehensive evaluation of 15 AI coding assistants across 5,000 programming tasks. Introduces CodeBench-2025 benchmark with focus on real-world debugging scenarios.",
+        "tag": "Academic Paper",
+        "impact": "High Impact"
+      },
+      {
+        "source": "McKinsey Digital",
+        "time": "Jan 12, 2025",
+        "title": "AI Coding Assistants: Enterprise Adoption Report 2025",
+        "summary": "Survey of 500 enterprise development teams shows 78% adoption rate. Key drivers include productivity gains (average 30% faster development) and code quality improvements.",
+        "tag": "Industry Report",
+        "impact": "Medium Impact"
+      }
+    ],
+    "perspectives": [
+      {
+        "source": "Medium",
+        "time": "5 hours ago",
+        "title": "The future of pair programming with AI assistants",
+        "summary": "Thoughtful analysis on how AI coding tools are reshaping collaborative development practices, exploring both opportunities and challenges for team dynamics.",
+        "tag": "Opinion",
+        "author": "Tech Lead @Meta"
+      }
+    ],
+    "social": [
+      {
+        "source": "r/programming",
+        "time": "3 hours ago",
+        "title": "GitHub Copilot pricing discussion trending",
+        "summary": "Developer community discussing new pricing model changes. Mixed reactions with 60% positive sentiment, concerns about enterprise pricing and feature limitations.",
+        "tag": "Discussion",
+        "engagement": "1.2k comments"
+      }
+    ]
+  }
+}
