@@ -1,0 +1,19 @@
+{
+  "includeSearchTerms": true,
+  "onlyImage": false,
+  "onlyQuote": false,
+  "onlyTwitterBlue": false,
+  "onlyVerifiedUsers": false,
+  "onlyVideo": false,
+  "searchTerms": [
+    "conversation_id:1728108619189874825 #DogeMission"
+  ],
+  "sort": "Latest",
+  "tweetLanguage": "en",
+  "maxItems": 120,
+  "customMapFunction": null,
+  "metadata": {
+    "description": "Conversation replies filtered by #DogeMission hashtag for UI media coverage testing.",
+    "expectedMinimumItems": 50
+  }
+}

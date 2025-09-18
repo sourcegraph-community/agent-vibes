@@ -1,5 +1,5 @@
 // Service Worker for handling push notifications
-self.addEventListener('push', function(event) {
+self.addEventListener('push', (event) => {
   if (!event.data) {
     console.log('No data in push event');
     return;
@@ -8,10 +8,11 @@ self.addEventListener('push', function(event) {
   let data;
   try {
     data = event.data.json();
-  } catch (e) {
+  } catch (parseError) {
+    console.error('Failed to parse push payload', parseError);
     data = {
       title: 'AgentVibes',
-      body: event.data.text() || 'New notification'
+      body: event.data.text() || 'New notification',
     };
   }
 
@@ -22,65 +23,64 @@ self.addEventListener('push', function(event) {
     image: data.image,
     data: {
       url: data.url || '/',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     },
     actions: [
       {
         action: 'open',
-        title: 'Open App'
+        title: 'Open App',
       },
       {
         action: 'close',
-        title: 'Dismiss'
-      }
+        title: 'Dismiss',
+      },
     ],
     requireInteraction: true,
-    tag: 'agentvibes-notification'
+    tag: 'agentvibes-notification',
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'AgentVibes', options)
+    self.registration.showNotification(data.title || 'AgentVibes', options),
   );
 });
 
 // Handle notification clicks
-self.addEventListener('notificationclick', function(event) {
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   if (event.action === 'close') {
     return;
   }
 
-  // Default action or 'open' action
   const urlToOpen = event.notification.data?.url || '/';
-  
+
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then(function(clientList) {
-        // Check if the app is already open
-        for (let i = 0; i < clientList.length; i++) {
-          const client = clientList[i];
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
           if (client.url.includes(urlToOpen) && 'focus' in client) {
             return client.focus();
           }
         }
-        
-        // If not open, open a new window/tab
-        if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
+
+        if (typeof self.clients.openWindow === 'function') {
+          return self.clients.openWindow(urlToOpen);
         }
-      })
+
+        return undefined;
+      }),
   );
 });
 
 // Handle service worker activation
-self.addEventListener('activate', function(event) {
+self.addEventListener('activate', (event) => {
   console.log('Service Worker activated');
   event.waitUntil(self.clients.claim());
 });
 
-// Handle service worker installation  
-self.addEventListener('install', function(event) {
+// Handle service worker installation
+self.addEventListener('install', () => {
   console.log('Service Worker installed');
   self.skipWaiting();
 });

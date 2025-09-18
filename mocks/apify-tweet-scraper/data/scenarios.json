@@ -1,0 +1,26 @@
+[
+  {
+    "id": "nasa-monthly-2023-01",
+    "title": "NASA monthly archive (Jan 2023)",
+    "description": "Collects NASA tweets posted between 2023-01-01 and 2023-02-01 using segmented search queries.",
+    "input": "inputs/nasa-monthly-2023-01.json",
+    "output": "outputs/nasa-monthly-2023-01.json",
+    "tags": ["profile", "historical", "english"],
+    "notes": [
+      "Demonstrates date slicing to stay under the ~800 tweets per search cap.",
+      "Minimum tweet count aligned with pricing guidance (>= 50)."
+    ]
+  },
+  {
+    "id": "hashtag-conversation-doge",
+    "title": "Conversation replies containing #DogeMission",
+    "description": "Captures replies under a specific conversation ID filtered by the #DogeMission hashtag.",
+    "input": "inputs/hashtag-conversation-doge.json",
+    "output": "outputs/hashtag-conversation-doge.json",
+    "tags": ["conversation", "hashtag", "mixed-media"],
+    "notes": [
+      "Illustrates use of conversation_id plus hashtag filtering.",
+      "Includes quote, media, and analytics sampling for UI coverage."
+    ]
+  }
+]

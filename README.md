@@ -20,6 +20,15 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Mock Dashboards
+
+Two data-driven mock dashboards are bundled for rapid prototyping:
+
+- **Apify Tweet Scraper:** Visit [http://localhost:3000/mocks/apify-tweet-scraper](http://localhost:3000/mocks/apify-tweet-scraper) while running `npm run dev`. The page hydrates from JSON fixtures in `mocks/apify-tweet-scraper/data/` and reuses the shared CSS skin.
+- **Agent Intelligence Dashboard:** Visit [http://localhost:3000/mocks/analytics-dashboard](http://localhost:3000/mocks/analytics-dashboard). Metrics, highlights, and sentiment series are sourced from `mocks/analytics-dashboard/data/dashboard.json` and rendered with Chart.js + Lucide icons.
+
+Update the JSON files to adjust copy, stats, or chart data—the routes re-read fixtures on every request.
+
 ## Checks & Formatting
 
 Install dependencies (including dev tools):
@@ -48,6 +57,10 @@ Notes:
 - Formatting is handled via ESLint Stylistic (no Prettier). Use `npm run check:fix` to format.
 - The ESLint rule for triple-slash references is disabled for `next-env.d.ts` (Next.js typed routes auto-add a reference).
 - The ESLint cache file (`.eslintcache`) is ignored via `.gitignore`.
+
+## Known Issues
+
+- **Stylistic indent regression (Sep 2025):** `@stylistic/indent` currently trips a stack overflow when linting large TSX trees with TypeScript 5.9 (tracked in [eslint-stylistic#915](https://github.com/eslint-stylistic/eslint-stylistic/issues/915)). As a mitigation we ignore `app/mocks/**` and `mocks/**` in [eslint.config.mjs](file:///home/prinova/CodeProjects/agent-vibes/eslint.config.mjs#L10-L79). Remove those ignores once the upstream fix ships and the rule is safe to re-enable.
 
 ## Learn More
 
