@@ -1,3 +1,5 @@
+Note: you are helping troubleshoot and build out the capabilities of this information aggregator. You must never run anything in a long running instance such as npm run dev, this is because we already have it running and this could cause conflicts with the currently running server and overwrite the port or you could end up sitting on it and not making progress.
+
 - Stack: Next.js 15 (App Router), TypeScript, Tailwind v4 (@tailwindcss/postcss)
 - Dev/build/start: `npm run dev` | `npm run build` | `npm run start` (Turbopack)
 - Typecheck/lint/tests: `npm run typecheck`; lint: `npm run lint`; fix: `npm run fix`; combined: `npm run check`; tests: N/A; single-test: N/A

@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SourceType {
+  RSS
+  API
+  SCRAPE
+}
+
+enum CrawlStatus {
+  SUCCESS
+  ERROR
+  PARTIAL
+}
+
+model Source {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  type        SourceType
+  endpoint    String
+  lastSeen    DateTime?
+  etag        String?
+  isActive    Boolean     @default(true)
+  keywords    String?     // JSON string of keywords for filtering
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Relations
+  entries     Entry[]
+  crawlLogs   CrawlLog[]
+  
+  @@map("sources")
+}
+
+model Entry {
+  id          String   @id @default(cuid())
+  sourceId    String
+  title       String
+  url         String
+  slug        String?
+  publishedAt DateTime
+  summary     String?
+  content     String?  // Full content if available
+  tags        String?  // JSON array of tags
+  duplicateOf String?  // Reference to original entry if this is a duplicate
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  source      Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  
+  @@unique([sourceId, url])
+  @@index([publishedAt])
+  @@index([sourceId])
+  @@map("entries")
+}
+
+model CrawlLog {
+  id          String      @id @default(cuid())
+  sourceId    String
+  startedAt   DateTime    @default(now())
+  completedAt DateTime?
+  durationMs  Int?
+  status      CrawlStatus
+  newCount    Int         @default(0)
+  errorMsg    String?
+  
+  // Relations
+  source      Source      @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  
+  @@index([sourceId, startedAt])
+  @@map("crawl_logs")
+}
+
+// User management and preferences
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  preferences UserPreference[]
+  
+  @@map("users")
+}
+
+model UserPreference {
+  id       String @id @default(cuid())
+  userId   String
+  key      String // e.g., 'keywords', 'sources', 'notification_frequency'
+  value    String // JSON string
+  
+  // Relations
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, key])
+  @@map("user_preferences")
+}
+
+// Analytics and metrics
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  event      String
+  properties Json?
+  timestamp  DateTime @default(now())
+  userAgent  String?
+  url        String?
+  
+  @@index([event, timestamp])
+  @@map("analytics_events")
+}
