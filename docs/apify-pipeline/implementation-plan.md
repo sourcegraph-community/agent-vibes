@@ -229,14 +229,19 @@ create trigger keywords_prevent_update
 - Secrets rotated and stored as `sb_secret_*` values per platform guidance ([supabase.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/supabase.md#L7-L15)).
 
 ### Task Checklist
-- [ ] Implement migrations for core tables + triggers updating `status` and timestamps.
-- [ ] Seed `keywords` with Analytics-provided list; add ownership notes in README.
-- [ ] Create Supabase Row Level Security rules for `normalized_tweets` and `tweet_sentiments` (read-only for dashboard role).
-- [ ] Script for rotating Supabase secrets via CLI, documenting the process.
+- [x] Implement migrations for core tables + triggers updating `status` and timestamps.
+- [x] Seed `keywords` with Analytics-provided list; add ownership notes in README.
+- [x] Create Supabase Row Level Security rules for `normalized_tweets` and `tweet_sentiments` (read-only for dashboard role).
+- [x] Script for rotating Supabase secrets via `npm run rotate:supabase` (TypeScript Management-API Workflow) dokumentiert.
 
 ### Dependencies & Touchpoints
 - **Analytics:** Provide initial keyword list + priority tags.
 - **Ops:** Approve secret rotation process and schedule.
+
+#### Delivery Notes (2025-09-29)
+- `src/Features/ApifyPipeline/Domain/Persistence/Migrations/20250929_1200_InitApifyPipeline.sql` provisions tables, append-only triggers, RLS, and analytic views required for Milestone 1.
+- `src/Features/ApifyPipeline/Domain/Persistence/Seeds/20250929_1230_KeywordsSeed.sql` hydrates keywords plus demo sentiment data to validate `vw_daily_sentiment` and `vw_keyword_trends`.
+- `npm run rotate:supabase` (Script [`scripts/rotate-supabase-secrets.ts`](file:///home/prinova/CodeProjects/agent-vibes/scripts/rotate-supabase-secrets.ts)) rotiert `sb_secret_*` Credentials via Supabase Management API + Secrets Endpoint ohne Werte zu loggen.
 
 ### Risk Mitigation & Validation
 - [ ] Run Supabase migration tests locally and in staging, capturing rollback steps.

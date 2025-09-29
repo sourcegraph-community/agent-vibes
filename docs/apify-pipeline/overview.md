@@ -96,8 +96,12 @@ graph TB
     class Gemini,Vercel external
 ```
 
+## Aktueller Status
+- Supabase Basisschema inkl. Append-Only-Triggers und RLS-Policies liegt als Migration unter `src/Features/ApifyPipeline/Domain/Persistence/Migrations/20250929_1200_InitApifyPipeline.sql`.
+- Views `vw_daily_sentiment` und `vw_keyword_trends` sind erstellt und liefern dank Seed-Daten (`src/Features/ApifyPipeline/Domain/Persistence/Seeds/20250929_1230_KeywordsSeed.sql`) Beispielmetriken für das Dashboard.
+- Supabase Secret-Rotation läuft über `npm run rotate:supabase` (TypeScript-Script [`scripts/rotate-supabase-secrets.ts`](file:///home/prinova/CodeProjects/agent-vibes/scripts/rotate-supabase-secrets.ts) nutzt Supabase Management API + Secrets Endpoint).
+
 ## Offene Punkte für spätere Iterationen
-- Detailliertes Datenmodell (Tabellen, Schemata, Trigger) definieren.
 - Fehlerbehandlung und Monitoring (Retries, Alerting) spezifizieren.
 - Authentifizierung und Zugriffsfunktionen für Supabase und Apify festlegen.
 - Kosten- und Latenzbetrachtung für Apify, Supabase und Gemini evaluieren.

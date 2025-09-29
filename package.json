@@ -12,7 +12,8 @@
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix --cache",
     "check": "npm run typecheck && npm run lint",
     "fix": "npm run lint:fix",
-    "check:fix": "npm run typecheck && npm run lint:fix"
+    "check:fix": "npm run typecheck && npm run lint:fix",
+    "rotate:supabase": "tsx scripts/rotate-supabase-secrets.ts"
   },
   "dependencies": {
     "next": "15.5.2",
@@ -20,18 +21,19 @@
     "react-dom": "19.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9",
+    "@stylistic/eslint-plugin": "^2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "tailwindcss": "^4",
-    "typescript": "^5",
     "eslint": "^9",
-    "@eslint/js": "^9",
-    "typescript-eslint": "^8",
     "eslint-plugin-react": "^7",
     "eslint-plugin-react-hooks": "^5",
     "globals": "^15",
-    "@stylistic/eslint-plugin": "^2"
+    "tailwindcss": "^4",
+    "tsx": "^4.20.6",
+    "typescript": "^5",
+    "typescript-eslint": "^8"
   }
 }
