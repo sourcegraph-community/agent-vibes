@@ -4,6 +4,8 @@
 - **Ziel:** Automatisierte Sammlung, Aufbereitung und Visualisierung von Social-Media-Erwähnungen rund um Coding-Agenten.
 - **Scope:** Produktionstaugliche Pipeline für Tweets (MVP). Erweiterbarkeit auf weitere Quellen ist eingeplant, aber nicht Teil der ersten Iteration.
 
+Architekturhinweis: Die Pipeline ist als Vertical Slice `src/Features/ApifyPipeline` organisiert. Innerhalb des Slices liegen App-Router-Endpunkte (`Ui/Application/Endpoints`), Supabase-Zugriff (`Domain/Persistence`), Integrationen (`Domain/Integrations`) sowie Scheduler-Befehle (`Scheduler/Application`). Gemeinsame Verträge bleiben slice-lokal und werden aus `app/api` lediglich re-exportiert.
+
 ## 2. Stakeholder & Verantwortlichkeiten
 - **Product/Analytics:** Definieren Schlagworte, Reporting-Anforderungen und KPI.
 - **Engineering (Data/Backend):** Implementiert Apify Actor, Normalisierung, Supabase-Integration.
@@ -13,7 +15,7 @@
 
 ## 3. Funktionale Anforderungen
 ### 3.1 Datenerfassung
-- Vercel Cron ruft das interne Endpoint `/api/start-apify-run` auf, welches den Apify Run API Call proxyt; Intervalle unter 24 h setzen mindestens den Vercel Pro Plan voraus.
+- Vercel Cron ruft das interne Endpoint `/api/start-apify-run` auf, welches den Apify Run API Call proxyt; Intervalle unter 24 h setzen mindestens den Vercel Pro Plan voraus. Die Route `app/api/start-apify-run/route.ts` importiert dafür den Handler `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun` (REPR-Einstiegspunkt).
 - Manuelle Trigger über Apify UI oder REST Endpoint bleiben unverändert.
 - Datenerfassung benötigt entweder X API Pro-Zugänge (≈ US$ 5 k/Monat) oder den Apify Tweet Scraper; Scraper-Runs müssen Anti-Monitoring-Auflagen (Pausen, max. fünf Queries) respektieren.
 - Actor nutzt vordefinierte Schlagwort-Liste (konfigurierbar via Supabase Tabelle `keywords`).
@@ -33,6 +35,7 @@
 - Sentiment-Resultate in `tweet_sentiments`.
 - Historisierung ohne Mutationen (append-only); Aktualisierungen via `upsert` nach Tweet-ID.
 - Backfill-Strategie: Einmalige Aufteilung der letzten 30 Tage in mehrere 5-Tage-Läufe mit erhöhtem `maxItems`; bei X API Pro können Läufe dichter getaktet werden, Apify Scraper erfordern hingegen Pausen (>5 Minuten) und begrenzte Query-Batches.
+- Slice-spezifische Migrationen und Seeds liegen unter `src/Features/ApifyPipeline/Domain/Persistence/Migrations` (Namensschema `yyyyMMdd_HHmm_Description.sql`).
 
 ### 3.4 Sentiment-Analyse
 - Supabase Edge Function überwacht neue Einträge in `normalized_tweets` (Primärpfad für Sentiment-Verarbeitung) und trackt den jeweils letzten verarbeiteten Tweet-Zeitstempel je Keyword.
@@ -40,6 +43,7 @@
 - Rate-Limits und Kosten (Free ~15 RPM/1,5 M Tokens pro Tag; entgeltlich laut aktuellem Pricing) bestimmen Batch-Größe und Queueing; Supabase Functions + Storage-Queue puffern Überschreitungen.
 - API Keys (`GEMINI_API_KEY`) liegen in Supabase Secrets bzw. Vercel Env Vars und werden regelmäßig rotiert.
 - Ergebnisse (Score -1…1, Kategorie, erweiterte Insights) werden in `tweet_sentiments` gespeichert; Fehlerhafte Aufrufe landen in `sentiment_failures`, Fallback bleibt eine Vercel Serverless Function für Re-Runs.
+- Umsetzung: Supabase Edge Functions für die Klassifikation liegen im Slice unter `src/Features/ApifyPipeline/Domain/Integrations/Gemini/EdgeFunctions/SentimentClassify` und kapseln alle Gemini-spezifischen Clients.
 
 ### 3.5 Frontend / Dashboard
 - Next.js 15 App Router (async Request APIs) visualisiert Erwähnungen, Sentiment-Verteilung und Trends.
@@ -55,11 +59,11 @@
 - **Compliance:** Einhaltung X API Terms bzw. Apify Scraper-Richtlinien; Datenlöschung auf Anfrage.
 
 ## 5. Architektur & Komponenten
-- **Apify Actor:** Node.js/TypeScript Skripte, entweder X API Pro (Budget-Freigabe) oder Apify Tweet Scraper mit Anti-Monitoring-Pacing.
-- **Supabase:** Postgres + Edge Functions, Auth via `sb_secret_*` Keys; PG17-kompatible Erweiterungen (z. B. Alternativen zu TimescaleDB) werden berücksichtigt.
-- **Sentiment Worker:** Supabase Edge Function mit Gemini 2.5 Structured Output, optionaler Vercel Serverless Fallback für Bulk-Re-Runs.
-- **Frontend:** Next.js 15 App Router auf Vercel (Node.js 20, async Request APIs, `@supabase/ssr` Integration).
-- **Monitoring:** Supabase Logs/Realtime Limits, Apify Actor Run Logs, Vercel Cron Status & Planverbrauch.
+- **Apify Actor:** Node.js/TypeScript Skripte, entweder X API Pro (Budget-Freigabe) oder Apify Tweet Scraper mit Anti-Monitoring-Pacing. (Slice: `src/Features/ApifyPipeline/Scheduler/Application/Commands/TriggerApifyRun`)
+- **Supabase:** Postgres + Edge Functions, Auth via `sb_secret_*` Keys; PG17-kompatible Erweiterungen (z. B. Alternativen zu TimescaleDB) werden berücksichtigt. (Slice: `src/Features/ApifyPipeline/Domain/Persistence`)
+- **Sentiment Worker:** Supabase Edge Function mit Gemini 2.5 Structured Output, optionaler Vercel Serverless Fallback für Bulk-Re-Runs. (Slice: `src/Features/ApifyPipeline/Domain/Integrations/Gemini`)
+- **Frontend:** Next.js 15 App Router auf Vercel (Node.js 20, async Request APIs, `@supabase/ssr` Integration). (Slice: `src/Features/ApifyPipeline/Ui/Application/Dashboard`)
+- **Monitoring:** Supabase Logs/Realtime Limits, Apify Actor Run Logs, Vercel Cron Status & Planverbrauch. (Slice Docs: `src/Features/ApifyPipeline/Docs/Runbooks`)
 
 ## 6. Datenmodell (Entwurf)
 ```text
@@ -120,7 +124,7 @@ cron_runs
 
 ## 7. Workflows
 ### 7.1 Automatischer Lauf
-1. Vercel Cron ruft `/api/start-apify-run` auf (Vercel Function) und diese proxyt den Apify Run API Aufruf.
+1. Vercel Cron ruft `/api/start-apify-run` auf (Vercel Function) und diese proxyt den Apify Run API Aufruf. Die Route importiert den Slice-Endpunkt `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun`.
 2. Actor lädt X API Pro Credentials oder Apify Scraper Tokens und liest `keywords` aus Supabase.
 3. Actor ruft Tweets ab, speichert Rohdaten (`raw_tweets`).
 4. Actor transformiert und upsertet `normalized_tweets`.

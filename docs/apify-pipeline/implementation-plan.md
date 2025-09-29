@@ -1,5 +1,7 @@
 # Apify Pipeline Implementation Plan
 
+Architekturhinweis: Umsetzung erfolgt innerhalb des Vertical Slice `src/Features/ApifyPipeline`. App-Router-Endpunkte (`Ui/Application/Endpoints`), Scheduler-Befehle (`Scheduler/Application`), Domain-Persistenz (`Domain/Persistence`) und Integrationen (`Domain/Integrations`) bleiben slice-lokal und werden aus dem Next.js `app/` Verzeichnis nur weitergereicht.
+
 ## Data-First Backbone
 - **Primary storage (`Supabase`, Postgres 17):** tables `raw_tweets`, `normalized_tweets`, `tweet_sentiments`, `sentiment_failures`, `keywords`, `cron_runs` mirror the specification draft and remain append-first for lineage tracking ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L64-L117)).
 - **Derived artifacts:** Supabase views (`vw_daily_sentiment`, `vw_keyword_trends`) and CSV exports feed analytics; Gemini responses are logged to `tweet_sentiments` with `model_version` to preserve provenance ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L38-L43)).
@@ -23,10 +25,190 @@
 - Secrets inventory documented using `sb_secret_*` rotation guidance ([supabase.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/supabase.md#L7-L20)).
 
 ### Task Checklist (assignable to junior devs)
-- [ ] Compile glossary of data entities (`raw_tweets`, `normalized_tweets`, etc.) with producer/consumer mapping.
-- [ ] Draft Supabase migration scripts in `db/migrations/000-init.sql` (scaffold only).
-- [ ] Create configuration matrix covering Apify inputs (`tweetLanguage`, `sort`, batch limits) ([apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L4-L22)).
-- [ ] Write runbook outline for Vercel cron -> internal `/api/start-apify-run` proxy ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L9)).
+- [x] Compile glossary of data entities (`raw_tweets`, `normalized_tweets`, etc.) with producer/consumer mapping.
+- [x] Draft Supabase migration scripts in `src/Features/ApifyPipeline/Domain/Persistence/Migrations/20250929_1200_InitApifyPipeline.sql` (scaffold only).
+- [x] Create configuration matrix covering Apify inputs (`tweetLanguage`, `sort`, batch limits) ([apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L4-L22)).
+- [x] Write runbook outline für den Vercel Cron → internen `/api/start-apify-run` Proxy in `src/Features/ApifyPipeline/Docs/Runbooks/ApifyPipeline-start-apify-run-runbook.md` ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L9)).
+
+#### Deliverables
+##### Data Entity Glossary
+| Entität | Beschreibung | Primäre Quelle | Hauptverbraucher | Schlüsselattribute | Lineage & Aufbewahrung |
+| --- | --- | --- | --- | --- | --- |
+| raw_tweets | Rohdatensammlung für Debugging und Backfills ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L31-L36)) | Apify Actor nach jedem Lauf ([overview.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/overview.md#L6-L12)) | Data/Eng Ops für Debug & Re-Runs | `platform_id`, `platform`, `collected_at`, `payload` | Append-only; Retention noch zu finalisieren; Duplikaterkennung über `platform_id`. |
+| normalized_tweets | Normalisierte Tweet-Records inkl. Metadaten/Status ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L73-L88)) | Apify Actor nach Transform | Supabase Edge Function, Dashboard, Analytics | `posted_at`, `language`, `keywords[]`, `status` | Append-only, Versionierung via `revision`, steuert Sentiment-Queue. |
+| tweet_sentiments | Persistierte Sentiment-Ergebnisse ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L89-L97)) | Supabase Edge Function (Gemini) | Analytics, Dashboard, QA | `sentiment_label`, `sentiment_score`, `model_version`, `processed_at` | Verknüpft mit `normalized_tweet_id`, unterstützt Re-Scoring nach Modellwechsel. |
+| sentiment_failures | Fehler-Log für fehlgeschlagene Sentiment-Runs ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L98-L104)) | Supabase Edge Function bei Retry Exhaustion | Ops/ML für Re-Runs, Monitoring | `error_message`, `retry_count`, `last_attempt_at` | Dient als Retry-Backlog; Retention bis Abschluss der Wiederholung offen. |
+| keywords | Steuerung der zu trackenden Schlagwörter ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L105-L109)) | Product/Analytics | Apify Actor, Monitoring KPIs | `keyword`, `enabled`, `last_used_at` | Historisiert Aktivierung; Updates greifen beim nächsten Run. |
+| cron_runs | Lauf-Metadaten zur Erfolgskontrolle ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L110-L117)) | Vercel Cron bzw. manuelle Trigger | Ops, Observability, Cost Controls | `status`, `processed_count`, `errors` | Append-only Verlauf; bildet Grundlage für Pause-/Duplikatraten-Analyse. |
+
+##### Supabase Migration Draft
+Vorgeschlagenes SQL-Skelett für `src/Features/ApifyPipeline/Domain/Persistence/Migrations/20250929_1200_InitApifyPipeline.sql` mit append-only Trigger pro Tabelle und Status-Enums:
+
+```sql
+-- src/Features/ApifyPipeline/Domain/Persistence/Migrations/20250929_1200_InitApifyPipeline.sql (Draft)
+create schema if not exists public;
+
+create extension if not exists "pgcrypto";
+create extension if not exists "uuid-ossp";
+
+create type normalized_tweet_status as enum ('pending_sentiment', 'processed', 'failed');
+create type cron_run_status as enum ('queued', 'running', 'succeeded', 'partial_success', 'failed');
+
+create or replace function public.enforce_append_only()
+returns trigger
+language plpgsql
+as $$
+begin
+  raise exception 'Append-only table "%": direct % not permitted', TG_TABLE_NAME, TG_OP;
+end;
+$$;
+
+create table if not exists public.cron_runs (
+  id uuid primary key default gen_random_uuid(),
+  trigger_source text not null,
+  keyword_batch text[] not null default '{}',
+  started_at timestamptz not null default now(),
+  finished_at timestamptz,
+  status cron_run_status not null,
+  processed_new_count integer not null default 0 check (processed_new_count >= 0),
+  processed_duplicate_count integer not null default 0 check (processed_duplicate_count >= 0),
+  processed_error_count integer not null default 0 check (processed_error_count >= 0),
+  metadata jsonb not null default '{}',
+  errors jsonb not null default '[]',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.raw_tweets (
+  id uuid primary key default gen_random_uuid(),
+  run_id uuid references public.cron_runs(id) on delete restrict,
+  platform text not null default 'twitter',
+  platform_id text not null,
+  collected_at timestamptz not null,
+  payload jsonb not null,
+  ingestion_reason text not null default 'initial',
+  ingested_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  constraint raw_tweets_unique_per_run unique (run_id, platform, platform_id)
+);
+
+create table if not exists public.normalized_tweets (
+  id uuid primary key default gen_random_uuid(),
+  raw_tweet_id uuid references public.raw_tweets(id) on delete restrict,
+  run_id uuid references public.cron_runs(id) on delete restrict,
+  platform text not null default 'twitter',
+  platform_id text not null,
+  revision smallint not null default 1 check (revision > 0),
+  author_handle text,
+  author_name text,
+  posted_at timestamptz not null,
+  collected_at timestamptz not null,
+  language text,
+  content text not null,
+  url text,
+  engagement_likes integer check (engagement_likes >= 0),
+  engagement_retweets integer check (engagement_retweets >= 0),
+  keyword_snapshot text[] not null default '{}',
+  status normalized_tweet_status not null default 'pending_sentiment',
+  status_changed_at timestamptz not null default now(),
+  model_context jsonb not null default '{}',
+  ingested_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  constraint normalized_tweets_unique_version unique (platform, platform_id, revision)
+);
+
+create table if not exists public.tweet_sentiments (
+  id uuid primary key default gen_random_uuid(),
+  normalized_tweet_id uuid not null references public.normalized_tweets(id) on delete restrict,
+  model_version text not null,
+  sentiment_label text not null check (sentiment_label in ('positive', 'neutral', 'negative')),
+  sentiment_score numeric(4,3) check (sentiment_score between -1 and 1),
+  reasoning jsonb,
+  processed_at timestamptz not null default now(),
+  latency_ms integer check (latency_ms >= 0),
+  created_at timestamptz not null default now(),
+  constraint tweet_sentiments_unique_model unique (normalized_tweet_id, model_version)
+);
+
+create table if not exists public.sentiment_failures (
+  id uuid primary key default gen_random_uuid(),
+  normalized_tweet_id uuid references public.normalized_tweets(id) on delete restrict,
+  model_version text,
+  failure_stage text not null,
+  error_code text,
+  error_message text not null,
+  retry_count integer not null default 0 check (retry_count >= 0),
+  last_attempt_at timestamptz not null default now(),
+  payload jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.keywords (
+  keyword text primary key,
+  is_enabled boolean not null default true,
+  priority smallint not null default 100,
+  source text,
+  created_at timestamptz not null default now(),
+  last_used_at timestamptz,
+  note text
+);
+
+create trigger cron_runs_prevent_update
+  before update or delete on public.cron_runs
+  for each row execute function public.enforce_append_only();
+
+create trigger raw_tweets_prevent_update
+  before update or delete on public.raw_tweets
+  for each row execute function public.enforce_append_only();
+
+create trigger normalized_tweets_prevent_update
+  before update or delete on public.normalized_tweets
+  for each row execute function public.enforce_append_only();
+
+create trigger tweet_sentiments_prevent_update
+  before update or delete on public.tweet_sentiments
+  for each row execute function public.enforce_append_only();
+
+create trigger sentiment_failures_prevent_update
+  before update or delete on public.sentiment_failures
+  for each row execute function public.enforce_append_only();
+
+create trigger keywords_prevent_update
+  before update or delete on public.keywords
+  for each row execute function public.enforce_append_only();
+
+-- TODO: Indexstrategie nach Query-Analyse definieren.
+-- TODO: RLS-Policies nach Rollenkonzept ergänzen.
+-- TODO: Entscheid für Duplikat-Handling/Revision finalisieren.
+```
+
+##### Apify Configuration Matrix
+| Parameter | Beschreibung | Empfehlung | Quelle | Owner | Hinweise | Secret/Config |
+| --- | --- | --- | --- | --- | --- | --- |
+| `tweetLanguage` | ISO 639-1 Filter | Primär `en`, `de`; Erweiterung nach Analytics-Freigabe | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L168-L196), [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L4-L9) | Analytics | Sprachumfang muss Keywords spiegeln. | Config (Supabase `keywords` Metadaten) |
+| `sort` | Ergebnisreihenfolge | Default `Top`; `Latest` für Echtzeit-Kampagnen | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L193-L194), [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L6-L9) | Analytics | `Latest` erhöht Load → längere Pausen. | Config |
+| `searchTerms` | Keyword-Batch | Supabase `keywords` ≤5 pro Run | [specification.md §3.1](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L16-L23) | Analytics | Deaktivierte Keywords überspringen Batch. | Config |
+| `maxItems` | Tweets pro Keyword | 200 für Backfill, ≥50 laut Policy | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L175-L176) | Analytics | Für Dev kleiner wählen. | Config |
+| `maxRequestRetries` | Retry-Anzahl | 3 mit Exponential Backoff | [specification.md §3.1](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L16-L22) | Ops | >3 triggert Anti-Monitoring. | Config |
+| `batchQueriesPerRun` | Query-Kapazität | ≤5 simultane Queries | [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L11-L13) | Ops | Größere Listen aufteilen. | Config |
+| `runCooldownMinutes` | Pause zwischen Runs | ≥5 Minuten | [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L11-L13) | Ops | Abhängig von `sort` dynamisch justieren. | Config |
+| `minimumRetweets`/`minimumFavorites`/`minimumReplies` | Engagement-Filter | Default `null`; kampagnenspezifisch setzen | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L188-L190) | Analytics | Hohe Werte senken Volumen. | Config |
+| `APIFY_TOKEN` | Apify Auth | Vierteljährlich rotieren | [specification.md §8](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L142-L146) | Ops | Pflicht für Cron & Manual Run. | Secret |
+| `SUPABASE_SECRET_KEY` | Service Role | In Vercel & Apify Secret Store halten | [specification.md §8](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L142-L146) | Ops | Nicht in Logs exposen. | Secret |
+
+##### Vercel Cron Runbook Outline
+- **Trigger:** Vercel Cron (z. B. `0 */2 * * *`) ruft `/api/start-apify-run` nur auf Production auf ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L14)); die Route `app/api/start-apify-run/route.ts` re-exportiert den Slice-Endpunkt `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun`.
+- **Auth & Secrets:** `sb_secret_*` und `APIFY_TOKEN` über Vercel Secret Store; Rotation gemäß Ops-Kalender (TBD) ([overview.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/overview.md#L15-L22)).
+- **Ablauf:** Cron -> API Route -> Apify Run API -> Persistenz in `cron_runs`; die Slice-Schicht verarbeitet dies über `src/Features/ApifyPipeline/Scheduler/Application/Commands/ScheduleApifyRun`, Fehlerpfade schreiben detaillierte Payloads.
+- **Monitoring:** Vercel Cron Dashboard, Apify Run Logs, Supabase `cron_runs` KPIs; Alerts bei ≥2 aufeinanderfolgenden Fehlschlägen (TBD).
+- **Eskalation:** Primär Ops-Oncall, sekundär Backend für Actor Issues; Slack-Kanal & Rotation noch zu bestätigen.
+- **Verification Checklist:** Cron erfolgreich, API <2s 2xx, Apify Run `SUCCEEDED`, frische `cron_runs`-Zeile, Dashboard-Daten <3h alt.
+
+#### Outstanding Questions & Follow-ups
+- Retention-Entscheidung für `raw_tweets` & `sentiment_failures` finalisieren ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L162)).
+- Apify Bestätigung einholen: Mindestanzahl Tweets pro Query (≥50) und Cooldown-Policy schriftlich absichern.
+- Secret-Rotation-Kalender mit Ops abstimmen (`sb_secret_*`, `APIFY_TOKEN`, Gemini Schlüssel).
+- Staging-Cron-Zeitplan und Request-Signature-Strategie für `/api/start-apify-run` klären.
+- Owner für Gemini Retry-Fallback und Monitoring-Alerting definieren.
 
 ### Dependencies & Touchpoints
 - **Analytics:** Confirm keyword taxonomy and reporting cadence.
@@ -68,13 +250,13 @@
 ### Goals & Success Criteria
 - Apify actor configured to pull keywords from Supabase, respect query batching (<5 simultaneous) and pause limits ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L15-L35), [apify-twitter.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-twitter.md#L8-L21)).
 - Runs persist raw payloads and normalized rows with duplicate checks by `platform_id` + `platform`.
-- Vercel cron hitting `/api/start-apify-run`; manual trigger docs updated ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L9)).
+- Vercel Cron hitting `/api/start-apify-run` (`app/api/start-apify-run/route.ts` → `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun`); manual trigger docs updated ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L9)).
 
 ### Task Checklist
 - [ ] Scaffold Apify actor with TypeScript template; implement input schema using `tweetLanguage`, `sort`, `maxItems`.
 - [ ] Connect actor to Supabase via service role; fetch `keywords` and log `cron_runs` metrics.
 - [ ] Build normalization module mapping actor output to `normalized_tweets` with enrichment (timestamp, language, engagement) ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L26-L35)).
-- [ ] Implement Vercel API route that authenticates Apify and logs invocation metadata.
+- [ ] Implement Vercel API route `app/api/start-apify-run/route.ts`, die den Slice-Handler `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun` authentifiziert und Invocation-Metadaten schreibt.
 - [ ] Add retry/backoff logic for network and rate-limit errors (max 3 attempts) ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L20-L21)).
 
 ### Dependencies & Touchpoints
@@ -168,6 +350,6 @@
 ---
 
 ## Appendix — Reference Roles & Artifacts
-- **Runbooks:** `docs/runbooks/apify-ingestion.md`, `docs/runbooks/gemini-sentiment.md` (to be authored during execution).
+- **Runbooks:** `src/Features/ApifyPipeline/Docs/Runbooks/ApifyPipeline-ingestion-runbook.md`, `src/Features/ApifyPipeline/Docs/Runbooks/ApifyPipeline-gemini-sentiment-runbook.md` (to be authored during execution).
 - **Secrets registry:** Maintained in Ops vault referencing Supabase/Vercel secret IDs.
-- **Test fixtures:** Synthetic tweet datasets stored in `mocks/apify/` for local dry runs ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L204-L210)).
+- **Test fixtures:** Synthetic tweet datasets stored in `src/Features/ApifyPipeline/Tests/Fixtures/apify/` für lokale Dry Runs ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L204-L210)).

@@ -1,5 +1,7 @@
 # Next.js 15 & Vercel Hosting Review (29 Sep 2025)
 
+> Slice-Hinweis: Frontend-Änderungen betreffen den Vertical Slice `src/Features/ApifyPipeline/Ui/Application/Dashboard` sowie begleitende Server Actions in `src/Features/ApifyPipeline/Ui/Application/Commands`.
+
 ## Release Status & Core Changes
 - Next.js 15 has been stable since 21 Oct 2024, and the 15.5 release on 18 Aug 2025 confirms the branch remains current with features such as beta Turbopack production builds, stable Node.js middleware, typed routes, and upcoming Next.js 16 deprecations that teams should prepare for (e.g., `next lint`, AMP removal, image quality configs). [Source](https://nextjs.org/blog/next-15) · [Source](https://nextjs.org/blog/next-15-5)
 - Dynamic App Router request APIs (`cookies`, `headers`, `draftMode`, `params`, `searchParams`) are now asynchronous; migrations require `await`/`React.use` plus the `next-async-request-api` codemod. This impacts any Supabase auth/session helpers referencing these APIs. [Source](https://nextjs.org/blog/next-15) · [Source](https://nextjs.org/docs/messages/sync-dynamic-apis)
