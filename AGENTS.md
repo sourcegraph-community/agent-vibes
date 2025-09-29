@@ -20,3 +20,6 @@
 - Client/server: Use `"use client"` where needed (e.g., [page.tsx](app/page.tsx)); keep secrets server-side
 - SW updates: Editing [sw.js](public/sw.js) may require reload; verify registration flow
 - Agent rules: No `.cursor/`, `.cursorrules`, `.windsurfrules`, `.clinerules`, `.goosehints`, `.github/copilot-instructions.md`, or `CLAUDE.md` found
+- Apify Docs: `https://docs.apify.com/`
+- Vercel Docs: `https://vercel.com/docs`
+- Supabase Docs: `https://supabase.com/docs`
