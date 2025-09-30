@@ -10,8 +10,8 @@
 
 All **critical** and **major** issues across all milestones have been resolved as of September 30, 2025. This document consolidates remaining **minor** improvements, **nice-to-have** features, and **optional** enhancements for future consideration.
 
-**Total Outstanding Items:** 47
-- Priority 1 (High): 6 items
+**Total Outstanding Items:** 46
+- Priority 1 (High): 5 items
 - Priority 2 (Medium): 18 items  
 - Priority 3 (Low/Nice-to-Have): 15 items
 - Priority 4 (Optional/Future): 8 items
@@ -55,22 +55,9 @@ All **critical** and **major** issues across all milestones have been resolved a
    - **Recommendation:** Implement API key validation or Vercel Cron signature check
    - **Note:** Similar pattern to `/api/process-sentiments` which has auth implemented
 
-### Milestone 3: Sentiment Processing
-
-5. **Add Request Timeouts to Gemini Client**
-   - **File:** `src/ApifyPipeline/ExternalServices/Gemini/GeminiClient.ts`
-   - **Issue:** fetch() calls have no timeout (could hang indefinitely)
-   - **Impact:** Hung requests could exhaust resources
-   - **Effort:** 1 hour
-   - **Recommendation:**
-     ```typescript
-     const controller = new AbortController();
-     const timeout = setTimeout(() => controller.abort(), 60000);
-     ```
-
 ### Milestone 5: Operations & Hardening
 
-6. **Apply Migration to Production**
+5. **Apply Migration to Production**
    - **File:** `src/ApifyPipeline/DataAccess/Migrations/20250930_1500_AddBackfillBatches.sql`
    - **Issue:** Migration created but not yet applied to staging/production
    - **Impact:** Backfill system not operational in production
@@ -83,51 +70,51 @@ All **critical** and **major** issues across all milestones have been resolved a
 
 ### Milestone 0: Foundations
 
-7. **Integration Tests for Repositories**
+6. **Integration Tests for Repositories**
    - **File:** Need tests in `src/ApifyPipeline/Tests/Integration/DataAccess/`
    - **Issue:** No integration tests for database operations
    - **Effort:** 8 hours
    - **Recommendation:** Add tests with Supabase local instance
 
-8. **Load Test with 10k Tweets**
-   - **Issue:** Views not tested with realistic data volumes
-   - **Effort:** 4 hours
-   - **Recommendation:** Generate synthetic data and measure query performance
+7. **Load Test with 10k Tweets**
+- **Issue:** Views not tested with realistic data volumes
+- **Effort:** 4 hours
+- **Recommendation:** Generate synthetic data and measure query performance
 
 ### Milestone 1: Schema & Data Access
 
-9. **Performance Baseline for Views**
-   - **Issue:** View query times not documented
-   - **Effort:** 4 hours
-   - **Recommendation:** 
-     - Generate 100K synthetic rows
-     - Measure view query times
-     - Document acceptable thresholds
-     - Add monitoring alerts
+8. **Performance Baseline for Views**
+- **Issue:** View query times not documented
+- **Effort:** 4 hours
+- **Recommendation:**
+- Generate 100K synthetic rows
+- Measure view query times
+- Document acceptable thresholds
+- Add monitoring alerts
 
-10. **Enhance Seed Data**
-    - **File:** `src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql`
-    - **Issue:** Only 2 sample tweets, all English, only positive sentiment
-    - **Effort:** 2 hours
-    - **Recommendation:**
-      - Add 10-20 tweets spanning multiple days
-      - Include German language tweets
-      - Add negative and neutral sentiment examples
-      - Add sentiment failure examples
+9. **Enhance Seed Data**
+- **File:** `src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql`
+- **Issue:** Only 2 sample tweets, all English, only positive sentiment
+- **Effort:** 2 hours
+- **Recommendation:**
+- Add 10-20 tweets spanning multiple days
+- Include German language tweets
+- Add negative and neutral sentiment examples
+- Add sentiment failure examples
 
-11. **Add PostgreSQL Comments**
-    - **File:** Migration file
-    - **Issue:** No `COMMENT ON` statements for tables/columns
-    - **Effort:** 1 hour
-    - **Example:**
-      ```sql
-      COMMENT ON TABLE normalized_tweets IS 'Normalized social media posts with enrichment metadata';
-      COMMENT ON COLUMN normalized_tweets.revision IS 'Version number for same platform_id';
-      ```
+10. **Add PostgreSQL Comments**
+- **File:** Migration file
+- **Issue:** No `COMMENT ON` statements for tables/columns
+- **Effort:** 1 hour
+- **Example:**
+```sql
+COMMENT ON TABLE normalized_tweets IS 'Normalized social media posts with enrichment metadata';
+COMMENT ON COLUMN normalized_tweets.revision IS 'Version number for same platform_id';
+```
 
 ### Milestone 2: Apify Ingestion
 
-12. **Extract Magic Numbers to Constants**
+11. **Extract Magic Numbers to Constants**
     - **File:** `src/ApifyPipeline/Background/Jobs/TweetCollector/TweetCollectorJob.ts`
     - **Issue:** Hardcoded values (lines 40, 44)
     - **Effort:** 30 minutes
@@ -138,13 +125,13 @@ All **critical** and **major** issues across all milestones have been resolved a
       const MAX_KEYWORD_BATCH_SIZE = 5;
       ```
 
-13. **Add Warning Logs for Invalid Dates**
+12. **Add Warning Logs for Invalid Dates**
     - **File:** `src/ApifyPipeline/Core/Transformations/normalizeTweet.ts`
     - **Issue:** `toIsoString()` silently falls back to `now()` for invalid dates
     - **Effort:** 30 minutes
     - **Recommendation:** Log warnings for debugging
 
-14. **Sanitize Error Messages in Production**
+13. **Sanitize Error Messages in Production**
     - **File:** `src/ApifyPipeline/Web/Application/Commands/StartApifyRun/StartApifyRunEndpoint.ts`
     - **Issue:** Error details may leak internal state
     - **Effort:** 30 minutes
@@ -156,7 +143,7 @@ All **critical** and **major** issues across all milestones have been resolved a
 
 ### Milestone 3: Sentiment Processing
 
-15. **Add Comprehensive Unit Tests**
+14. **Add Comprehensive Unit Tests**
     - **Files:**
       - `src/ApifyPipeline/ExternalServices/Gemini/GeminiClient.test.ts` (15 tests needed)
       - `src/ApifyPipeline/Core/Services/SentimentProcessor.test.ts` (12 tests needed)
@@ -168,30 +155,30 @@ All **critical** and **major** issues across all milestones have been resolved a
       - Response parsing and validation
       - Token usage tracking
 
-16. **Add Integration Tests**
+15. **Add Integration Tests**
     - **Issue:** No end-to-end test for sentiment processing pipeline
     - **Effort:** 4 hours
     - **Recommendation:** Mock Gemini API responses, test full flow
 
-17. **Switch to Stable Gemini Model**
+16. **Switch to Stable Gemini Model**
     - **File:** `src/ApifyPipeline/ExternalServices/Gemini/GeminiClient.ts`
     - **Issue:** Using `gemini-2.0-flash-exp` (experimental) instead of stable `gemini-2.5-flash`
     - **Effort:** 1 hour
     - **Recommendation:** Validate output consistency after switch
 
-18. **Add Structured Logging**
+17. **Add Structured Logging**
     - **Files:** Throughout sentiment processing
     - **Issue:** Ad-hoc error handling, no structured logs
     - **Effort:** 3 hours
     - **Recommendation:** Integrate with Vercel/Supabase logging
 
-19. **Add Transaction Support in Repository**
+18. **Add Transaction Support in Repository**
     - **File:** `src/ApifyPipeline/DataAccess/Repositories/TweetSentimentsRepository.ts`
     - **Issue:** `insertSentiment()` + `updateTweetStatus()` called separately
     - **Effort:** 2 hours
     - **Recommendation:** Wrap related operations in Supabase transaction
 
-20. **Improve Prompt Template Edge Cases**
+19. **Improve Prompt Template Edge Cases**
     - **File:** `src/ApifyPipeline/ExternalServices/Gemini/promptTemplate.ts`
     - **Issue:** No explicit handling for sarcasm, emojis, mixed sentiment
     - **Effort:** 2 hours
@@ -199,13 +186,13 @@ All **critical** and **major** issues across all milestones have been resolved a
 
 ### Milestone 4: Dashboard
 
-21. **Add Dashboard Repository Tests**
+20. **Add Dashboard Repository Tests**
     - **File:** `src/ApifyPipeline/DataAccess/Repositories/DashboardRepository.ts`
     - **Issue:** No unit tests for repository
     - **Effort:** 4 hours
     - **Recommendation:** Add integration tests with live Supabase data
 
-22. **Implement Caching Strategy**
+21. **Implement Caching Strategy**
     - **Files:** All dashboard pages
     - **Issue:** No caching, queries on every load
     - **Effort:** 2 hours
@@ -214,7 +201,7 @@ All **critical** and **major** issues across all milestones have been resolved a
       export const revalidate = 60; // Revalidate every 60 seconds
       ```
 
-23. **Optimize Pagination**
+22. **Optimize Pagination**
     - **File:** `src/ApifyPipeline/DataAccess/Repositories/DashboardRepository.ts`
     - **Issue:** Simple offset pagination (slow with large datasets)
     - **Effort:** 4 hours
@@ -222,7 +209,7 @@ All **critical** and **major** issues across all milestones have been resolved a
 
 ### Milestone 5: Operations
 
-24. **Test Backfill with Live Apify Data**
+23. **Test Backfill with Live Apify Data**
     - **Issue:** Backfill system untested with real Apify runs
     - **Effort:** 2 hours
     - **Recommendation:** Run manual test with small date range
@@ -233,26 +220,26 @@ All **critical** and **major** issues across all milestones have been resolved a
 
 ### Milestone 0 & 1
 
-25. **Add Backup/Restore Runbook**
+24. **Add Backup/Restore Runbook**
     - **Issue:** No documented backup procedures
     - **Effort:** 2 hours
 
-26. **Performance Optimization Guide**
+25. **Performance Optimization Guide**
     - **Issue:** No documented optimization procedures
     - **Effort:** 2 hours
 
-27. **Contributor Onboarding Guide**
+26. **Contributor Onboarding Guide**
     - **Issue:** No guide for new developers
     - **Effort:** 4 hours
 
 ### Milestone 2: Apify Ingestion
 
-28. **Extract `determineStatus` to Shared Utility**
+27. **Extract `determineStatus` to Shared Utility**
     - **File:** `src/ApifyPipeline/Background/Jobs/TweetCollector/TweetCollectorJob.ts`
     - **Issue:** Test file duplicates production logic
     - **Effort:** 30 minutes
 
-29. **Add Memory Optimization for Large Runs**
+28. **Add Memory Optimization for Large Runs**
     - **File:** `TweetCollectorJob.ts`
     - **Issue:** `candidateMap` holds all tweets in memory
     - **Effort:** 4 hours
@@ -260,7 +247,7 @@ All **critical** and **major** issues across all milestones have been resolved a
 
 ### Milestone 3: Sentiment Processing
 
-30. **Add Troubleshooting Section to Documentation**
+29. **Add Troubleshooting Section to Documentation**
     - **File:** `src/ApifyPipeline/Docs/sentiment-processing.md`
     - **Issue:** No troubleshooting for common errors
     - **Effort:** 2 hours
@@ -270,34 +257,34 @@ All **critical** and **major** issues across all milestones have been resolved a
       - Invalid sentiment responses
       - Database connection failures
 
-31. **Document Score Normalization Rationale**
+30. **Document Score Normalization Rationale**
     - **File:** `src/ApifyPipeline/ExternalServices/Gemini/GeminiClient.ts` (lines 207-216)
     - **Issue:** Arbitrary `labelToScore()` mapping (0.7/-0.7)
     - **Effort:** 30 minutes
 
-32. **Make Gemini Config Configurable**
+31. **Make Gemini Config Configurable**
     - **File:** `GeminiClient.ts` (lines 98-104)
     - **Issue:** Hardcoded temperature, topP, topK values
     - **Effort:** 1 hour
     - **Recommendation:** Make configurable via constructor for experimentation
 
-33. **Document Truncated Tweet Content**
+32. **Document Truncated Tweet Content**
     - **File:** `src/ApifyPipeline/Core/Services/SentimentProcessor.ts` (line 78)
     - **Issue:** Content truncated to 500 chars in failure payload
     - **Effort:** 15 minutes
 
 ### Milestone 4: Dashboard
 
-34. **Add JSDoc Comments for Repository Methods**
+33. **Add JSDoc Comments for Repository Methods**
     - **File:** `DashboardRepository.ts`
     - **Effort:** 1 hour
 
-35. **Document Complex Aggregation Logic**
+34. **Document Complex Aggregation Logic**
     - **File:** `app/dashboard/keywords/page.tsx`
     - **Issue:** Aggregation logic lacks inline comments
     - **Effort:** 30 minutes
 
-36. **Improve Accessibility**
+35. **Improve Accessibility**
     - **Files:** All dashboard pages
     - **Recommendations:**
       - Add `aria-label` to navigation links
@@ -307,21 +294,21 @@ All **critical** and **major** issues across all milestones have been resolved a
       - Add skip navigation link
     - **Effort:** 2 hours
 
-37. **Add Chart Visualizations**
+36. **Add Chart Visualizations**
     - **Issue:** Tables only, no charts
     - **Effort:** 8 hours
     - **Recommendation:** Integrate Chart.js or Recharts for:
       - Line charts for sentiment trends
       - Bar charts for keyword comparison
 
-38. **Add Zod Validation for Query Parameters**
+37. **Add Zod Validation for Query Parameters**
     - **File:** `app/dashboard/tweets/page.tsx`
     - **Issue:** Manual parsing without schema validation
     - **Effort:** 1 hour
 
 ### Milestone 5: Operations
 
-39. **Configure Automated Alerts**
+38. **Configure Automated Alerts**
     - **Issue:** Manual monitoring required, no automated alerts
     - **Effort:** 4 hours
     - **Recommendation:** Configure Vercel monitoring or integrate external service
@@ -332,44 +319,44 @@ All **critical** and **major** issues across all milestones have been resolved a
 
 ### Milestone 1
 
-40. **Materialized View Strategy**
+39. **Materialized View Strategy**
     - **Issue:** `vw_daily_sentiment` may need materialization at 1M+ rows
     - **Effort:** 4 hours
     - **Recommendation:** Set up refresh schedule if needed
 
-41. **Partitioning Strategy**
+40. **Partitioning Strategy**
     - **Issue:** Tables will grow indefinitely
     - **Effort:** 8 hours
     - **Recommendation:** Implement monthly partitioning at 1M+ rows
 
 ### Milestone 3
 
-42. **Implement Supabase Database Webhook → Edge Function**
+41. **Implement Supabase Database Webhook → Edge Function**
     - **Issue:** Current design uses HTTP endpoint, spec suggests reactive Edge Function
     - **Effort:** 8 hours
     - **Recommendation:** More aligned with original specification
 
-43. **Add Sentiment Alerting**
+42. **Add Sentiment Alerting**
     - **Feature:** Detect negative sentiment spikes
     - **Effort:** 8 hours
     - **Recommendation:** Integrate with Slack/email
 
-44. **Implement Multi-Model Ensemble**
+43. **Implement Multi-Model Ensemble**
     - **Feature:** Compare Gemini with other providers (OpenAI, Anthropic)
     - **Effort:** 16 hours
     - **Recommendation:** Vote on final sentiment for higher accuracy
 
 ### Milestone 4
 
-45. **Add Real-Time Updates**
+44. **Add Real-Time Updates**
     - **Feature:** Integrate Supabase Realtime for live dashboard updates
     - **Effort:** 8 hours
 
-46. **Add Export to CSV**
+45. **Add Export to CSV**
     - **Feature:** Export dashboard data to CSV
     - **Effort:** 4 hours
 
-47. **Add Advanced Features**
+46. **Add Advanced Features**
     - **Features:**
       - Date range picker for custom time periods
       - Multi-keyword selection with AND/OR logic
@@ -404,6 +391,7 @@ The following issues were marked as critical or major in initial reviews but hav
 - ✅ `replayFailedSentiment()` Inefficiency (RESOLVED - added `getTweetById()`)
 - ✅ Rate Limit Throttling (RESOLVED - 4-second delay implemented)
 - ✅ Jitter in Retry Mechanism (RESOLVED - ±10% jitter)
+- ✅ Request Timeouts to Gemini Client (RESOLVED - AbortController with 30s timeout already implemented)
 
 ### Milestone 5
 - ✅ BackfillProcessorJob Unit Tests (RESOLVED - 9 tests added, 73 total passing)
@@ -437,7 +425,7 @@ The following issues were marked as critical or major in initial reviews but hav
 ## Summary Statistics
 
 ### By Priority
-- **Priority 1 (High):** 6 items (authentication, migration deployment, timeouts)
+- **Priority 1 (High):** 5 items (authentication, migration deployment)
 - **Priority 2 (Medium):** 18 items (testing, logging, optimization)
 - **Priority 3 (Low/Nice-to-Have):** 15 items (documentation, UX enhancements)
 - **Priority 4 (Optional/Future):** 8 items (advanced features, architecture changes)
@@ -445,7 +433,7 @@ The following issues were marked as critical or major in initial reviews but hav
 ### By Milestone
 - **Milestone 0-1:** 11 items (mostly testing and optimization)
 - **Milestone 2:** 6 items (code quality and integration tests)
-- **Milestone 3:** 13 items (testing, monitoring, optimization)
+- **Milestone 3:** 12 items (testing, monitoring, optimization)
 - **Milestone 4:** 8 items (caching, auth, visualization)
 - **Milestone 5:** 2 items (deployment, monitoring)
 - **Cross-Cutting:** 7 items (documentation, observability)
