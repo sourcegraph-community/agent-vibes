@@ -15,6 +15,11 @@ on conflict (keyword) do update set
   last_used_at = case when excluded.is_enabled then now() else public.keywords.last_used_at end;
 
 -- Seed demo run and normalized tweets to hydrate analytic views if empty.
+-- Note: Fixed UUIDs (11111111-..., 22222222-..., etc.) are used intentionally for:
+--   1. Deterministic testing - same IDs across environments for test validation
+--   2. Idempotent re-seeding - 'on conflict do nothing' prevents duplicate errors
+--   3. Foreign key references - normalized_tweets and sentiments reference these stable IDs
+-- This is safe because seed data is demo/test content only, never production data.
 with seed_run as (
   insert into public.cron_runs (
     id,

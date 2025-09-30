@@ -107,16 +107,13 @@ Actor.main(async () => {
 
   for (const batch of keywordBatches) {
     try {
-      const items = await runTwitterScraper(
-        {
-          keywords: batch,
-          tweetLanguage: ingestionConfig.tweetLanguage,
-          sort: ingestionConfig.sort,
-          maxItemsPerKeyword: ingestionConfig.maxItemsPerKeyword,
-          minimumEngagement: ingestionConfig.minimumEngagement,
-        },
-        undefined,
-      );
+      const items = await runTwitterScraper({
+        keywords: batch,
+        tweetLanguage: ingestionConfig.tweetLanguage,
+        sort: ingestionConfig.sort,
+        maxItemsPerKeyword: ingestionConfig.maxItemsPerKeyword,
+        minimumEngagement: ingestionConfig.minimumEngagement,
+      });
 
       for (const item of items) {
         try {

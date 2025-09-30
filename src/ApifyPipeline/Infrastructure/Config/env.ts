@@ -13,6 +13,10 @@ const optionalEnvSchema = z.object({
   APIFY_TOKEN: z.string().min(1).optional(),
   APIFY_ACTOR_ID: z.string().min(1).optional(),
   APIFY_ACTOR_BUILD: z.string().min(1).optional(),
+  GEMINI_API_KEY: z.string().min(1).optional(),
+  VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
 });
 
 export interface SupabaseEnvConfig {
@@ -20,10 +24,19 @@ export interface SupabaseEnvConfig {
   supabaseServiceRoleKey: string;
 }
 
+export interface SupabaseClientEnvConfig {
+  supabaseUrl: string;
+  supabaseAnonKey: string;
+}
+
 export interface ApifyEnvConfig {
   token: string;
   actorId: string;
   actorBuild?: string;
+}
+
+export interface GeminiEnvConfig {
+  apiKey: string;
 }
 
 export const getSupabaseEnv = (env: NodeJS.ProcessEnv = process.env): SupabaseEnvConfig => {
@@ -57,4 +70,51 @@ export const getApifyEnv = (env: NodeJS.ProcessEnv = process.env): ApifyEnvConfi
     actorId: APIFY_ACTOR_ID,
     actorBuild: APIFY_ACTOR_BUILD,
   } satisfies ApifyEnvConfig;
+};
+
+export const getGeminiEnv = (env: NodeJS.ProcessEnv = process.env): GeminiEnvConfig => {
+  const parsed = optionalEnvSchema.safeParse(env);
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.flatten().formErrors.join('\n'));
+  }
+
+  const { GEMINI_API_KEY } = parsed.data;
+
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY must be configured for sentiment analysis.');
+  }
+
+  return {
+    apiKey: GEMINI_API_KEY,
+  } satisfies GeminiEnvConfig;
+};
+
+export const getSupabaseClientEnv = (env: NodeJS.ProcessEnv = process.env): SupabaseClientEnvConfig => {
+  const parsed = optionalEnvSchema.safeParse(env);
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.flatten().formErrors.join('\n'));
+  }
+
+  const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = parsed.data;
+
+  if (!NEXT_PUBLIC_SUPABASE_URL || !NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be configured for client-side access.');
+  }
+
+  return {
+    supabaseUrl: NEXT_PUBLIC_SUPABASE_URL,
+    supabaseAnonKey: NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  } satisfies SupabaseClientEnvConfig;
+};
+
+export const getVercelEnv = (env: NodeJS.ProcessEnv = process.env): string | undefined => {
+  const parsed = optionalEnvSchema.safeParse(env);
+
+  if (!parsed.success) {
+    return undefined;
+  }
+
+  return parsed.data.VERCEL_ENV;
 };
