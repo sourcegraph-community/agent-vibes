@@ -1,1 +1,1 @@
-export { startApifyRunEndpoint as POST } from '@/src/ApifyPipeline/Scheduler/StartApifyRunEndpoint';
+export { startApifyRunEndpoint as POST } from '@/src/ApifyPipeline/Web/Application/Commands/StartApifyRun/StartApifyRunEndpoint';
