@@ -1,6 +1,6 @@
 # Vercel Cron ↔ Apify Trigger Review (29 Sep 2025)
 
-> Slice-Hinweis: Cron-Flows landen im Vertical Slice `src/Features/ApifyPipeline/Scheduler`, die exportierten Endpunkte wohnen unter `src/Features/ApifyPipeline/Ui/Application/Endpoints`.
+> Slice-Hinweis: Cron-Flows landen im Vertical Slice `src/ApifyPipeline/Scheduler`, die exportierten Endpunkte wohnen unter `src/ApifyPipeline/Web/Application/Commands`.
 
 ## Summary
 - [overview.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/overview.md#L6-L8) and [specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L16-L18) state that a Vercel Cron job directly triggers the Apify Actor via webhook. Current Vercel docs confirm cron invocations only fetch paths on the same Vercel deployment, e.g. `https://<project>.vercel.app/api/...`, so direct calls to external Apify webhooks are not supported. The pipeline must route cron invocations through a Vercel Function that then calls the Apify Run API.

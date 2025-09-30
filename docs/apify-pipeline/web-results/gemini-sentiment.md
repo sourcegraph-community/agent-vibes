@@ -1,6 +1,6 @@
 # Gemini Sentiment Verification — 2025-09-29
 
-> Slice-Hinweis: Gemini-Integrationen leben in `src/Features/ApifyPipeline/Domain/Integrations/Gemini`, zugehörige Edge Functions und Docs liegen in `src/Features/ApifyPipeline/Docs`.
+> Slice-Hinweis: Gemini-Integrationen leben in `src/ApifyPipeline/ExternalServices/Gemini`, zugehörige Edge Functions und Docs liegen in `src/ApifyPipeline/Docs`.
 
 ## Key Findings
 - **Gemini model availability:** The Gemini 2.5 family (Pro, Flash, Flash-Lite) remains generally available to developers with clearly documented token pricing and rate limits as of 27–25 September 2025. Free-tier usage is limited to generous but finite RPM/RPD caps; production workloads require upgrading to higher tiers or paid plans depending on throughput needs. [Google Pricing](https://ai.google.dev/gemini-api/docs/pricing) · [Rate Limits](https://ai.google.dev/gemini-api/docs/rate-limits)

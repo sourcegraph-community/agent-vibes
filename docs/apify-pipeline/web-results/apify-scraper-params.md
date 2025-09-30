@@ -1,6 +1,6 @@
 # Apify Tweet Scraper Input Validation (2025-09-29)
 
-> Slice-Hinweis: Änderungen fließen in den Vertical Slice `src/Features/ApifyPipeline`, insbesondere in die Dokumente unter `src/Features/ApifyPipeline/Docs` und die Input-Kontrakte in `src/Features/ApifyPipeline/Scheduler/Application/Contracts`.
+> Slice-Hinweis: Änderungen fließen in den Vertical Slice `src/ApifyPipeline`, insbesondere in die Dokumente unter `src/ApifyPipeline/Docs` und die Input-Kontrakte in `src/ApifyPipeline/Web/Application/Commands`.
 
 ## Parameter Findings
 - The actor exposes the field name `tweetLanguage` (ISO 639-1 enum) rather than `twitterLanguage`; the current table in [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L162-L193) should be updated to reflect the official schema.

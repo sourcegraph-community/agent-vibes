@@ -1,6 +1,6 @@
 # Apify Pipeline Implementation Plan
 
-Architekturhinweis: Umsetzung erfolgt innerhalb des Vertical Slice `src/Features/ApifyPipeline`. App-Router-Endpunkte (`Ui/Application/Endpoints`), Scheduler-Befehle (`Scheduler/Application`), Domain-Persistenz (`Domain/Persistence`) und Integrationen (`Domain/Integrations`) bleiben slice-lokal und werden aus dem Next.js `app/` Verzeichnis nur weitergereicht.
+Architekturhinweis: Umsetzung erfolgt innerhalb des Vertical Slice `src/ApifyPipeline`. App-Router-Endpunkte (`Web/Application/Commands`), Scheduler-Befehle (`Background/Jobs`), Domain-Persistenz (`DataAccess`) und Integrationen (`ExternalServices`) bleiben slice-lokal und werden aus dem Next.js `app/` Verzeichnis nur weitergereicht.
 
 ## Data-First Backbone
 - **Primary storage (`Supabase`, Postgres 17):** tables `raw_tweets`, `normalized_tweets`, `tweet_sentiments`, `sentiment_failures`, `keywords`, `cron_runs` mirror the specification draft and remain append-first for lineage tracking ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L64-L117)).
@@ -26,9 +26,9 @@ Architekturhinweis: Umsetzung erfolgt innerhalb des Vertical Slice `src/Features
 
 ### Task Checklist (assignable to junior devs)
 - [x] Compile glossary of data entities (`raw_tweets`, `normalized_tweets`, etc.) with producer/consumer mapping.
-- [x] Draft Supabase migration scripts in `src/Features/ApifyPipeline/Domain/Persistence/Migrations/20250929_1200_InitApifyPipeline.sql` (scaffold only).
+- [x] Draft Supabase migration scripts in `src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql` (scaffold only).
 - [x] Create configuration matrix covering Apify inputs (`tweetLanguage`, `sort`, batch limits) ([apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L4-L22)).
-- [x] Write runbook outline für den Vercel Cron → internen `/api/start-apify-run` Proxy in `src/Features/ApifyPipeline/Docs/Runbooks/ApifyPipeline-start-apify-run-runbook.md` ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L9)).
+- [x] Write runbook outline für den Vercel Cron → internen `/api/start-apify-run` Proxy in `src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md` ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L9)).
 
 #### Deliverables
 ##### Data Entity Glossary
@@ -42,10 +42,10 @@ Architekturhinweis: Umsetzung erfolgt innerhalb des Vertical Slice `src/Features
 | cron_runs | Lauf-Metadaten zur Erfolgskontrolle ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L110-L117)) | Vercel Cron bzw. manuelle Trigger | Ops, Observability, Cost Controls | `status`, `processed_count`, `errors` | Append-only Verlauf; bildet Grundlage für Pause-/Duplikatraten-Analyse. |
 
 ##### Supabase Migration Draft
-Vorgeschlagenes SQL-Skelett für `src/Features/ApifyPipeline/Domain/Persistence/Migrations/20250929_1200_InitApifyPipeline.sql` mit append-only Trigger pro Tabelle und Status-Enums:
+Vorgeschlagenes SQL-Skelett für `src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql` mit append-only Trigger pro Tabelle und Status-Enums:
 
 ```sql
--- src/Features/ApifyPipeline/Domain/Persistence/Migrations/20250929_1200_InitApifyPipeline.sql (Draft)
+-- src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql (Draft)
 create schema if not exists public;
 
 create extension if not exists "pgcrypto";
@@ -196,9 +196,9 @@ create trigger keywords_prevent_update
 | `SUPABASE_SECRET_KEY` | Service Role | In Vercel & Apify Secret Store halten | [specification.md §8](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L142-L146) | Ops | Nicht in Logs exposen. | Secret |
 
 ##### Vercel Cron Runbook Outline
-- **Trigger:** Vercel Cron (z. B. `0 */2 * * *`) ruft `/api/start-apify-run` nur auf Production auf ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L14)); die Route `app/api/start-apify-run/route.ts` re-exportiert den Slice-Endpunkt `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun`.
+- **Trigger:** Vercel Cron (z. B. `0 */2 * * *`) ruft `/api/start-apify-run` nur auf Production auf ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L14)); die Route `app/api/start-apify-run/route.ts` re-exportiert den Slice-Endpunkt `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`.
 - **Auth & Secrets:** `sb_secret_*` und `APIFY_TOKEN` über Vercel Secret Store; Rotation gemäß Ops-Kalender (TBD) ([overview.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/overview.md#L15-L22)).
-- **Ablauf:** Cron -> API Route -> Apify Run API -> Persistenz in `cron_runs`; die Slice-Schicht verarbeitet dies über `src/Features/ApifyPipeline/Scheduler/Application/Commands/ScheduleApifyRun`, Fehlerpfade schreiben detaillierte Payloads.
+- **Ablauf:** Cron -> API Route -> Apify Run API -> Persistenz in `cron_runs`; die Slice-Schicht verarbeitet dies über `src/ApifyPipeline/Web/Application/Commands/ScheduleApifyRun`, Fehlerpfade schreiben detaillierte Payloads.
 - **Monitoring:** Vercel Cron Dashboard, Apify Run Logs, Supabase `cron_runs` KPIs; Alerts bei ≥2 aufeinanderfolgenden Fehlschlägen (TBD).
 - **Eskalation:** Primär Ops-Oncall, sekundär Backend für Actor Issues; Slack-Kanal & Rotation noch zu bestätigen.
 - **Verification Checklist:** Cron erfolgreich, API <2s 2xx, Apify Run `SUCCEEDED`, frische `cron_runs`-Zeile, Dashboard-Daten <3h alt.
@@ -239,8 +239,8 @@ create trigger keywords_prevent_update
 - **Ops:** Approve secret rotation process and schedule.
 
 #### Delivery Notes (2025-09-29)
-- `src/Features/ApifyPipeline/Domain/Persistence/Migrations/20250929_1200_InitApifyPipeline.sql` provisions tables, append-only triggers, RLS, and analytic views required for Milestone 1.
-- `src/Features/ApifyPipeline/Domain/Persistence/Seeds/20250929_1230_KeywordsSeed.sql` hydrates keywords plus demo sentiment data to validate `vw_daily_sentiment` and `vw_keyword_trends`.
+- `src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql` provisions tables, append-only triggers, RLS, and analytic views required for Milestone 1.
+- `src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql` hydrates keywords plus demo sentiment data to validate `vw_daily_sentiment` and `vw_keyword_trends`.
 - `npm run rotate:supabase` (Script [`scripts/rotate-supabase-secrets.ts`](file:///home/prinova/CodeProjects/agent-vibes/scripts/rotate-supabase-secrets.ts)) rotiert `sb_secret_*` Credentials via Supabase Management API + Secrets Endpoint ohne Werte zu loggen.
 
 ### Risk Mitigation & Validation
@@ -255,13 +255,13 @@ create trigger keywords_prevent_update
 ### Goals & Success Criteria
 - Apify actor configured to pull keywords from Supabase, respect query batching (<5 simultaneous) and pause limits ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L15-L35), [apify-twitter.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-twitter.md#L8-L21)).
 - Runs persist raw payloads and normalized rows with duplicate checks by `platform_id` + `platform`.
-- Vercel Cron hitting `/api/start-apify-run` (`app/api/start-apify-run/route.ts` → `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun`); manual trigger docs updated ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L9)).
+- Vercel Cron hitting `/api/start-apify-run` (`app/api/start-apify-run/route.ts` → `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`); manual trigger docs updated ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L9)).
 
 ### Task Checklist
 - [x] Scaffold Apify actor with TypeScript template; implement input schema using `tweetLanguage`, `sort`, `maxItems`.
 - [x] Connect actor to Supabase via service role; fetch `keywords` and log `cron_runs` metrics.
 - [x] Build normalization module mapping actor output to `normalized_tweets` with enrichment (timestamp, language, engagement) ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L26-L35)).
-- [x] Implement Vercel API route `app/api/start-apify-run/route.ts`, die den Slice-Handler `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun` authentifiziert und Invocation-Metadaten schreibt.
+- [x] Implement Vercel API route `app/api/start-apify-run/route.ts`, die den Slice-Handler `src/ApifyPipeline/Web/Application/Commands/StartApifyRun` authentifiziert und Invocation-Metadaten schreibt.
 - [x] Add retry/backoff logic for network and rate-limit errors (max 3 attempts) ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L20-L21)).
 
 ### Dependencies & Touchpoints
@@ -274,10 +274,10 @@ create trigger keywords_prevent_update
 
 #### Delivery Notes (2025-09-29)
 - `app/api/start-apify-run/route.ts` re-exportiert den Slice-Endpunkt für Vercel Cron und manuelle Trigger.
-- `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun/StartApifyRunEndpoint.ts` kapselt Request-Parsing und ruft den Scheduler-Command an.
-- `src/Features/ApifyPipeline/Scheduler/Application/Commands/StartApifyRun/StartApifyRunCommand.ts` validiert Optionen und startet den Apify Actor via REST API.
-- `src/Features/ApifyPipeline/Scheduler/Application/Actors/TweetCollector/TweetCollectorActor.ts` orchestriert Keyword-Fetch, Apify Scraper-Läufe, Duplikatprüfung sowie Inserts in `cron_runs`, `raw_tweets` und `normalized_tweets`.
-- Neue Slice-Layer (`Domain/Integrations`, `Domain/Persistence/Repositories`, `Domain/Transformations`, `Domain/Utilities`) stellen Supabase-Service-Clients, Repositories und Normalisierungslogik bereit.
+- `src/ApifyPipeline/Web/Application/Commands/StartApifyRun/StartApifyRunEndpoint.ts` kapselt Request-Parsing und ruft den Command Handler an.
+- `src/ApifyPipeline/Web/Application/Commands/StartApifyRun/StartApifyRunCommand.ts` validiert Optionen und startet den Apify Actor via REST API.
+- `src/ApifyPipeline/Background/Jobs/TweetCollector/TweetCollectorJob.ts` orchestriert Keyword-Fetch, Apify Scraper-Läufe, Duplikatprüfung sowie Inserts in `cron_runs`, `raw_tweets` und `normalized_tweets`.
+- Neue Slice-Layer (`ExternalServices`, `DataAccess/Repositories`, `Core/Transformations`, `Infrastructure/Utilities`) stellen Supabase-Service-Clients, Repositories und Normalisierungslogik bereit.
 
 ---
 
@@ -362,6 +362,6 @@ create trigger keywords_prevent_update
 ---
 
 ## Appendix — Reference Roles & Artifacts
-- **Runbooks:** `src/Features/ApifyPipeline/Docs/Runbooks/ApifyPipeline-ingestion-runbook.md`, `src/Features/ApifyPipeline/Docs/Runbooks/ApifyPipeline-gemini-sentiment-runbook.md` (to be authored during execution).
+- **Runbooks:** `src/ApifyPipeline/Docs/ApifyPipeline-ingestion-runbook.md`, `src/ApifyPipeline/Docs/ApifyPipeline-gemini-sentiment-runbook.md` (to be authored during execution).
 - **Secrets registry:** Maintained in Ops vault referencing Supabase/Vercel secret IDs.
-- **Test fixtures:** Synthetic tweet datasets stored in `src/Features/ApifyPipeline/Tests/Fixtures/apify/` für lokale Dry Runs ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L204-L210)).
+- **Test fixtures:** Synthetic tweet datasets stored in `src/ApifyPipeline/Tests/Fixtures/apify/` für lokale Dry Runs ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L204-L210)).
