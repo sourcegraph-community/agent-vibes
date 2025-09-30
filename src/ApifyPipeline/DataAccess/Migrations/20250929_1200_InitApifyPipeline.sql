@@ -2,8 +2,8 @@ begin;
 
 create schema if not exists public;
 
-create extension if not exists "pgcrypto";
-create extension if not exists "uuid-ossp";
+create extension if not exists "pgcrypto" schema public;
+create extension if not exists "uuid-ossp" schema public;
 
 create type if not exists public.normalized_tweet_status as enum ('pending_sentiment', 'processed', 'failed');
 create type if not exists public.cron_run_status as enum ('queued', 'running', 'succeeded', 'partial_success', 'failed');
