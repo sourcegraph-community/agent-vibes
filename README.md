@@ -1,78 +1,390 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Agent Vibes
 
-## Getting Started
+**Internal Platform | Social Intelligence & Analytics**
 
-First, run the development server:
+Agent Vibes is an internal Next.js 15 application for collecting, analyzing, and visualizing social media sentiment about AI coding agents. The platform automates tweet collection via Apify, processes sentiment using Google Gemini, and presents insights through interactive dashboards.
+
+---
+
+## Project Status
+
+🔒 **Internal Use Only** - Currently deployed on Vercel for internal team access. Not yet public.
+
+🚀 **Features**
+- ✅ Apify Pipeline - Automated tweet collection and sentiment analysis
+- ✅ Dashboard - Real-time visualization of social sentiment trends
+- ✅ Mock Prototypes - Static design references for rapid iteration
+
+---
+
+## Quick Start (Internal Team)
+
+### Prerequisites
+- Node.js 20+
+- Access to internal Supabase, Apify, and Gemini accounts
+
+### Setup
 
 ```bash
+# Clone and install
+git clone https://github.com/sourcegraph-community/agent-vibes.git
+cd agent-vibes
+npm install
+
+# Configure environment (copy from team 1Password vault or ask #ops-oncall)
+cp .env.example .env.local
+# Edit .env.local with credentials
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**For detailed setup instructions**, see [Apify Pipeline Testing Guide](docs/apify-pipeline/local-testing-guide.md)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Mock Dashboards
+## Architecture
 
-Two data-driven mock dashboards are bundled for rapid prototyping:
+This project follows **Vertical Slice Architecture** (VSA) - features are organized as self-contained slices rather than horizontal layers.
 
-- **Apify Tweet Scraper:** Visit [http://localhost:3000/mocks/apify-tweet-scraper](http://localhost:3000/mocks/apify-tweet-scraper) while running `npm run dev`. The page hydrates from JSON fixtures in `mocks/apify-tweet-scraper/data/` and reuses the shared CSS skin.
-- **Agent Intelligence Dashboard:** Visit [http://localhost:3000/mocks/analytics-dashboard](http://localhost:3000/mocks/analytics-dashboard). Metrics, highlights, and sentiment series are sourced from `mocks/analytics-dashboard/data/dashboard.json` and rendered with Chart.js + Lucide icons.
+```
+src/
+  ApifyPipeline/              # Feature: Social media intelligence pipeline
+    Web/                      # User-initiated HTTP requests
+      Application/            # Command handlers & orchestration
+      Core/                   # Pure business logic
+      DataAccess/             # Database operations (Supabase)
+      ExternalServices/       # Third-party integrations (Apify, Gemini)
+    Background/               # Time-triggered scheduled jobs
+    Tests/                    # Unit & integration tests
+    Docs/                     # Feature documentation
+```
 
-Update the JSON files to adjust copy, stats, or chart data—the routes re-read fixtures on every request.
+### Core Technologies
+- **Framework:** Next.js 15 (App Router, Turbopack)
+- **Language:** TypeScript (strict mode)
+- **Styling:** Tailwind CSS v4
+- **Database:** Supabase (PostgreSQL)
+- **Testing:** Vitest
+- **Linting:** ESLint v9 + ESLint Stylistic (no Prettier)
 
-## Checks & Formatting
+---
 
-Install dependencies (including dev tools):
+## Available Commands
 
+### Development
 ```bash
-npm i
+npm run dev              # Start dev server with Turbopack
+npm run build            # Production build
+npm run start            # Start production server
 ```
 
-Run local checks:
-
+### Testing & Quality
 ```bash
-# TypeScript + ESLint (no fixes)
-npm run check
+npm test                 # Run unit tests (Vitest)
+npm run test:watch       # Watch mode
+npm run test:ui          # Vitest UI
 
-# TypeScript + ESLint with fixes and formatting
-npm run check:fix
-
-# Individually
-npm run typecheck
-npm run lint
-npm run lint:fix
+npm run check            # TypeScript + ESLint
+npm run check:fix        # Auto-fix and format code
+npm run typecheck        # TypeScript only
+npm run lint             # ESLint only
+npm run lint:fix         # Fix linting issues
 ```
 
-Notes:
-- ESLint v9 flat config is used; see `eslint.config.mjs`.
-- Formatting is handled via ESLint Stylistic (no Prettier). Use `npm run check:fix` to format.
-- The ESLint rule for triple-slash references is disabled for `next-env.d.ts` (Next.js typed routes auto-add a reference).
-- The ESLint cache file (`.eslintcache`) is ignored via `.gitignore`.
+### Apify Pipeline Operations
+```bash
+npm run health-check              # Validate environment & connections
+npm run enqueue:backfill          # Queue historical data collection
+npm run replay:sentiments         # Retry failed sentiment processing
+npm run cleanup:raw-tweets        # Archive old raw data
+npm run cleanup:sentiment-failures # Remove stale failure records
+npm run rotate:supabase           # Rotate Supabase secrets (ops only)
+```
+
+---
+
+## Features
+
+### 1. Apify Pipeline (Production)
+
+Automated social intelligence system that collects tweets about AI coding agents, analyzes sentiment, and stores insights for visualization.
+
+**Status:** ✅ Production-ready, deployed on Vercel
+
+**Key Components:**
+- **Tweet Collection** - Apify actor scrapes Twitter based on tracked keywords
+- **Normalization** - Standardizes tweet data and deduplicates
+- **Sentiment Analysis** - Google Gemini classifies sentiment (positive/neutral/negative)
+- **Storage** - Supabase PostgreSQL with views for analytics
+
+**Quick Links:**
+- Dashboard: `/dashboard` (overview, keywords, tweets)
+- API Endpoints: `/api/start-apify-run`, `/api/process-sentiments`, `/api/process-backfill`
+- Documentation: [src/ApifyPipeline/README.md](src/ApifyPipeline/README.md)
+- Testing Guide: [docs/apify-pipeline/local-testing-guide.md](docs/apify-pipeline/local-testing-guide.md)
+- Operational Runbook: [src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md](src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md)
+
+### 2. Mock Dashboards (Prototypes)
+
+Static design references for rapid iteration and stakeholder previews.
+
+**Available Mocks:**
+- **Apify Tweet Scraper:** [http://localhost:3000/mocks/apify-tweet-scraper](http://localhost:3000/mocks/apify-tweet-scraper)
+  - Data: `mocks/apify-tweet-scraper/data/*.json`
+  
+- **Agent Intelligence Dashboard:** [http://localhost:3000/mocks/analytics-dashboard](http://localhost:3000/mocks/analytics-dashboard)
+  - Data: `mocks/analytics-dashboard/data/dashboard.json`
+
+Update JSON fixtures to adjust stats, copy, or chart data - routes reload on every request.
+
+---
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Purpose | Required | Where to Get |
+|----------|---------|----------|--------------|
+| `SUPABASE_URL` | Database connection | ✅ Yes | Team 1Password vault |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server DB access | ✅ Yes | Team 1Password vault |
+| `NEXT_PUBLIC_SUPABASE_URL` | Client DB access | ✅ Yes | Same as SUPABASE_URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client DB access | ✅ Yes | Team 1Password vault |
+| `APIFY_TOKEN` | Tweet collection | ✅ Yes | Ask #ops-oncall |
+| `APIFY_ACTOR_ID` | Actor to run | ✅ Yes | `apify/twitter-search-scraper` |
+| `GEMINI_API_KEY` | Sentiment analysis | ✅ Yes | Ask #ops-oncall |
+| `INTERNAL_API_KEY` | Manual API auth | ⚠️ Optional | Generate: `openssl rand -hex 32` |
+
+**Secrets Management:**
+- Development: Stored in `.env.local` (git-ignored)
+- Production: Stored in Vercel project environment variables
+- Rotation: Quarterly via `npm run rotate:supabase` (ops team)
+
+---
+
+## Code Standards
+
+### Formatting & Linting
+- **ESLint v9** flat config - see [eslint.config.mjs](eslint.config.mjs)
+- **ESLint Stylistic** handles formatting (no Prettier)
+- Run `npm run check:fix` to auto-format before committing
+- CI checks enforce these standards
+
+### TypeScript
+- Strict mode enabled
+- Explicit types for public APIs
+- Rely on inference internally
+- Path alias: `@/*` maps to project root
+
+### Naming Conventions
+| Artifact | Naming Scheme | Example |
+|----------|---------------|---------|
+| Components | PascalCase | `DashboardHeader.tsx` |
+| Hooks | camelCase `use*` | `useKnockNotifications.ts` |
+| API Routes | `route.ts` in folders | `app/api/start-apify-run/route.ts` |
+| Commands/Queries | `{Verb}{Subject}{Type}` | `StartApifyRunCommand.ts` |
+| Handlers | `{Command}Handler` | `StartApifyRunCommandHandler.ts` |
+
+### VSA Principles
+- **Feature ownership** - Slices own their entire use case
+- **REPR flow** - Request → Endpoint → Processing → Response
+- **CQRS** - Separate commands (mutations) from queries (reads)
+- **Explicit boundaries** - Cross-slice via contracts, not shared internals
+
+See [VSA Architecture Guide](~/CodeProjects/agent-docs/vsa-architecture.md) for details.
+
+---
+
+## Deployment
+
+### Vercel (Production)
+
+**Current Status:** Deployed internally for team access
+
+**Environment:**
+- Platform: Vercel
+- Branch: `main` (auto-deploys)
+- Domain: Internal Vercel URL (not public domain yet)
+
+**Cron Jobs (Vercel):**
+- Tweet Collection: Runs every 6 hours
+- Sentiment Processing: Runs every hour
+- Requires: Vercel Pro plan for <24h intervals
+
+**Configuration:**
+1. Environment variables set in Vercel project settings
+2. Cron definitions in [vercel.json](vercel.json)
+3. Build command: `npm run build`
+
+---
+
+## Database
+
+### Supabase (PostgreSQL)
+
+**Schema:**
+- `keywords` - Tracked search terms
+- `cron_runs` - Execution history and metrics
+- `raw_tweets` - Original Apify payloads
+- `normalized_tweets` - Standardized tweet data
+- `tweet_sentiments` - Gemini analysis results
+- `backfill_batches` - Historical data processing queue
+- `sentiment_failures` - Failed processing attempts
+
+**Views:**
+- `vw_daily_sentiment` - Aggregated daily trends
+- `vw_keyword_trends` - Keyword-level analytics
+
+**Migrations:**
+- Primary: [src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql](src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql)
+- Seeds: [src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql](src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql)
+
+**Apply Migrations:**
+```bash
+# Option 1: Supabase CLI (recommended)
+supabase db push
+
+# Option 2: Manual via Supabase Studio
+# Execute SQL files in order via SQL Editor
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**"Environment variable not found"**
+```bash
+# Verify .env.local exists and variable names match
+cat .env.local | grep -E "SUPABASE_URL|APIFY_TOKEN|GEMINI_API_KEY"
+
+# Restart dev server after changes
+```
+
+**"Supabase connection failed"**
+- Check if project is active (not paused)
+- Verify URL format: `https://[project-ref].supabase.co`
+- Confirm service role key (not anon key)
+
+**"No keywords available"**
+```sql
+-- Check keywords in Supabase Studio SQL Editor
+SELECT * FROM keywords WHERE enabled = true;
+
+-- Re-run seed if empty
+-- Execute: src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql
+```
+
+**More troubleshooting:** See [Local Testing Guide](docs/apify-pipeline/local-testing-guide.md#common-issues--troubleshooting)
+
+---
+
+## Testing
+
+### Local Testing
+Full end-to-end testing guide: [docs/apify-pipeline/local-testing-guide.md](docs/apify-pipeline/local-testing-guide.md)
+
+Quick validation:
+```bash
+# Validate environment
+npm run health-check
+
+# Run unit tests
+npm test
+
+# Trigger manual collection
+curl -X POST http://localhost:3000/api/start-apify-run \
+  -H "Content-Type: application/json" \
+  -d '{"triggerSource": "manual-test", "ingestion": {"maxItemsPerKeyword": 10}}'
+```
+
+### Unit Tests
+- **Framework:** Vitest
+- **Config:** [vitest.config.ts](vitest.config.ts)
+- **Location:** `src/ApifyPipeline/Tests/Unit/`
+- **Coverage:** Core transformations, validators, business rules
+
+---
+
+## Documentation
+
+### For Developers
+- [Apify Pipeline Feature README](src/ApifyPipeline/README.md) - Feature architecture & development guide
+- [Local Testing Guide](docs/apify-pipeline/local-testing-guide.md) - Comprehensive testing procedures
+- [Internal Testing Quickstart](docs/apify-pipeline/internal-testing-quickstart.md) - 10-minute quick reference
+- [Readiness Checklist](docs/apify-pipeline/readiness-checklist.md) - Pre-deployment validation
+
+### For Operations
+- [Operational Runbook](src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md) - Production procedures & monitoring
+- [Incident Response Guide](src/ApifyPipeline/Docs/incident-response-runbook.md) - Troubleshooting & recovery
+
+### Architecture
+- [Specification](docs/apify-pipeline/specification.md) - Technical requirements
+- [Overview](docs/apify-pipeline/overview.md) - System architecture & data flow
+- [Implementation Plan](docs/apify-pipeline/implementation-plan.md) - Development roadmap
+
+---
 
 ## Known Issues
 
-- **Stylistic indent regression (Sep 2025):** `@stylistic/indent` currently trips a stack overflow when linting large TSX trees with TypeScript 5.9 (tracked in [eslint-stylistic#915](https://github.com/eslint-stylistic/eslint-stylistic/issues/915)). As a mitigation we ignore `app/mocks/**` and `mocks/**` in [eslint.config.mjs](file:///home/prinova/CodeProjects/agent-vibes/eslint.config.mjs#L10-L79). Remove those ignores once the upstream fix ships and the rule is safe to re-enable.
+### ESLint Stylistic Indent Regression (Sep 2025)
+`@stylistic/indent` triggers a stack overflow on large TSX trees with TypeScript 5.9.
 
-## Learn More
+**Mitigation:** `app/mocks/**` and `mocks/**` are ignored in [eslint.config.mjs](eslint.config.mjs).
 
-To learn more about Next.js, take a look at the following resources:
+**Resolution:** Remove ignores once upstream fix ships ([eslint-stylistic#915](https://github.com/eslint-stylistic/eslint-stylistic/issues/915)).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Team Contacts
 
-## Deploy on Vercel
+| Area | Contact | Channel |
+|------|---------|---------|
+| **Development** | Engineering Team | `#agent-vibes-dev` |
+| **Operations** | Platform Ops | `#ops-oncall` |
+| **Analytics** | Analytics Guild | `#analytics-insights` |
+| **Incidents** | On-call Engineer | `#backend-support` |
+| **Secrets/Access** | DevOps Team | `#ops-oncall` |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contributing (Internal)
+
+1. **Branch from `main`**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Follow code standards**
+   - Run `npm run check` before committing
+   - Use `npm run check:fix` to auto-format
+
+3. **Write tests**
+   - Unit tests for business logic
+   - Manual testing using test guide
+
+4. **Submit PR**
+   - Link to any related issues or Slack threads
+   - Request review from team lead
+
+5. **Deploy**
+   - Merge to `main` triggers auto-deploy to Vercel
+
+---
+
+## License
+
+**Internal Use Only** - Not licensed for public distribution.
+
+---
+
+## Additional Resources
+
+- **Next.js Docs:** https://nextjs.org/docs
+- **Apify Docs:** https://docs.apify.com/
+- **Supabase Docs:** https://supabase.com/docs
+- **Vercel Docs:** https://vercel.com/docs
+- **Gemini API Docs:** https://ai.google.dev/docs
