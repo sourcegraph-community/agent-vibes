@@ -13,6 +13,8 @@ export interface RawTweetRecord extends RawTweetInsert {
   id: string;
 }
 
+const BATCH_SIZE = 500;
+
 export const insertRawTweets = async (
   client: SupabaseServiceClient,
   rows: RawTweetInsert[],
@@ -21,33 +23,43 @@ export const insertRawTweets = async (
     return [];
   }
 
-  const payload = rows.map((row) => ({
-    run_id: row.runId,
-    platform: row.platform,
-    platform_id: row.platformId,
-    collected_at: row.collectedAt,
-    payload: row.payload,
-    ingestion_reason: row.ingestionReason ?? 'initial',
-  }));
+  const results: RawTweetRecord[] = [];
 
-  const { data, error } = await client
-    .from('raw_tweets')
-    .insert(payload)
-    .select();
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
 
-  if (error) {
-    throw error;
+    const payload = batch.map((row) => ({
+      run_id: row.runId,
+      platform: row.platform,
+      platform_id: row.platformId,
+      collected_at: row.collectedAt,
+      payload: row.payload,
+      ingestion_reason: row.ingestionReason ?? 'initial',
+    }));
+
+    const { data, error } = await client
+      .from('raw_tweets')
+      .insert(payload)
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    const insertedRows = (data ?? []) as Array<Record<string, unknown>>;
+
+    const batchResults = insertedRows.map((row) => ({
+      id: row.id as string,
+      runId: row.run_id as string,
+      platform: row.platform as string,
+      platformId: row.platform_id as string,
+      collectedAt: row.collected_at as string,
+      payload: (row.payload ?? {}) as Record<string, unknown>,
+      ingestionReason: row.ingestion_reason as string,
+    } satisfies RawTweetRecord));
+
+    results.push(...batchResults);
   }
 
-  const insertedRows = (data ?? []) as Array<Record<string, unknown>>;
-
-  return insertedRows.map((row) => ({
-    id: row.id as string,
-    runId: row.run_id as string,
-    platform: row.platform as string,
-    platformId: row.platform_id as string,
-    collectedAt: row.collected_at as string,
-    payload: (row.payload ?? {}) as Record<string, unknown>,
-    ingestionReason: row.ingestion_reason as string,
-  } satisfies RawTweetRecord));
+  return results;
 };

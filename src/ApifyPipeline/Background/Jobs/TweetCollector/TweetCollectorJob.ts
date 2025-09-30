@@ -87,178 +87,212 @@ const determineStatus = (newCount: number, errors: unknown[]):
 };
 
 Actor.main(async () => {
-  const rawInput = ((await Actor.getInput()) ?? {}) as Record<string, unknown>;
-  const input = inputSchema.parse(rawInput) satisfies ActorInput;
-
-  const supabase = createSupabaseServiceClient();
-  const keywords = await resolveKeywords(supabase, input);
-
-  if (keywords.length === 0) {
-    log.warning('No keywords available for ingestion.');
-    return;
-  }
-
   const startedAt = new Date().toISOString();
-  const ingestionConfig = input.ingestion;
-  const keywordBatches = chunkArray(keywords, ingestionConfig.keywordBatchSize);
+  let supabase: ReturnType<typeof createSupabaseServiceClient> | null = null;
+  let input: ActorInput | null = null;
 
-  const candidateMap = new Map<string, CandidateRecord>();
-  const errors: unknown[] = [];
+  try {
+    const rawInput = ((await Actor.getInput()) ?? {}) as Record<string, unknown>;
+    input = inputSchema.parse(rawInput) satisfies ActorInput;
 
-  for (const batch of keywordBatches) {
-    try {
-      const items = await runTwitterScraper({
-        keywords: batch,
-        tweetLanguage: ingestionConfig.tweetLanguage,
-        sort: ingestionConfig.sort,
-        maxItemsPerKeyword: ingestionConfig.maxItemsPerKeyword,
-        minimumEngagement: ingestionConfig.minimumEngagement,
-      });
+    supabase = createSupabaseServiceClient();
+    const keywords = await resolveKeywords(supabase, input);
 
-      for (const item of items) {
-        try {
-          const platformId = extractPlatformId(item);
+    if (keywords.length === 0) {
+      log.warning('No keywords available for ingestion.');
+      return;
+    }
 
-          if (candidateMap.has(platformId)) {
-            continue;
+    const ingestionConfig = input.ingestion;
+    const keywordBatches = chunkArray(keywords, ingestionConfig.keywordBatchSize);
+
+    const candidateMap = new Map<string, CandidateRecord>();
+    const errors: unknown[] = [];
+
+    for (const batch of keywordBatches) {
+      try {
+        const items = await runTwitterScraper({
+          keywords: batch,
+          tweetLanguage: ingestionConfig.tweetLanguage,
+          sort: ingestionConfig.sort,
+          maxItemsPerKeyword: ingestionConfig.maxItemsPerKeyword,
+          minimumEngagement: ingestionConfig.minimumEngagement,
+        });
+
+        for (const item of items) {
+          try {
+            const platformId = extractPlatformId(item);
+
+            if (candidateMap.has(platformId)) {
+              continue;
+            }
+
+            candidateMap.set(platformId, {
+              item,
+              keywords: batch,
+              collectedAt: new Date().toISOString(),
+            });
+          } catch (error) {
+            errors.push({
+              type: 'normalization_precheck_failed',
+              message: error instanceof Error ? error.message : String(error),
+              item,
+            });
           }
-
-          candidateMap.set(platformId, {
-            item,
-            keywords: batch,
-            collectedAt: new Date().toISOString(),
-          });
-        } catch (error) {
-          errors.push({
-            type: 'normalization_precheck_failed',
-            message: error instanceof Error ? error.message : String(error),
-            item,
-          });
         }
+      } catch (error) {
+        errors.push({
+          type: 'scraper_batch_failed',
+          keywords: batch,
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
-    } catch (error) {
-      errors.push({
-        type: 'scraper_batch_failed',
-        keywords: batch,
-        message: error instanceof Error ? error.message : String(error),
-      });
+
+      if (ingestionConfig.cooldownSeconds > 0) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, ingestionConfig.cooldownSeconds * 1000),
+        );
+      }
     }
 
-    if (ingestionConfig.cooldownSeconds > 0) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, ingestionConfig.cooldownSeconds * 1000),
-      );
-    }
-  }
+    const allPlatformIds = Array.from(candidateMap.keys());
+    const existingPlatformIds = await fetchExistingNormalizedIds(
+      supabase,
+      'twitter',
+      allPlatformIds,
+    );
 
-  const allPlatformIds = Array.from(candidateMap.keys());
-  const existingPlatformIds = await fetchExistingNormalizedIds(
-    supabase,
-    'twitter',
-    allPlatformIds,
-  );
+    const newPlatformIds = allPlatformIds.filter(
+      (platformId) => !existingPlatformIds.has(platformId),
+    );
 
-  const newPlatformIds = allPlatformIds.filter(
-    (platformId) => !existingPlatformIds.has(platformId),
-  );
+    const runId = randomUUID();
+    const normalizedPrototypes = new Map<string, NormalizedTweetInsert>();
 
-  const runId = randomUUID();
-  const normalizedPrototypes = new Map<string, NormalizedTweetInsert>();
+    for (const platformId of newPlatformIds) {
+      const candidate = candidateMap.get(platformId);
+      if (!candidate) {
+        continue;
+      }
 
-  for (const platformId of newPlatformIds) {
-    const candidate = candidateMap.get(platformId);
-    if (!candidate) {
-      continue;
-    }
+      try {
+        const prototype = normalizeTweet(candidate.item, {
+          runId,
+          rawTweetId: null,
+          collectedAt: candidate.collectedAt,
+          keywords: candidate.keywords,
+        });
 
-    try {
-      const prototype = normalizeTweet(candidate.item, {
-        runId,
-        rawTweetId: null,
-        collectedAt: candidate.collectedAt,
-        keywords: candidate.keywords,
-      });
-
-      normalizedPrototypes.set(platformId, prototype);
-    } catch (error) {
-      errors.push({
-        type: 'normalization_failed',
-        platformId,
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  const processedNewCount = normalizedPrototypes.size;
-  const processedDuplicateCount = existingPlatformIds.size;
-  const processedErrorCount = errors.length;
-  const status = determineStatus(processedNewCount, errors);
-  const finishedAt = new Date().toISOString();
-
-  await insertCronRun(supabase, {
-    id: runId,
-    triggerSource: input.triggerSource,
-    keywordBatch: keywords,
-    startedAt,
-    finishedAt,
-    status,
-    processedNewCount,
-    processedDuplicateCount,
-    processedErrorCount,
-    metadata: {
-      batchesAttempted: keywordBatches.length,
-      requestedMaxItems: ingestionConfig.maxItemsPerKeyword,
-      sort: ingestionConfig.sort,
-      tweetLanguage: ingestionConfig.tweetLanguage,
-      requestedAt: startedAt,
-      inputMetadata: input.metadata ?? {},
-      candidateCount: candidateMap.size,
-    },
-    errors,
-  });
-
-  const rawRows = Array.from(normalizedPrototypes.keys()).map((platformId) => {
-    const candidate = candidateMap.get(platformId);
-    if (!candidate) {
-      throw new Error(`Missing candidate for platformId ${platformId}`);
+        normalizedPrototypes.set(platformId, prototype);
+      } catch (error) {
+        errors.push({
+          type: 'normalization_failed',
+          platformId,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
 
-    return {
-      runId,
-      platform: 'twitter',
-      platformId,
-      collectedAt: candidate.collectedAt,
-      payload: {
-        item: candidate.item,
-        keywords: candidate.keywords,
-        fetchedAt: candidate.collectedAt,
+    const processedNewCount = normalizedPrototypes.size;
+    const processedDuplicateCount = existingPlatformIds.size;
+    const processedErrorCount = errors.length;
+    const status = determineStatus(processedNewCount, errors);
+    const finishedAt = new Date().toISOString();
+
+    await insertCronRun(supabase, {
+      id: runId,
+      triggerSource: input.triggerSource,
+      keywordBatch: keywords,
+      startedAt,
+      finishedAt,
+      status,
+      processedNewCount,
+      processedDuplicateCount,
+      processedErrorCount,
+      metadata: {
+        batchesAttempted: keywordBatches.length,
+        requestedMaxItems: ingestionConfig.maxItemsPerKeyword,
+        sort: ingestionConfig.sort,
+        tweetLanguage: ingestionConfig.tweetLanguage,
+        requestedAt: startedAt,
+        inputMetadata: input.metadata ?? {},
+        candidateCount: candidateMap.size,
       },
-      ingestionReason: 'initial',
-    };
-  });
+      errors,
+    });
 
-  const rawRecords = await insertRawTweets(supabase, rawRows);
-  const rawIdByPlatform = new Map<string, string | null>();
+    const rawRows = Array.from(normalizedPrototypes.keys()).map((platformId) => {
+      const candidate = candidateMap.get(platformId);
+      if (!candidate) {
+        throw new Error(`Missing candidate for platformId ${platformId}`);
+      }
 
-  for (const record of rawRecords) {
-    rawIdByPlatform.set(record.platformId, record.id);
+      return {
+        runId,
+        platform: 'twitter',
+        platformId,
+        collectedAt: candidate.collectedAt,
+        payload: {
+          item: candidate.item,
+          keywords: candidate.keywords,
+          fetchedAt: candidate.collectedAt,
+        },
+        ingestionReason: 'initial',
+      };
+    });
+
+    const rawRecords = await insertRawTweets(supabase, rawRows);
+    const rawIdByPlatform = new Map<string, string | null>();
+
+    for (const record of rawRecords) {
+      rawIdByPlatform.set(record.platformId, record.id);
+    }
+
+    const normalizedRows: NormalizedTweetInsert[] = Array.from(
+      normalizedPrototypes.entries(),
+    ).map(([platformId, prototype]) => ({
+      ...prototype,
+      rawTweetId: rawIdByPlatform.get(platformId) ?? null,
+    }));
+
+    if (normalizedRows.length > 0) {
+      await insertNormalizedTweets(supabase, normalizedRows);
+    }
+
+    log.info('Apify ingestion run completed.', {
+      runId,
+      newRecords: processedNewCount,
+      duplicateRecords: processedDuplicateCount,
+      errorCount: processedErrorCount,
+    });
+  } catch (error) {
+    log.error('Fatal error in TweetCollectorJob', { error });
+
+    if (supabase) {
+      try {
+        await insertCronRun(supabase, {
+          id: randomUUID(),
+          triggerSource: input?.triggerSource ?? 'unknown',
+          keywordBatch: [],
+          startedAt,
+          finishedAt: new Date().toISOString(),
+          status: 'failed',
+          processedNewCount: 0,
+          processedDuplicateCount: 0,
+          processedErrorCount: 1,
+          metadata: { fatalError: true },
+          errors: [
+            {
+              type: 'actor_crash',
+              message: error instanceof Error ? error.message : String(error),
+            },
+          ],
+        });
+      } catch (logError) {
+        log.error('Failed to log fatal error to cron_runs', { logError });
+      }
+    }
+
+    throw error;
   }
-
-  const normalizedRows: NormalizedTweetInsert[] = Array.from(
-    normalizedPrototypes.entries(),
-  ).map(([platformId, prototype]) => ({
-    ...prototype,
-    rawTweetId: rawIdByPlatform.get(platformId) ?? null,
-  }));
-
-  if (normalizedRows.length > 0) {
-    await insertNormalizedTweets(supabase, normalizedRows);
-  }
-
-  log.info('Apify ingestion run completed.', {
-    runId,
-    newRecords: processedNewCount,
-    duplicateRecords: processedDuplicateCount,
-    errorCount: processedErrorCount,
-  });
 });
