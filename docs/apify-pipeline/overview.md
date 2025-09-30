@@ -100,6 +100,8 @@ graph TB
 - Supabase Basisschema inkl. Append-Only-Triggers und RLS-Policies liegt als Migration unter `src/Features/ApifyPipeline/Domain/Persistence/Migrations/20250929_1200_InitApifyPipeline.sql`.
 - Views `vw_daily_sentiment` und `vw_keyword_trends` sind erstellt und liefern dank Seed-Daten (`src/Features/ApifyPipeline/Domain/Persistence/Seeds/20250929_1230_KeywordsSeed.sql`) Beispielmetriken für das Dashboard.
 - Supabase Secret-Rotation läuft über `npm run rotate:supabase` (TypeScript-Script [`scripts/rotate-supabase-secrets.ts`](file:///home/prinova/CodeProjects/agent-vibes/scripts/rotate-supabase-secrets.ts) nutzt Supabase Management API + Secrets Endpoint).
+- Der Ingestion-Slice stellt `/api/start-apify-run` über `app/api/start-apify-run/route.ts` bereit und delegiert an `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun` + `Scheduler/Application/Commands/StartApifyRun`.
+- Der Apify Actor unter `src/Features/ApifyPipeline/Scheduler/Application/Actors/TweetCollector/TweetCollectorActor.ts` holt Keywords aus Supabase, startet den Twitter-Scraper, schreibt `cron_runs`, `raw_tweets` und `normalized_tweets` und kennzeichnet Duplikate.
 
 ## Offene Punkte für spätere Iterationen
 - Fehlerbehandlung und Monitoring (Retries, Alerting) spezifizieren.

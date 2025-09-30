@@ -16,9 +16,12 @@
     "rotate:supabase": "tsx scripts/rotate-supabase-secrets.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.58.0",
+    "apify": "^3.4.5",
     "next": "15.5.2",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@eslint/js": "^9",

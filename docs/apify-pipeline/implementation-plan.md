@@ -258,11 +258,11 @@ create trigger keywords_prevent_update
 - Vercel Cron hitting `/api/start-apify-run` (`app/api/start-apify-run/route.ts` → `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun`); manual trigger docs updated ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L9)).
 
 ### Task Checklist
-- [ ] Scaffold Apify actor with TypeScript template; implement input schema using `tweetLanguage`, `sort`, `maxItems`.
-- [ ] Connect actor to Supabase via service role; fetch `keywords` and log `cron_runs` metrics.
-- [ ] Build normalization module mapping actor output to `normalized_tweets` with enrichment (timestamp, language, engagement) ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L26-L35)).
-- [ ] Implement Vercel API route `app/api/start-apify-run/route.ts`, die den Slice-Handler `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun` authentifiziert und Invocation-Metadaten schreibt.
-- [ ] Add retry/backoff logic for network and rate-limit errors (max 3 attempts) ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L20-L21)).
+- [x] Scaffold Apify actor with TypeScript template; implement input schema using `tweetLanguage`, `sort`, `maxItems`.
+- [x] Connect actor to Supabase via service role; fetch `keywords` and log `cron_runs` metrics.
+- [x] Build normalization module mapping actor output to `normalized_tweets` with enrichment (timestamp, language, engagement) ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L26-L35)).
+- [x] Implement Vercel API route `app/api/start-apify-run/route.ts`, die den Slice-Handler `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun` authentifiziert und Invocation-Metadaten schreibt.
+- [x] Add retry/backoff logic for network and rate-limit errors (max 3 attempts) ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L20-L21)).
 
 ### Dependencies & Touchpoints
 - **Ops:** Provision Apify proxy pool if scraping requires it; confirm cron schedule meets Pro plan limits.
@@ -271,6 +271,13 @@ create trigger keywords_prevent_update
 ### Risk Mitigation & Validation
 - [ ] Sandbox run against low-volume keyword with Apify console; verify pause compliance.
 - [ ] Record ingestion metrics in Supabase and share with Ops for review.
+
+#### Delivery Notes (2025-09-29)
+- `app/api/start-apify-run/route.ts` re-exportiert den Slice-Endpunkt für Vercel Cron und manuelle Trigger.
+- `src/Features/ApifyPipeline/Ui/Application/Endpoints/StartApifyRun/StartApifyRunEndpoint.ts` kapselt Request-Parsing und ruft den Scheduler-Command an.
+- `src/Features/ApifyPipeline/Scheduler/Application/Commands/StartApifyRun/StartApifyRunCommand.ts` validiert Optionen und startet den Apify Actor via REST API.
+- `src/Features/ApifyPipeline/Scheduler/Application/Actors/TweetCollector/TweetCollectorActor.ts` orchestriert Keyword-Fetch, Apify Scraper-Läufe, Duplikatprüfung sowie Inserts in `cron_runs`, `raw_tweets` und `normalized_tweets`.
+- Neue Slice-Layer (`Domain/Integrations`, `Domain/Persistence/Repositories`, `Domain/Transformations`, `Domain/Utilities`) stellen Supabase-Service-Clients, Repositories und Normalisierungslogik bereit.
 
 ---
 
