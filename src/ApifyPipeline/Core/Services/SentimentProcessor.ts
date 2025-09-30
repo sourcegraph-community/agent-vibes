@@ -13,6 +13,7 @@ export interface SentimentProcessorConfig {
   modelVersion: string;
   batchSize: number;
   maxRetries: number;
+  rateLimitDelayMs?: number;
 }
 
 export class SentimentProcessor {
@@ -37,7 +38,9 @@ export class SentimentProcessor {
       return stats;
     }
 
-    for (const tweet of pendingTweets) {
+    for (let i = 0; i < pendingTweets.length; i++) {
+      const tweet = pendingTweets[i];
+
       try {
         const result = await this.geminiClient.analyzeSentiment({
           tweetId: tweet.id,
@@ -68,17 +71,22 @@ export class SentimentProcessor {
           stats.processed++;
         }
         else if (result.error) {
+          // Get current retry count for this specific tweet
+          const currentRetryCount = await this.repository.getRetryCountForTweet(tweet.id);
+          const newRetryCount = currentRetryCount + 1;
+
           await this.repository.recordFailure({
             normalizedTweetId: tweet.id,
             modelVersion: this.config.modelVersion,
             failureStage: 'gemini_api_call',
             errorCode: result.error.code,
             errorMessage: result.error.message,
-            retryCount: 0,
+            retryCount: newRetryCount,
             payload: { content: tweet.content.substring(0, 500) },
           });
 
-          if (!result.error.retryable || stats.failed >= this.config.maxRetries) {
+          // Mark as failed if not retryable or exceeded max retries for this tweet
+          if (!result.error.retryable || newRetryCount >= this.config.maxRetries) {
             await this.repository.updateTweetStatus(tweet.id, 'failed');
           }
 
@@ -86,18 +94,26 @@ export class SentimentProcessor {
         }
       }
       catch (error) {
+        const currentRetryCount = await this.repository.getRetryCountForTweet(tweet.id);
+        const newRetryCount = currentRetryCount + 1;
+
         await this.repository.recordFailure({
           normalizedTweetId: tweet.id,
           modelVersion: this.config.modelVersion,
           failureStage: 'unexpected_error',
           errorCode: 'PROCESSOR_ERROR',
           errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          retryCount: 0,
+          retryCount: newRetryCount,
           payload: null,
         });
 
         await this.repository.updateTweetStatus(tweet.id, 'failed');
         stats.failed++;
+      }
+
+      // Rate limit delay between requests (except after last tweet)
+      if (i < pendingTweets.length - 1 && this.config.rateLimitDelayMs) {
+        await new Promise(resolve => setTimeout(resolve, this.config.rateLimitDelayMs));
       }
     }
 
@@ -105,8 +121,7 @@ export class SentimentProcessor {
   }
 
   async replayFailedSentiment(tweetId: string): Promise<boolean> {
-    const tweets = await this.repository.getPendingSentiments(1000);
-    const tweet = tweets.find(t => t.id === tweetId);
+    const tweet = await this.repository.getTweetById(tweetId);
 
     if (!tweet) {
       return false;
@@ -136,13 +151,16 @@ export class SentimentProcessor {
     }
 
     if (result.error) {
+      const currentRetryCount = await this.repository.getRetryCountForTweet(tweet.id);
+      const newRetryCount = currentRetryCount + 1;
+
       await this.repository.recordFailure({
         normalizedTweetId: tweet.id,
         modelVersion: this.config.modelVersion,
         failureStage: 'replay_attempt',
         errorCode: result.error.code,
         errorMessage: result.error.message,
-        retryCount: 1,
+        retryCount: newRetryCount,
         payload: null,
       });
     }

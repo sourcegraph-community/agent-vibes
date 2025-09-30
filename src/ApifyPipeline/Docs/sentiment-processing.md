@@ -44,12 +44,21 @@ Web/Application/Commands/ProcessSentiments/
 
 Process pending tweets for sentiment analysis.
 
+**Authentication:**
+- Vercel Cron: Automatically authenticated via `x-vercel-cron` header
+- Manual calls: Require `x-api-key` header with value matching `INTERNAL_API_KEY` environment variable
+
 **Request Body:**
 ```json
 {
   "batchSize": 10,
   "modelVersion": "gemini-2.0-flash-exp"
 }
+```
+
+**Request Headers (for manual calls):**
+```
+x-api-key: <your-internal-api-key>
 ```
 
 **Response:**
@@ -99,14 +108,17 @@ npm run replay:sentiments -- --limit 20
 | `GEMINI_API_KEY` | Yes | Google Gemini API key |
 | `SUPABASE_URL` | Yes | Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key |
+| `INTERNAL_API_KEY` | Recommended | API key for authenticating manual API calls (Vercel Cron bypasses this) |
+| `VERCEL_ENV` | Auto-set | Vercel environment (production/preview/development) - used for error message sanitization |
 
 ### Processing Configuration
 
 Default settings in `SentimentProcessorJob.ts`:
 - **Batch Size**: 10 tweets per run
 - **Model Version**: `gemini-2.0-flash-exp`
-- **Max Retries**: 3 attempts with exponential backoff
+- **Max Retries**: 2 attempts per tweet with exponential backoff and jitter
 - **Timeout**: 30 seconds per API call
+- **Rate Limit Delay**: 4 seconds between requests (15 RPM compliance)
 
 ## Gemini API Integration
 
@@ -202,9 +214,10 @@ Estimate costs:
 
 ### Daily Processing
 
-1. **Cron Schedule**: Process sentiments every 6 hours
-2. **Batch Size**: Start with 10, increase based on rate limits
+1. **Cron Schedule**: Process sentiments every 30 minutes (configured in `vercel.json`)
+2. **Batch Size**: Default 10, configured with rate limiting (4s delay between requests)
 3. **Monitoring**: Check `sentiment_failures` table daily
+4. **Authentication**: Cron requests automatically authenticated via Vercel header
 
 ### Failure Recovery
 

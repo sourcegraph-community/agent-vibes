@@ -146,6 +146,42 @@ export class TweetSentimentsRepository {
     }));
   }
 
+  async getRetryCountForTweet(tweetId: string): Promise<number> {
+    const { data, error } = await this.client
+      .from('sentiment_failures')
+      .select('retry_count')
+      .eq('normalized_tweet_id', tweetId)
+      .order('last_attempt_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      return 0;
+    }
+
+    return data.retry_count ?? 0;
+  }
+
+  async getTweetById(tweetId: string): Promise<{ id: string; content: string; authorHandle: string | null; language: string | null } | null> {
+    const { data, error } = await this.client
+      .from('normalized_tweets')
+      .select('id, content, author_handle, language')
+      .eq('id', tweetId)
+      .eq('status', 'pending_sentiment')
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return {
+      id: data.id,
+      content: data.content,
+      authorHandle: data.author_handle,
+      language: data.language,
+    };
+  }
+
   private mapToTweetSentiment(row: Record<string, unknown>): TweetSentiment {
     return {
       id: String(row.id),
