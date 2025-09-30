@@ -1,71 +1,71 @@
-# Apify Pipeline – Technische Spezifikation
+# Apify Pipeline – Technical Specification
 
-## 1. Ziel & Scope
-- **Ziel:** Automatisierte Sammlung, Aufbereitung und Visualisierung von Social-Media-Erwähnungen rund um Coding-Agenten.
-- **Scope:** Produktionstaugliche Pipeline für Tweets (MVP). Erweiterbarkeit auf weitere Quellen ist eingeplant, aber nicht Teil der ersten Iteration.
+## 1. Goal & Scope
+- **Goal:** Automated collection, processing, and visualization of social media mentions about coding agents.
+- **Scope:** Production-ready pipeline for tweets (MVP). Extensibility to other sources is planned but not part of the first iteration.
 
-Architekturhinweis: Die Pipeline ist als Vertical Slice `src/ApifyPipeline` organisiert. Innerhalb des Slices liegen Web-Endpunkte (`Web/Application/Commands`), Background-Jobs (`Background/Jobs`), pure Business-Logik (`Core`), Supabase-Zugriff (`DataAccess`), und externe Integrationen (`ExternalServices`). Gemeinsame Verträge bleiben slice-lokal und werden aus `app/api` lediglich re-exportiert.
+Architecture note: The pipeline is organized as a Vertical Slice `src/ApifyPipeline`. Within the slice are web endpoints (`Web/Application/Commands`), background jobs (`Background/Jobs`), pure business logic (`Core`), Supabase access (`DataAccess`), and external integrations (`ExternalServices`). Shared contracts remain slice-local and are merely re-exported from `app/api`.
 
-## 2. Stakeholder & Verantwortlichkeiten
-- **Product/Analytics:** Definieren Schlagworte, Reporting-Anforderungen und KPI.
-- **Engineering (Data/Backend):** Implementiert Apify Actor, Normalisierung, Supabase-Integration.
-- **Engineering (ML/AI):** Wartet Sentiment-Service mit Gemini und verbessert Modelle.
-- **Engineering (Frontend):** Erstellt Dashboard in Next.js, stellt Visualisierungen bereit.
-- **Ops/Platform:** Verwaltet Secrets, Monitoring, Deployment auf Vercel.
+## 2. Stakeholders & Responsibilities
+- **Product/Analytics:** Define keywords, reporting requirements, and KPIs.
+- **Engineering (Data/Backend):** Implement Apify Actor, normalization, Supabase integration.
+- **Engineering (ML/AI):** Maintain sentiment service with Gemini and improve models.
+- **Engineering (Frontend):** Create dashboard in Next.js, provide visualizations.
+- **Ops/Platform:** Manage secrets, monitoring, deployment on Vercel.
 
-## 3. Funktionale Anforderungen
-### 3.1 Datenerfassung
-- Vercel Cron ruft das interne Endpoint `/api/start-apify-run` auf, welches den Apify Run API Call proxyt; Intervalle unter 24 h setzen mindestens den Vercel Pro Plan voraus. Die Route `app/api/start-apify-run/route.ts` importiert dafür den Handler `src/ApifyPipeline/Web/Application/Commands/StartApifyRun` (REPR-Einstiegspunkt).
-- Manuelle Trigger über Apify UI oder REST Endpoint bleiben unverändert.
-- Datenerfassung benötigt entweder X API Pro-Zugänge (≈ US$ 5 k/Monat) oder den Apify Tweet Scraper; Scraper-Runs müssen Anti-Monitoring-Auflagen (Pausen, max. fünf Queries) respektieren.
-- Actor nutzt vordefinierte Schlagwort-Liste (konfigurierbar via Supabase Tabelle `keywords`).
-- Bei API-Limit-Fehlern oder Netzwerkfehlern erfolgt Retry (exponentiell bis zu 3 Versuche).
-- Monitoring der Duplikatquote: Speichert Tweet-IDs in Supabase, Runs dokumentieren Verhältnis `neu vs. dupliziert` (via `cron_runs`).
+## 3. Functional Requirements
+### 3.1 Data Collection
+- Vercel Cron calls the internal endpoint `/api/start-apify-run`, which proxies the Apify Run API call; intervals under 24h require at least the Vercel Pro plan. The route `app/api/start-apify-run/route.ts` imports the handler `src/ApifyPipeline/Web/Application/Commands/StartApifyRun` (REPR entry point).
+- Manual triggers via Apify UI or REST endpoint remain unchanged.
+- Data collection requires either X API Pro access (~US$5k/month) or the Apify Tweet Scraper; scraper runs must respect anti-monitoring requirements (pauses, max five queries).
+- Actor uses a predefined keyword list (configurable via Supabase table `keywords`).
+- On API limit errors or network errors, retry occurs (exponential up to 3 attempts).
+- Monitoring of duplicate rate: Stores tweet IDs in Supabase, runs document ratio `new vs. duplicated` (via `cron_runs`).
 
-> Hinweis: X API Pro liegt bei ≈ US$ 5 k/Monat; Scraper-Runs riskieren Account-Drosselung bei zu hoher Frequenz.
+> Note: X API Pro costs ~US$5k/month; scraper runs risk account throttling at high frequency.
 
-### 3.2 Datenverarbeitung
-- Actor normalisiert Tweets auf ein einheitliches Schema (`normalized_tweets`).
-- Entfernt Duplikate anhand Tweet-ID + Plattform.
-- Ergänzt Metadaten: Zeitpunkt, Quelle, Sprache, Engagement (Likes/Retweets).
+### 3.2 Data Processing
+- Actor normalizes tweets to a uniform schema (`normalized_tweets`).
+- Removes duplicates based on tweet ID + platform.
+- Adds metadata: timestamp, source, language, engagement (likes/retweets).
 
-### 3.3 Persistenz
-- Rohdaten optional in Tabelle `raw_tweets` (JSON) für Debugging.
-- Normalisierte Daten in `normalized_tweets`.
-- Sentiment-Resultate in `tweet_sentiments`.
-- Historisierung ohne Mutationen (append-only); Aktualisierungen via `upsert` nach Tweet-ID.
-- Backfill-Strategie: Einmalige Aufteilung der letzten 30 Tage in mehrere 5-Tage-Läufe mit erhöhtem `maxItems`; bei X API Pro können Läufe dichter getaktet werden, Apify Scraper erfordern hingegen Pausen (>5 Minuten) und begrenzte Query-Batches.
-- Slice-spezifische Migrationen und Seeds liegen unter `src/ApifyPipeline/DataAccess/Migrations` (Namensschema `yyyyMMdd_HHmm_Description.sql`).
+### 3.3 Persistence
+- Raw data optionally in `raw_tweets` table (JSON) for debugging.
+- Normalized data in `normalized_tweets`.
+- Sentiment results in `tweet_sentiments`.
+- Historization without mutations (append-only); updates via `upsert` by tweet ID.
+- Backfill strategy: One-time division of the last 30 days into several 5-day runs with increased `maxItems`; with X API Pro, runs can be more frequent, Apify Scraper requires pauses (>5 minutes) and limited query batches.
+- Slice-specific migrations and seeds are located under `src/ApifyPipeline/DataAccess/Migrations` (naming scheme `yyyyMMdd_HHmm_Description.sql`).
 
-### 3.4 Sentiment-Analyse
-- Supabase Edge Function überwacht neue Einträge in `normalized_tweets` (Primärpfad für Sentiment-Verarbeitung) und trackt den jeweils letzten verarbeiteten Tweet-Zeitstempel je Keyword.
-- Die Function ruft `gemini-2.5-flash` oder `flash-lite` via Structured Output (Enum `positive|neutral|negative`) auf; Google stellt keinen dedizierten Sentiment-Endpunkt bereit.
-- Rate-Limits und Kosten (Free ~15 RPM/1,5 M Tokens pro Tag; entgeltlich laut aktuellem Pricing) bestimmen Batch-Größe und Queueing; Supabase Functions + Storage-Queue puffern Überschreitungen.
-- API Keys (`GEMINI_API_KEY`) liegen in Supabase Secrets bzw. Vercel Env Vars und werden regelmäßig rotiert.
-- Ergebnisse (Score -1…1, Kategorie, erweiterte Insights) werden in `tweet_sentiments` gespeichert; Fehlerhafte Aufrufe landen in `sentiment_failures`, Fallback bleibt eine Vercel Serverless Function für Re-Runs.
-- Umsetzung: Supabase Edge Functions für die Klassifikation liegen im Slice unter `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/SentimentClassify` und kapseln alle Gemini-spezifischen Clients.
+### 3.4 Sentiment Analysis
+- Supabase Edge Function monitors new entries in `normalized_tweets` (primary path for sentiment processing) and tracks the last processed tweet timestamp per keyword.
+- The function calls `gemini-2.5-flash` or `flash-lite` via Structured Output (enum `positive|neutral|negative`); Google does not provide a dedicated sentiment endpoint.
+- Rate limits and costs (Free ~15 RPM/1.5M tokens per day; paid per current pricing) determine batch size and queueing; Supabase Functions + Storage Queue buffer overruns.
+- API keys (`GEMINI_API_KEY`) are stored in Supabase Secrets or Vercel Env Vars and are regularly rotated.
+- Results (score -1…1, category, extended insights) are stored in `tweet_sentiments`; failed calls go to `sentiment_failures`, fallback remains a Vercel Serverless Function for re-runs.
+- Implementation: Supabase Edge Functions for classification are located in the slice under `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/SentimentClassify` and encapsulate all Gemini-specific clients.
 
 ### 3.5 Frontend / Dashboard
-- Next.js 15 App Router (async Request APIs) visualisiert Erwähnungen, Sentiment-Verteilung und Trends.
-- Supabase-Anbindung erfolgt über `@supabase/ssr` Helpers sowie Server Actions; Token-Refresh und Cookies folgen dem neuen Async-Pattern.
-- Detailansicht pro Tweet inklusive Original-Link sowie Filterung nach Zeitraum, Sprache, Schlagwort und Sentiment.
-- Realtime-Updates via Supabase Realtime optional (Stretch Goal) unter Beachtung der aktuellen Kanal- und Nachrichtenkontingente.
+- Next.js 15 App Router (async Request APIs) visualizes mentions, sentiment distribution, and trends.
+- Supabase integration via `@supabase/ssr` helpers and Server Actions; token refresh and cookies follow the new async pattern.
+- Detail view per tweet including original link and filtering by time range, language, keyword, and sentiment.
+- Realtime updates via Supabase Realtime optional (stretch goal) considering current channel and message quotas.
 
-## 4. Nicht-funktionale Anforderungen
-- **Performance:** Pipeline verarbeitet mindestens 500 Tweets pro Lauf ohne Timeout (>60s Puffer).
-- **Verfügbarkeit:** Geplante Betriebszeit 24/7; Cron-Fenster darf höchstens zwei Läufe hintereinander ausfallen.
-- **Skalierbarkeit:** Erhöhung der Frequenz und Datenquellen ohne Codeänderung (nur Konfiguration).
-- **Sicherheit:** Secrets als `sb_secret_*` in Vercel/Apify/Supabase Secret Stores; keine Secrets im Repo und regelmäßige Rotation.
-- **Compliance:** Einhaltung X API Terms bzw. Apify Scraper-Richtlinien; Datenlöschung auf Anfrage.
+## 4. Non-Functional Requirements
+- **Performance:** Pipeline processes at least 500 tweets per run without timeout (>60s buffer).
+- **Availability:** Planned uptime 24/7; cron window may fail at most two consecutive runs.
+- **Scalability:** Increase frequency and data sources without code changes (configuration only).
+- **Security:** Secrets as `sb_secret_*` in Vercel/Apify/Supabase secret stores; no secrets in repo and regular rotation.
+- **Compliance:** Adherence to X API Terms or Apify scraper guidelines; data deletion on request.
 
-## 5. Architektur & Komponenten
-- **Apify Actor:** Node.js/TypeScript Skripte, entweder X API Pro (Budget-Freigabe) oder Apify Tweet Scraper mit Anti-Monitoring-Pacing. (Slice: `src/ApifyPipeline/Web/Application/Commands/TriggerApifyRun`)
-- **Supabase:** Postgres + Edge Functions, Auth via `sb_secret_*` Keys; PG17-kompatible Erweiterungen (z. B. Alternativen zu TimescaleDB) werden berücksichtigt. (Slice: `src/ApifyPipeline/DataAccess`)
-- **Sentiment Worker:** Supabase Edge Function mit Gemini 2.5 Structured Output, optionaler Vercel Serverless Fallback für Bulk-Re-Runs. (Slice: `src/ApifyPipeline/ExternalServices/Gemini`)
-- **Frontend:** Next.js 15 App Router auf Vercel (Node.js 20, async Request APIs, `@supabase/ssr` Integration). (Slice: `src/ApifyPipeline/Web/Components/Dashboard`)
-- **Monitoring:** Supabase Logs/Realtime Limits, Apify Actor Run Logs, Vercel Cron Status & Planverbrauch. (Slice Docs: `src/ApifyPipeline/Docs`)
+## 5. Architecture & Components
+- **Apify Actor:** Node.js/TypeScript scripts, either X API Pro (budget approval) or Apify Tweet Scraper with anti-monitoring pacing. (Slice: `src/ApifyPipeline/Web/Application/Commands/TriggerApifyRun`)
+- **Supabase:** Postgres + Edge Functions, auth via `sb_secret_*` keys; PG17-compatible extensions (e.g., alternatives to TimescaleDB) are considered. (Slice: `src/ApifyPipeline/DataAccess`)
+- **Sentiment Worker:** Supabase Edge Function with Gemini 2.5 Structured Output, optional Vercel Serverless fallback for bulk re-runs. (Slice: `src/ApifyPipeline/ExternalServices/Gemini`)
+- **Frontend:** Next.js 15 App Router on Vercel (Node.js 20, async Request APIs, `@supabase/ssr` integration). (Slice: `src/ApifyPipeline/Web/Components/Dashboard`)
+- **Monitoring:** Supabase Logs/Realtime Limits, Apify Actor Run Logs, Vercel Cron Status & plan usage. (Slice Docs: `src/ApifyPipeline/Docs`)
 
-## 6. Datenmodell (Entwurf)
+## 6. Data Model (Draft)
 ```text
 raw_tweets
 - id (uuid)
@@ -120,101 +120,101 @@ cron_runs
 - errors (jsonb)
 ```
 
-> Hinweis: Für großvolumige Läufe Supabase Cron + Queue Pattern (Storage + Edge Functions) nutzen, um Gemini-Limits und Scraper-Pausen einzuhalten.
+> Note: For high-volume runs, use Supabase Cron + Queue pattern (Storage + Edge Functions) to comply with Gemini limits and scraper pauses.
 
 ## 7. Workflows
-### 7.1 Automatischer Lauf
-1. Vercel Cron ruft `/api/start-apify-run` auf (Vercel Function) und diese proxyt den Apify Run API Aufruf. Die Route importiert den Slice-Endpunkt `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`.
-2. Actor lädt X API Pro Credentials oder Apify Scraper Tokens und liest `keywords` aus Supabase.
-3. Actor ruft Tweets ab, speichert Rohdaten (`raw_tweets`).
-4. Actor transformiert und upsertet `normalized_tweets`.
-5. Actor markiert Datensätze als `pending_sentiment`.
-6. Supabase Trigger/Function feuert, ruft Gemini 2.5 via Structured Output auf.
-7. Sentiment-Ergebnis wird in `tweet_sentiments` gespeichert, Status auf `processed` gesetzt.
-8. Dashboard konsumiert Daten via Supabase API.
+### 7.1 Automatic Run
+1. Vercel Cron calls `/api/start-apify-run` (Vercel Function) which proxies the Apify Run API call. The route imports the slice endpoint `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`.
+2. Actor loads X API Pro credentials or Apify Scraper tokens and reads `keywords` from Supabase.
+3. Actor fetches tweets, stores raw data (`raw_tweets`).
+4. Actor transforms and upserts `normalized_tweets`.
+5. Actor marks records as `pending_sentiment`.
+6. Supabase trigger/function fires, calls Gemini 2.5 via Structured Output.
+7. Sentiment result is stored in `tweet_sentiments`, status set to `processed`.
+8. Dashboard consumes data via Supabase API.
 
-### 7.2 Manueller Lauf
-1. User startet Actor in Apify UI oder via API.
-2. Schritte identisch zu automatischem Lauf.
+### 7.2 Manual Run
+1. User starts Actor in Apify UI or via API.
+2. Steps identical to automatic run.
 
-### 7.3 Fehlerbehandlung
-- Actor protokolliert Fehler je Lauf in `cron_runs.errors`.
-- Bei API-Limit überschreitung: Backoff und Abbruch nach Erreichen der Obergrenze, Lauf wird als `failed` markiert.
-- Sentiment-Worker versucht bis zu 2 automatische Retries; danach Eintrag in `sentiment_failures`.
+### 7.3 Error Handling
+- Actor logs errors per run in `cron_runs.errors`.
+- On API limit exceeded: backoff and abort after reaching limit, run marked as `failed`.
+- Sentiment worker attempts up to 2 automatic retries; then entry in `sentiment_failures`.
 
-## 8. Integrationen & Secrets
-- **X API / Apify Tokens:** X API Pro Keys (Key, Secret, Bearer) bzw. Apify Token im Apify KV Store (Production) und `.env.local` (Development).
-- **Supabase Secret Keys:** `sb_secret_*` Werte in Vercel & Apify Secret Store; `sb_publishable_*` für clientseitige Nutzung.
-- **Gemini API Key:** In Vercel Secret Store (Edge Function) / Supabase Secrets; Rotation parallel zur Modellversion (`gemini-2.5-*`).
-- **Environment Variablen:** `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY`, `X_API_KEY`, `APIFY_TOKEN`, `GEMINI_API_KEY`.
+## 8. Integrations & Secrets
+- **X API / Apify Tokens:** X API Pro keys (Key, Secret, Bearer) or Apify Token in Apify KV Store (Production) and `.env.local` (Development).
+- **Supabase Secret Keys:** `sb_secret_*` values in Vercel & Apify Secret Store; `sb_publishable_*` for client-side use.
+- **Gemini API Key:** In Vercel Secret Store (Edge Function) / Supabase Secrets; rotation parallel to model version (`gemini-2.5-*`).
+- **Environment Variables:** `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY`, `X_API_KEY`, `APIFY_TOKEN`, `GEMINI_API_KEY`.
 
 ## 9. Deployment & Environments
-- **Development:** Lokaler Actor Test mit Apify CLI, Supabase local DB oder Project Dev Project; Next.js 15 App nutzt async Request APIs (`npm run dev`, Node 20).
-- **Staging:** Separates Supabase Projekt, Vercel Preview Environment mit Cron auf `/api/start-apify-run`, dedizierter Apify Actor Env.
-- **Production:** Vercel Production (Pro Plan, Node.js 20 Runtime), Supabase Prod, Apify Prod Actor Version.
-- CI/CD deployt Actor Skripte via GitHub Actions/Apify CLI; Frontend Builds evaluieren Turbopack (Beta) vor Rollout.
+- **Development:** Local Actor test with Apify CLI, Supabase local DB or project dev project; Next.js 15 App uses async Request APIs (`npm run dev`, Node 20).
+- **Staging:** Separate Supabase project, Vercel Preview Environment with cron on `/api/start-apify-run`, dedicated Apify Actor env.
+- **Production:** Vercel Production (Pro plan, Node.js 20 runtime), Supabase Prod, Apify Prod Actor version.
+- CI/CD deploys Actor scripts via GitHub Actions/Apify CLI; frontend builds evaluate Turbopack (beta) before rollout.
 
 ## 10. Observability & Monitoring
-- Apify Run Logs für jede Ausführung.
-- Supabase Logdrains & Realtime-Dashboards für Functions sowie Kanal-/Nachrichtenquoten.
-- Vercel Cron Monitoring (Pro-Plan Usage, Failure Alerts via Slack/Email).
-- Optional: Metriken in Supabase Tabelle `metrics_pipeline`.
+- Apify Run Logs for each execution.
+- Supabase Logdrains & Realtime dashboards for Functions and channel/message quotas.
+- Vercel Cron Monitoring (Pro plan usage, failure alerts via Slack/email).
+- Optional: Metrics in Supabase table `metrics_pipeline`.
 
-## 11. Offene Fragen & Follow-ups
-- Zeitplan für Erweiterung auf weitere Quellen (Reddit/HN etc.).
-- Monitoring & Feinjustierung der Apify-Limits (Validierung `maxItems` ≈ 200 je Keyword, Kosten-Guardrails).
-- Retentionsdauer für `raw_tweets` und Archivierungsstrategie finalisieren.
-- Umgang mit leeren/Rate-limitierte Actor-Runs (Retry, Alarmierung, Pausen zwischen Runs).
-- Datenqualität bei gelöschten/geschützten Tweets sowie fehlenden Metadaten (Kennzeichnung vs. Verwerfen).
-- Fehler- und Retry-Strategie für Gemini-Sentiment inklusive Trigger für Vercel-Fallback ohne Duplikate.
+## 11. Open Questions & Follow-ups
+- Timeline for expansion to other sources (Reddit/HN, etc.).
+- Monitoring & fine-tuning of Apify limits (validation `maxItems` ≈ 200 per keyword, cost guardrails).
+- Finalize retention duration for `raw_tweets` and archival strategy.
+- Handling of empty/rate-limited Actor runs (retry, alerting, pauses between runs).
+- Data quality for deleted/protected tweets and missing metadata (marking vs. discarding).
+- Error and retry strategy for Gemini sentiment including trigger for Vercel fallback without duplicates.
 
 ## 12. Apify Tweet Scraper Inputs
-| Feld | Typ | Beschreibung | Standardwert |
+| Field | Type | Description | Default |
 | --- | --- | --- | --- |
-| `startUrls` | Array<string> | Liste von direkten Twitter-URLs (Tweet, Profil, Suche, Liste), die unmittelbar gecrawlt werden. | `[]` |
-| `searchTerms` | Array<string> | Freitext-Suchbegriffe, unterstützt erweiterte Twitter-Suche. | `[]` |
-| `twitterHandles` | Array<string> | Twitter Handles, deren öffentliche Timeline durchsucht wird. | `[]` |
-| `conversationIds` | Array<string> | Konversations-IDs für Thread-Abfragen. | `[]` |
-| `tweetLanguage` | string | ISO-639-1 Sprachcode zur Einschränkung der Ergebnisse. | `null` |
-| `maxItems` | number | Maximale Anzahl zurückgelieferter Tweets. | `Infinity` |
-| `onlyVerifiedUsers` | boolean | Liefert nur Tweets verifizierter Accounts. | `false` |
-| `onlyTwitterBlue` | boolean | Liefert nur Tweets von Twitter-Blue-Abonnenten. | `false` |
-| `onlyImage` | boolean | Filtert auf Tweets mit Bildanhang. | `false` |
-| `onlyVideo` | boolean | Filtert auf Tweets mit Videoanhang. | `false` |
-| `onlyQuote` | boolean | Filtert auf Tweets, die Zitate sind. | `false` |
-| `author` | string | Beschränkt auf Tweets einer bestimmten Person (Handle). | `null` |
-| `inReplyTo` | string | Liefert nur Replies auf einen bestimmten Account (Handle). | `null` |
-| `mentioning` | string | Liefert Tweets, die einen bestimmten Account erwähnen (Handle). | `null` |
-| `geotaggedNear` | string | Freitext-Ortsangabe, Tweets aus der Umgebung des Ortes. | `null` |
-| `withinRadius` | string | Radiusangabe zur Kombination mit `geotaggedNear` (z. B. "50km"). | `null` |
-| `geocode` | string | Geokoordinaten + Radius (`lat,long,km`) zur Standortfilterung. | `null` |
-| `placeObjectId` | string | IDs für Twitter-Places; filtert auf Tweets mit diesem Place-Tag. | `null` |
-| `minimumRetweets` | number | Mindestanzahl an Retweets pro Tweet. | `null` |
-| `minimumFavorites` | number | Mindestanzahl an Likes pro Tweet. | `null` |
-| `minimumReplies` | number | Mindestanzahl an Replies pro Tweet. | `null` |
-| `start` | string | Startdatum/-zeit (ISO 8601) für die Ergebnismenge. | `null` |
-| `end` | string | Enddatum/-zeit (ISO 8601) für die Ergebnismenge. | `null` |
-| `sort` | string | Sortierung der Suchergebnisse (`Top` · `Latest`). | `Top` |
-| `includeSearchTerms` | boolean | Fügt jedem Ergebnis das verwendete Suchwort hinzu. | `false` |
-| `customMapFunction` | string | JavaScript-Funktion zur Anpassung der zurückgegebenen Objekte (kein Filtering!). | `null` |
+| `startUrls` | Array<string> | List of direct Twitter URLs (tweet, profile, search, list) to be crawled immediately. | `[]` |
+| `searchTerms` | Array<string> | Free-text search terms, supports advanced Twitter search. | `[]` |
+| `twitterHandles` | Array<string> | Twitter handles whose public timeline is searched. | `[]` |
+| `conversationIds` | Array<string> | Conversation IDs for thread queries. | `[]` |
+| `tweetLanguage` | string | ISO-639-1 language code to restrict results. | `null` |
+| `maxItems` | number | Maximum number of returned tweets. | `Infinity` |
+| `onlyVerifiedUsers` | boolean | Returns only tweets from verified accounts. | `false` |
+| `onlyTwitterBlue` | boolean | Returns only tweets from Twitter Blue subscribers. | `false` |
+| `onlyImage` | boolean | Filters to tweets with image attachments. | `false` |
+| `onlyVideo` | boolean | Filters to tweets with video attachments. | `false` |
+| `onlyQuote` | boolean | Filters to tweets that are quotes. | `false` |
+| `author` | string | Restricts to tweets from a specific person (handle). | `null` |
+| `inReplyTo` | string | Returns only replies to a specific account (handle). | `null` |
+| `mentioning` | string | Returns tweets mentioning a specific account (handle). | `null` |
+| `geotaggedNear` | string | Free-text location, tweets from the vicinity of the location. | `null` |
+| `withinRadius` | string | Radius specification to combine with `geotaggedNear` (e.g., "50km"). | `null` |
+| `geocode` | string | Geo-coordinates + radius (`lat,long,km`) for location filtering. | `null` |
+| `placeObjectId` | string | IDs for Twitter Places; filters to tweets with this place tag. | `null` |
+| `minimumRetweets` | number | Minimum number of retweets per tweet. | `null` |
+| `minimumFavorites` | number | Minimum number of likes per tweet. | `null` |
+| `minimumReplies` | number | Minimum number of replies per tweet. | `null` |
+| `start` | string | Start date/time (ISO 8601) for result set. | `null` |
+| `end` | string | End date/time (ISO 8601) for result set. | `null` |
+| `sort` | string | Sorting of search results (`Top` · `Latest`). | `Top` |
+| `includeSearchTerms` | boolean | Adds the used search term to each result. | `false` |
+| `customMapFunction` | string | JavaScript function to customize returned objects (no filtering!). | `null` |
 
-**Hinweise:**
-- `customMapFunction` wird serverseitig ausgeführt und muss idempotent sein; Filter-Logik führt zu Sperrung des Actors.
-- Geografische Filter (`geotaggedNear`, `withinRadius`, `geocode`, `placeObjectId`) sind optional, aber gegenseitig kombinierbar.
-- Bei gleichzeitiger Nutzung von `startUrls` und Suchparametern werden beide Quellen verarbeitet, bis `maxItems` erreicht ist.
+**Notes:**
+- `customMapFunction` is executed server-side and must be idempotent; filter logic leads to Actor blocking.
+- Geographic filters (`geotaggedNear`, `withinRadius`, `geocode`, `placeObjectId`) are optional but can be combined.
+- When using `startUrls` and search parameters simultaneously, both sources are processed until `maxItems` is reached.
 
-> Hinweis: Der Tweet Scraper erlaubt nur einen Run gleichzeitig, maximal fünf Queries pro Batch und Pausen von mehreren Minuten; Cron-Schedules müssen diese Auflagen erfüllen.
+> Note: The Tweet Scraper allows only one run at a time, maximum five queries per batch and pauses of several minutes; cron schedules must meet these requirements.
 
-## 13. Lokaler Probelauf (Pre-Prod)
-1. **Supabase lokal starten:** `supabase start`, Einspielen der Schema-Migrationen (Tabellen aus Abschnitt 6).
-2. **Apify Actor lokal:** `apify run` mit `apify_config_dev.json`, `maxItems` klein halten, Tweets wahlweise mocken oder echtes Test-Keyword.
-3. **Gemini Mock:** Lokale Stub-API (z. B. Express/Edge Function) oder Replay-Dateien, um Sentiment ohne Kosten zu simulieren.
-4. **Sentiment Worker lokal:** Supabase Edge Function via `supabase functions serve` oder Vercel Dev Function (`vercel dev`), jeweils mit Dummy-Keys.
-5. **Next.js Frontend:** `npm run dev` (Node 20) mit `.env.local`, `@supabase/ssr` Helpers und async Request APIs prüfen.
-6. **End-to-End-Run:** Actor -> Supabase -> Sentiment -> Frontend; Logs, Duplikatstatistik und Gemini-Kontingente prüfen; optional `next build --turbopack` (Beta) gegen CI testen.
+## 13. Local Test Run (Pre-Prod)
+1. **Start Supabase locally:** `supabase start`, apply schema migrations (tables from Section 6).
+2. **Apify Actor locally:** `apify run` with `apify_config_dev.json`, keep `maxItems` small, either mock tweets or use real test keyword.
+3. **Gemini Mock:** Local stub API (e.g., Express/Edge Function) or replay files to simulate sentiment without cost.
+4. **Sentiment Worker locally:** Supabase Edge Function via `supabase functions serve` or Vercel Dev Function (`vercel dev`), each with dummy keys.
+5. **Next.js Frontend:** `npm run dev` (Node 20) with `.env.local`, test `@supabase/ssr` helpers and async Request APIs.
+6. **End-to-End Run:** Actor -> Supabase -> Sentiment -> Frontend; check logs, duplicate statistics, and Gemini quotas; optionally test `next build --turbopack` (beta) against CI.
 
-## 14. Zukünftige Erweiterungen
-- **Erweiterte Dashboard-KPIs:** Umsetzung der VistaSocial-Empfehlungen (Sentiment-Score-Trends, Mention-Volumen, Share of Voice, Plattform-Breakdown, Keyword- & Engagement-Analysen, Influencer- und Issue-Tracking).
-- **Sentiment-Alerts:** Automatisiertes Alerting bei negativen Sentiment-Spikes inkl. Schwellenwert-Definition und Alert-Kanal (Slack/E-Mail).
-- **Realtime-Funktionalität:** Prüfung, ob eingeschränkte Near-Real-Time-Updates möglich sind, ohne Apify-Richtlinien zu verletzen (z. B. eng getaktete Ad-hoc-Runs).
-- **Hosting & Kostensteuerung:** Beobachtung der Vercel Pro Cron Credits, Supabase Realtime-Kontingente und Gemini-Tokenpreise; Vorbereitung auf Next.js 16 Async-API-Stabilisierung.
+## 14. Future Extensions
+- **Extended Dashboard KPIs:** Implementation of VistaSocial recommendations (sentiment score trends, mention volume, share of voice, platform breakdown, keyword & engagement analysis, influencer & issue tracking).
+- **Sentiment Alerts:** Automated alerting on negative sentiment spikes including threshold definition and alert channel (Slack/email).
+- **Realtime Functionality:** Check if limited near-real-time updates are possible without violating Apify guidelines (e.g., tightly scheduled ad-hoc runs).
+- **Hosting & Cost Management:** Monitor Vercel Pro cron credits, Supabase Realtime quotas, and Gemini token prices; prepare for Next.js 16 async API stabilization.

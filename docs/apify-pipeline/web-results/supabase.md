@@ -1,6 +1,6 @@
 # Supabase Documentation Review — 29 Sep 2025
 
-> Slice-Hinweis: Persistenz und Edge Functions sind im Vertical Slice `src/ApifyPipeline/DataAccess` bzw. `src/ApifyPipeline/ExternalServices`, dazugehörige ADRs in `src/ApifyPipeline/Docs`.
+> Slice note: Persistence and Edge Functions are in the Vertical Slice `src/ApifyPipeline/DataAccess` and `src/ApifyPipeline/ExternalServices` respectively, with related ADRs in `src/ApifyPipeline/Docs`.
 
 ## Current Alignment with Pipeline Docs
 - Supabase remains a fully managed Postgres stack with instant APIs, realtime streaming, extension support (pgvector, pg_cron, PostGIS), and tooling suited for append-only tweet storage, so the persistence claims in the pipeline overview/spec continue to hold. [Source](https://supabase.com/docs/guides/database/overview)

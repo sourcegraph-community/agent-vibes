@@ -1,6 +1,6 @@
 # Apify Pipeline Implementation Plan
 
-Architekturhinweis: Umsetzung erfolgt innerhalb des Vertical Slice `src/ApifyPipeline`. App-Router-Endpunkte (`Web/Application/Commands`), Scheduler-Befehle (`Background/Jobs`), Domain-Persistenz (`DataAccess`) und Integrationen (`ExternalServices`) bleiben slice-lokal und werden aus dem Next.js `app/` Verzeichnis nur weitergereicht.
+Architecture note: Implementation occurs within the Vertical Slice `src/ApifyPipeline`. App Router endpoints (`Web/Application/Commands`), scheduler commands (`Background/Jobs`), domain persistence (`DataAccess`), and integrations (`ExternalServices`) remain slice-local and are merely forwarded from the Next.js `app/` directory.
 
 ## Data-First Backbone
 - **Primary storage (`Supabase`, Postgres 17):** tables `raw_tweets`, `normalized_tweets`, `tweet_sentiments`, `sentiment_failures`, `keywords`, `cron_runs` mirror the specification draft and remain append-first for lineage tracking ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L64-L117)).
@@ -28,18 +28,18 @@ Architekturhinweis: Umsetzung erfolgt innerhalb des Vertical Slice `src/ApifyPip
 - [x] Compile glossary of data entities (`raw_tweets`, `normalized_tweets`, etc.) with producer/consumer mapping.
 - [x] Draft Supabase migration scripts in `src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql` (scaffold only).
 - [x] Create configuration matrix covering Apify inputs (`tweetLanguage`, `sort`, batch limits) ([apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L4-L22)).
-- [x] Write runbook outline für den Vercel Cron → internen `/api/start-apify-run` Proxy in `src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md` ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L9)).
+- [x] Write runbook outline for the Vercel Cron → internal `/api/start-apify-run` proxy in `src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md` ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L9)).
 
 #### Deliverables
 ##### Data Entity Glossary
-| Entität | Beschreibung | Primäre Quelle | Hauptverbraucher | Schlüsselattribute | Lineage & Aufbewahrung |
+| Entity | Description | Primary Source | Main Consumer | Key Attributes | Lineage & Retention |
 | --- | --- | --- | --- | --- | --- |
-| raw_tweets | Rohdatensammlung für Debugging und Backfills ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L31-L36)) | Apify Actor nach jedem Lauf ([overview.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/overview.md#L6-L12)) | Data/Eng Ops für Debug & Re-Runs | `platform_id`, `platform`, `collected_at`, `payload` | Append-only; Retention noch zu finalisieren; Duplikaterkennung über `platform_id`. |
-| normalized_tweets | Normalisierte Tweet-Records inkl. Metadaten/Status ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L73-L88)) | Apify Actor nach Transform | Supabase Edge Function, Dashboard, Analytics | `posted_at`, `language`, `keywords[]`, `status` | Append-only, Versionierung via `revision`, steuert Sentiment-Queue. |
-| tweet_sentiments | Persistierte Sentiment-Ergebnisse ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L89-L97)) | Supabase Edge Function (Gemini) | Analytics, Dashboard, QA | `sentiment_label`, `sentiment_score`, `model_version`, `processed_at` | Verknüpft mit `normalized_tweet_id`, unterstützt Re-Scoring nach Modellwechsel. |
-| sentiment_failures | Fehler-Log für fehlgeschlagene Sentiment-Runs ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L98-L104)) | Supabase Edge Function bei Retry Exhaustion | Ops/ML für Re-Runs, Monitoring | `error_message`, `retry_count`, `last_attempt_at` | Dient als Retry-Backlog; Retention bis Abschluss der Wiederholung offen. |
-| keywords | Steuerung der zu trackenden Schlagwörter ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L105-L109)) | Product/Analytics | Apify Actor, Monitoring KPIs | `keyword`, `enabled`, `last_used_at` | Historisiert Aktivierung; Updates greifen beim nächsten Run. |
-| cron_runs | Lauf-Metadaten zur Erfolgskontrolle ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L110-L117)) | Vercel Cron bzw. manuelle Trigger | Ops, Observability, Cost Controls | `status`, `processed_count`, `errors` | Append-only Verlauf; bildet Grundlage für Pause-/Duplikatraten-Analyse. |
+| raw_tweets | Raw data collection for debugging and backfills ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L31-L36)) | Apify Actor after each run ([overview.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/overview.md#L6-L12)) | Data/Eng Ops for debug & re-runs | `platform_id`, `platform`, `collected_at`, `payload` | Append-only; retention to be finalized; duplicate detection via `platform_id`. |
+| normalized_tweets | Normalized tweet records including metadata/status ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L73-L88)) | Apify Actor after transform | Supabase Edge Function, Dashboard, Analytics | `posted_at`, `language`, `keywords[]`, `status` | Append-only, versioning via `revision`, controls sentiment queue. |
+| tweet_sentiments | Persisted sentiment results ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L89-L97)) | Supabase Edge Function (Gemini) | Analytics, Dashboard, QA | `sentiment_label`, `sentiment_score`, `model_version`, `processed_at` | Linked to `normalized_tweet_id`, supports re-scoring after model change. |
+| sentiment_failures | Error log for failed sentiment runs ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L98-L104)) | Supabase Edge Function on retry exhaustion | Ops/ML for re-runs, monitoring | `error_message`, `retry_count`, `last_attempt_at` | Serves as retry backlog; retention until completion of retry open. |
+| keywords | Control of tracked keywords ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L105-L109)) | Product/Analytics | Apify Actor, Monitoring KPIs | `keyword`, `enabled`, `last_used_at` | Historicizes activation; updates take effect on next run. |
+| cron_runs | Run metadata for success tracking ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L110-L117)) | Vercel Cron or manual trigger | Ops, Observability, Cost Controls | `status`, `processed_count`, `errors` | Append-only history; forms basis for pause/duplicate rate analysis. |
 
 ##### Supabase Migration Draft
 Vorgeschlagenes SQL-Skelett für `src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql` mit append-only Trigger pro Tabelle und Status-Enums:
@@ -182,18 +182,18 @@ create trigger keywords_prevent_update
 ```
 
 ##### Apify Configuration Matrix
-| Parameter | Beschreibung | Empfehlung | Quelle | Owner | Hinweise | Secret/Config |
+| Parameter | Description | Recommendation | Source | Owner | Notes | Secret/Config |
 | --- | --- | --- | --- | --- | --- | --- |
-| `tweetLanguage` | ISO 639-1 Filter | Primär `en`, `de`; Erweiterung nach Analytics-Freigabe | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L168-L196), [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L4-L9) | Analytics | Sprachumfang muss Keywords spiegeln. | Config (Supabase `keywords` Metadaten) |
-| `sort` | Ergebnisreihenfolge | Default `Top`; `Latest` für Echtzeit-Kampagnen | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L193-L194), [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L6-L9) | Analytics | `Latest` erhöht Load → längere Pausen. | Config |
-| `searchTerms` | Keyword-Batch | Supabase `keywords` ≤5 pro Run | [specification.md §3.1](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L16-L23) | Analytics | Deaktivierte Keywords überspringen Batch. | Config |
-| `maxItems` | Tweets pro Keyword | 200 für Backfill, ≥50 laut Policy | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L175-L176) | Analytics | Für Dev kleiner wählen. | Config |
-| `maxRequestRetries` | Retry-Anzahl | 3 mit Exponential Backoff | [specification.md §3.1](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L16-L22) | Ops | >3 triggert Anti-Monitoring. | Config |
-| `batchQueriesPerRun` | Query-Kapazität | ≤5 simultane Queries | [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L11-L13) | Ops | Größere Listen aufteilen. | Config |
-| `runCooldownMinutes` | Pause zwischen Runs | ≥5 Minuten | [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L11-L13) | Ops | Abhängig von `sort` dynamisch justieren. | Config |
-| `minimumRetweets`/`minimumFavorites`/`minimumReplies` | Engagement-Filter | Default `null`; kampagnenspezifisch setzen | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L188-L190) | Analytics | Hohe Werte senken Volumen. | Config |
-| `APIFY_TOKEN` | Apify Auth | Vierteljährlich rotieren | [specification.md §8](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L142-L146) | Ops | Pflicht für Cron & Manual Run. | Secret |
-| `SUPABASE_SECRET_KEY` | Service Role | In Vercel & Apify Secret Store halten | [specification.md §8](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L142-L146) | Ops | Nicht in Logs exposen. | Secret |
+| `tweetLanguage` | ISO 639-1 filter | Primary `en`, `de`; extension after Analytics approval | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L168-L196), [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L4-L9) | Analytics | Language scope must mirror keywords. | Config (Supabase `keywords` metadata) |
+| `sort` | Result ordering | Default `Top`; `Latest` for real-time campaigns | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L193-L194), [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L6-L9) | Analytics | `Latest` increases load → longer pauses. | Config |
+| `searchTerms` | Keyword batch | Supabase `keywords` ≤5 per run | [specification.md §3.1](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L16-L23) | Analytics | Disabled keywords skip batch. | Config |
+| `maxItems` | Tweets per keyword | 200 for backfill, ≥50 per policy | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L175-L176) | Analytics | Choose smaller for dev. | Config |
+| `maxRequestRetries` | Retry count | 3 with exponential backoff | [specification.md §3.1](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L16-L22) | Ops | >3 triggers anti-monitoring. | Config |
+| `batchQueriesPerRun` | Query capacity | ≤5 simultaneous queries | [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L11-L13) | Ops | Split larger lists. | Config |
+| `runCooldownMinutes` | Pause between runs | ≥5 minutes | [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L11-L13) | Ops | Dynamically adjust based on `sort`. | Config |
+| `minimumRetweets`/`minimumFavorites`/`minimumReplies` | Engagement filter | Default `null`; set campaign-specific | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L188-L190) | Analytics | High values reduce volume. | Config |
+| `APIFY_TOKEN` | Apify auth | Rotate quarterly | [specification.md §8](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L142-L146) | Ops | Required for cron & manual run. | Secret |
+| `SUPABASE_SECRET_KEY` | Service role | Keep in Vercel & Apify secret store | [specification.md §8](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L142-L146) | Ops | Do not expose in logs. | Secret |
 
 ##### Vercel Cron Runbook Outline
 - **Trigger:** Vercel Cron (z. B. `0 */2 * * *`) ruft `/api/start-apify-run` nur auf Production auf ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L14)); die Route `app/api/start-apify-run/route.ts` re-exportiert den Slice-Endpunkt `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`.
@@ -204,11 +204,11 @@ create trigger keywords_prevent_update
 - **Verification Checklist:** Cron erfolgreich, API <2s 2xx, Apify Run `SUCCEEDED`, frische `cron_runs`-Zeile, Dashboard-Daten <3h alt.
 
 #### Outstanding Questions & Follow-ups
-- Retention-Entscheidung für `raw_tweets` & `sentiment_failures` finalisieren ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L162)).
-- Apify Bestätigung einholen: Mindestanzahl Tweets pro Query (≥50) und Cooldown-Policy schriftlich absichern.
-- Secret-Rotation-Kalender mit Ops abstimmen (`sb_secret_*`, `APIFY_TOKEN`, Gemini Schlüssel).
-- Staging-Cron-Zeitplan und Request-Signature-Strategie für `/api/start-apify-run` klären.
-- Owner für Gemini Retry-Fallback und Monitoring-Alerting definieren.
+- Finalize retention decision for `raw_tweets` & `sentiment_failures` ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L162)).
+- Obtain Apify confirmation: Minimum number of tweets per query (≥50) and cooldown policy in writing.
+- Align secret rotation calendar with Ops (`sb_secret_*`, `APIFY_TOKEN`, Gemini keys).
+- Clarify staging cron schedule and request signature strategy for `/api/start-apify-run`.
+- Define owner for Gemini retry fallback and monitoring alerting.
 
 ### Dependencies & Touchpoints
 - **Analytics:** Confirm keyword taxonomy and reporting cadence.
@@ -273,11 +273,11 @@ create trigger keywords_prevent_update
 - [ ] Record ingestion metrics in Supabase and share with Ops for review.
 
 #### Delivery Notes (2025-09-29)
-- `app/api/start-apify-run/route.ts` re-exportiert den Slice-Endpunkt für Vercel Cron und manuelle Trigger.
-- `src/ApifyPipeline/Web/Application/Commands/StartApifyRun/StartApifyRunEndpoint.ts` kapselt Request-Parsing und ruft den Command Handler an.
-- `src/ApifyPipeline/Web/Application/Commands/StartApifyRun/StartApifyRunCommand.ts` validiert Optionen und startet den Apify Actor via REST API.
-- `src/ApifyPipeline/Background/Jobs/TweetCollector/TweetCollectorJob.ts` orchestriert Keyword-Fetch, Apify Scraper-Läufe, Duplikatprüfung sowie Inserts in `cron_runs`, `raw_tweets` und `normalized_tweets`.
-- Neue Slice-Layer (`ExternalServices`, `DataAccess/Repositories`, `Core/Transformations`, `Infrastructure/Utilities`) stellen Supabase-Service-Clients, Repositories und Normalisierungslogik bereit.
+- `app/api/start-apify-run/route.ts` re-exports the slice endpoint for Vercel Cron and manual triggers.
+- `src/ApifyPipeline/Web/Application/Commands/StartApifyRun/StartApifyRunEndpoint.ts` encapsulates request parsing and calls the command handler.
+- `src/ApifyPipeline/Web/Application/Commands/StartApifyRun/StartApifyRunCommand.ts` validates options and starts the Apify Actor via REST API.
+- `src/ApifyPipeline/Background/Jobs/TweetCollector/TweetCollectorJob.ts` orchestrates keyword fetch, Apify scraper runs, duplicate checking, and inserts into `cron_runs`, `raw_tweets`, and `normalized_tweets`.
+- New slice layers (`ExternalServices`, `DataAccess/Repositories`, `Core/Transformations`, `Infrastructure/Utilities`) provide Supabase service clients, repositories, and normalization logic.
 
 ---
 
@@ -364,4 +364,4 @@ create trigger keywords_prevent_update
 ## Appendix — Reference Roles & Artifacts
 - **Runbooks:** `src/ApifyPipeline/Docs/ApifyPipeline-ingestion-runbook.md`, `src/ApifyPipeline/Docs/ApifyPipeline-gemini-sentiment-runbook.md` (to be authored during execution).
 - **Secrets registry:** Maintained in Ops vault referencing Supabase/Vercel secret IDs.
-- **Test fixtures:** Synthetic tweet datasets stored in `src/ApifyPipeline/Tests/Fixtures/apify/` für lokale Dry Runs ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L204-L210)).
+- **Test fixtures:** Synthetic tweet datasets stored in `src/ApifyPipeline/Tests/Fixtures/apify/` for local dry runs ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L204-L210)).

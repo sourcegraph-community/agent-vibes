@@ -1,6 +1,6 @@
 # Apify Twitter/X Data Collection Status (2025-09-29)
 
-> Slice-Hinweis: Operative Entscheidungen wirken sich auf den Vertical Slice `src/ApifyPipeline` aus, insbesondere auf Scheduler-Kommandos unter `src/ApifyPipeline/Scheduler` und die Slice-Dokumente in `src/ApifyPipeline/Docs`.
+> Slice note: Operational decisions affect the Vertical Slice `src/ApifyPipeline`, particularly scheduler commands under `src/ApifyPipeline/Scheduler` and slice documents in `src/ApifyPipeline/Docs`.
 
 ## Official X API Access (Twitter/X)
 - **Tier structure:** X maintains Free, Basic (US$200/mo), Pro (US$5,000/mo), and Enterprise tiers. Only Pro and above include full X API v2 access with full-archive search and filtered streams; Free and Basic tiers are confined to limited standard v1.1 search and low monthly post caps (100 and 15,000 respectively). [Source](https://docs.x.com/x-api/getting-started/about-x-api)

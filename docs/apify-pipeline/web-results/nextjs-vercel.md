@@ -1,6 +1,6 @@
 # Next.js 15 & Vercel Hosting Review (29 Sep 2025)
 
-> Slice-Hinweis: Frontend-Änderungen betreffen den Vertical Slice `src/ApifyPipeline/Web/Components/Dashboard` sowie begleitende Server Actions in `src/ApifyPipeline/Web/Application/Commands`.
+> Slice note: Frontend changes affect the Vertical Slice `src/ApifyPipeline/Web/Components/Dashboard` as well as accompanying Server Actions in `src/ApifyPipeline/Web/Application/Commands`.
 
 ## Release Status & Core Changes
 - Next.js 15 has been stable since 21 Oct 2024, and the 15.5 release on 18 Aug 2025 confirms the branch remains current with features such as beta Turbopack production builds, stable Node.js middleware, typed routes, and upcoming Next.js 16 deprecations that teams should prepare for (e.g., `next lint`, AMP removal, image quality configs). [Source](https://nextjs.org/blog/next-15) · [Source](https://nextjs.org/blog/next-15-5)

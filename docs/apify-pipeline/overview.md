@@ -1,63 +1,63 @@
-# Apify-Pipeline Konzept
+# Apify Pipeline Concept
 
-## Zielsetzung
-Die Pipeline sammelt regelmäßig Tweets rund um Coding-Agenten, normalisiert die Daten, analysiert Sentiments und stellt die Ergebnisse in einem gehosteten Dashboard bereit.
+## Objective
+The pipeline regularly collects tweets about coding agents, normalizes the data, analyzes sentiments, and presents the results in a hosted dashboard.
 
-Architekturhinweis: Das Repository folgt einer Vertical Slice Architecture. Die komplette Pipeline lebt im Slice `src/ApifyPipeline`, der sowohl die Scheduler-Aufträge als auch die Next.js App-Router-Oberfläche kapselt. API-Routen im Verzeichnis `app/api` importieren lediglich Slice-Endpunkte (REPR: Request → Endpoint → Handler → Response DTO), sodass jede Änderungen innerhalb des Slices bleiben.
+Architecture note: The repository follows a Vertical Slice Architecture. The complete pipeline lives in the `src/ApifyPipeline` slice, which encapsulates both the scheduler jobs and the Next.js App Router interface. API routes in the `app/api` directory merely import slice endpoints (REPR: Request → Endpoint → Handler → Response DTO), so any changes remain within the slice.
 
-## Ablauf auf hoher Ebene
-1. **Trigger:** Ein Vercel Cron Job (Pro-Plan) ruft das interne Endpoint `/api/start-apify-run` auf, das anschließend die Apify Run API anspricht. Die App-Router-Datei `app/api/start-apify-run/route.ts` re-exportiert dabei den Slice-Endpunkt `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`. Zusätzlich können manuelle Durchläufe angestoßen werden.
-2. **Datenerfassung (Apify Actor):** Der Actor nutzt entweder X API Pro-Zugänge (≈ US$ 5 k/Monat) oder den Apify Tweet Scraper; Letzterer unterliegt Anti-Monitoring-Beschränkungen, sodass Intervalle sorgfältig gedrosselt werden müssen.
-3. **Vorverarbeitung:** Die rohen Tweets werden bereinigt, angereichert (z. B. Quelle, Zeitstempel, Plattform) und in ein einheitliches Format überführt.
-4. **Persistenz (Supabase):** Normalisierte Datensätze werden in Supabase gespeichert. Historische Werte bleiben erhalten und bilden die Grundlage für Analysen.
-5. **Sentiment-Analyse (Gemini):** Gemini 2.5 klassifiziert Sentiments via Structured Output (keine dedizierte Sentiment-API) und speichert Ergebnisse zurück in Supabase; Kosten/TPS werden je nach Modellvariante (Flash, Flash Lite, Pro) überwacht.
-6. **Frontend (Vercel):** Eine Next.js-Anwendung visualisiert die Daten (Trends, Metriken, Einzeldatensätze) und konsumiert ausschließlich die Supabase-API.
+## High-Level Flow
+1. **Trigger:** A Vercel Cron Job (Pro plan) calls the internal endpoint `/api/start-apify-run`, which then invokes the Apify Run API. The App Router file `app/api/start-apify-run/route.ts` re-exports the slice endpoint `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`. Manual runs can also be triggered.
+2. **Data Collection (Apify Actor):** The Actor uses either X API Pro access (~US$5k/month) or the Apify Tweet Scraper; the latter is subject to anti-monitoring restrictions, so intervals must be carefully throttled.
+3. **Preprocessing:** Raw tweets are cleaned, enriched (e.g., source, timestamp, platform), and transformed into a uniform format.
+4. **Persistence (Supabase):** Normalized records are stored in Supabase. Historical values are preserved and form the foundation for analysis.
+5. **Sentiment Analysis (Gemini):** Gemini 2.5 classifies sentiments via Structured Output (no dedicated sentiment API) and stores results back in Supabase; costs/TPS are monitored depending on model variant (Flash, Flash Lite, Pro).
+6. **Frontend (Vercel):** A Next.js application visualizes the data (trends, metrics, individual records) and exclusively consumes the Supabase API.
 
-## Komponenten & Verantwortlichkeiten
-- **Apify Actor:** Datenerfassung, Normalisierung, Versand an Supabase – wahlweise via X API (Pro-Tier) oder Apify Scraper mit regulatorischer Drosselung. (Slice: `src/ApifyPipeline/Background/Jobs/TweetCollector`)
-- **Supabase:** Persistenzschicht (Tabellen für Rohdaten, normalisierte Tweets, Sentiment-Ergebnisse) mit `sb_secret_*` Keys und PG17-konformen Erweiterungen. (Slice: `src/ApifyPipeline/DataAccess`)
-- **Google Gemini:** Structured-Output-Klassifikation über eine serverseitige Funktion oder einen Worker, der auf neue Datensätze reagiert. (Slice: `src/ApifyPipeline/ExternalServices/Gemini`)
-- **Next.js Frontend:** Darstellung der Statistiken, Filterungen, Trend-Erkennung; Build-Target Node.js 20+ auf Vercel. (Slice: `src/ApifyPipeline/Web/Components/Dashboard`)
-- **Vercel Cron:** Zeitgesteuertes Auslösen des internen `/api/start-apify-run` Proxys. (Slice: `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`)
+## Components & Responsibilities
+- **Apify Actor:** Data collection, normalization, delivery to Supabase – either via X API (Pro tier) or Apify Scraper with regulatory throttling. (Slice: `src/ApifyPipeline/Background/Jobs/TweetCollector`)
+- **Supabase:** Persistence layer (tables for raw data, normalized tweets, sentiment results) with `sb_secret_*` keys and PG17-compliant extensions. (Slice: `src/ApifyPipeline/DataAccess`)
+- **Google Gemini:** Structured-output classification via a server-side function or worker that responds to new records. (Slice: `src/ApifyPipeline/ExternalServices/Gemini`)
+- **Next.js Frontend:** Display of statistics, filtering, trend detection; build target Node.js 20+ on Vercel. (Slice: `src/ApifyPipeline/Web/Components/Dashboard`)
+- **Vercel Cron:** Time-triggered execution of the internal `/api/start-apify-run` proxy. (Slice: `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`)
 
-> Hinweis: Supabase rotiert Secrets als `sb_secret_*`; Deployments müssen Service-Rollen-Schlüssel regelmäßig erneuern und PG17-kompatible Erweiterungen wählen.
-> Hinweis: Next.js-Builds auf Vercel laufen ab September 2025 ausschließlich auf Node.js 20+, Tests sollten die async Request APIs der App Router berücksichtigen.
+> Note: Supabase rotates secrets as `sb_secret_*`; deployments must regularly renew service role keys and choose PG17-compatible extensions.
+> Note: Next.js builds on Vercel run exclusively on Node.js 20+ as of September 2025, tests should account for the App Router's async Request APIs.
 
-## Datenfluss (Mermaid)
+## Data Flow (Mermaid)
 ```mermaid
 graph TB
     %% Data Sources
-    subgraph Sources [🌐 Datenquellen]
-        Twitter[📢 Twitter/X<br/>Coding-Agent Schlagworte]
+    subgraph Sources [🌐 Data Sources]
+        Twitter[📢 Twitter/X<br/>Coding Agent Keywords]
     end
 
     %% Collection Layer
-    subgraph Collection [📥 Datensammlung]
-        AutoCron[⏰ Vercel Cron<br/>Automatische Durchläufe]
-        ManualTrigger[🔍 Manuelle Auslösung]
+    subgraph Collection [📥 Data Collection]
+        AutoCron[⏰ Vercel Cron<br/>Automatic Runs]
+        ManualTrigger[🔍 Manual Trigger]
         Actor[🤖 Apify Actor
-              <br/>Fetching & Normalisierung]
+              <br/>Fetching & Normalization]
     end
 
     %% Processing & Intelligence
-    subgraph Processing [🧠 Verarbeitung]
-        DataNorm[📊 Daten-Normalisierung]
-        Sentiment[😊 Sentiment Analyse]
+    subgraph Processing [🧠 Processing]
+        DataNorm[📊 Data Normalization]
+        Sentiment[😊 Sentiment Analysis]
         Insights[💡 Insights & Trends]
     end
 
     %% Storage
-    subgraph Storage [🗄️ Persistenz]
-        Database[(📚 Supabase<br/>Tweets & Analysen)]
+    subgraph Storage [🗄️ Persistence]
+        Database[(📚 Supabase<br/>Tweets & Analysis)]
     end
 
     %% Frontend
-    subgraph Frontend [🌐 Web Anwendung]
-        Analytics[📈 Dashboard auf Vercel]
+    subgraph Frontend [🌐 Web Application]
+        Analytics[📈 Dashboard on Vercel]
     end
 
     %% External Services
-    subgraph External [☁️ Externe Dienste]
+    subgraph External [☁️ External Services]
         Gemini[🤖 Gemini API]
         Vercel[⚡ Vercel Hosting & Cron]
     end
@@ -96,15 +96,15 @@ graph TB
     class Gemini,Vercel external
 ```
 
-## Aktueller Status
-- Supabase Basisschema inkl. Append-Only-Triggers und RLS-Policies liegt als Migration unter `src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql`.
-- Views `vw_daily_sentiment` und `vw_keyword_trends` sind erstellt und liefern dank Seed-Daten (`src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql`) Beispielmetriken für das Dashboard.
-- Supabase Secret-Rotation läuft über `npm run rotate:supabase` (TypeScript-Script [`scripts/rotate-supabase-secrets.ts`](file:///home/prinova/CodeProjects/agent-vibes/scripts/rotate-supabase-secrets.ts) nutzt Supabase Management API + Secrets Endpoint).
-- Der Ingestion-Slice stellt `/api/start-apify-run` über `app/api/start-apify-run/route.ts` bereit und delegiert an `src/ApifyPipeline/Web/Application/Commands/StartApifyRun` + `Background/Jobs/TweetCollector`.
-- Der Apify Actor unter `src/ApifyPipeline/Background/Jobs/TweetCollector/TweetCollectorJob.ts` holt Keywords aus Supabase, startet den Twitter-Scraper, schreibt `cron_runs`, `raw_tweets` und `normalized_tweets` und kennzeichnet Duplikate.
+## Current Status
+- The Supabase base schema including append-only triggers and RLS policies exists as a migration under `src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql`.
+- Views `vw_daily_sentiment` and `vw_keyword_trends` are created and provide sample metrics for the dashboard thanks to seed data (`src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql`).
+- Supabase secret rotation runs via `npm run rotate:supabase` (TypeScript script [`scripts/rotate-supabase-secrets.ts`](file:///home/prinova/CodeProjects/agent-vibes/scripts/rotate-supabase-secrets.ts) uses Supabase Management API + Secrets Endpoint).
+- The ingestion slice provides `/api/start-apify-run` via `app/api/start-apify-run/route.ts` and delegates to `src/ApifyPipeline/Web/Application/Commands/StartApifyRun` + `Background/Jobs/TweetCollector`.
+- The Apify Actor under `src/ApifyPipeline/Background/Jobs/TweetCollector/TweetCollectorJob.ts` fetches keywords from Supabase, starts the Twitter scraper, writes `cron_runs`, `raw_tweets` and `normalized_tweets`, and marks duplicates.
 
-## Offene Punkte für spätere Iterationen
-- Fehlerbehandlung und Monitoring (Retries, Alerting) spezifizieren.
-- Authentifizierung und Zugriffsfunktionen für Supabase und Apify festlegen.
-- Kosten- und Latenzbetrachtung für Apify, Supabase und Gemini evaluieren.
-- Integrationstests und Staging-Setup planen.
+## Open Items for Later Iterations
+- Specify error handling and monitoring (retries, alerting).
+- Define authentication and access functions for Supabase and Apify.
+- Evaluate cost and latency considerations for Apify, Supabase, and Gemini.
+- Plan integration tests and staging setup.
