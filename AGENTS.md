@@ -1,6 +1,6 @@
 - Stack: Next.js 15 (App Router), TypeScript, Tailwind v4 (@tailwindcss/postcss)
 - Dev/build/start: `npm run dev` | `npm run build` | `npm run start` (Turbopack)
-- Typecheck/lint/tests: `npm run typecheck`; lint: `npm run lint`; fix: `npm run fix`; combined: `npm run check`; tests: N/A; single-test: N/A
+- Typecheck/lint/tests: `npm run typecheck`; lint: `npm run lint`; fix: `npm run fix`; combined: `npm run check`; tests: `npm test`; watch: `npm run test:watch`
 - App Router: [layout.tsx](app/layout.tsx), [page.tsx](app/page.tsx) (client), [globals.css](app/globals.css)
 - API routes (Knock): [subscribe/route.ts](app/api/notifications/subscribe/route.ts), [send/route.ts](app/api/notifications/send/route.ts) using `@knocklabs/node`
 - Service Worker: [public/sw.js](public/sw.js); registered via [useKnockNotifications.ts](app/hooks/useKnockNotifications.ts)

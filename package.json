@@ -6,6 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "typecheck": "tsc -p . --noEmit",
     "typecheck:watch": "tsc -p . --noEmit --watch --preserveWatchOutput",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx --cache",
@@ -30,6 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/ui": "^3.2.4",
     "eslint": "^9",
     "eslint-plugin-react": "^7",
     "eslint-plugin-react-hooks": "^5",
@@ -37,6 +41,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
     "typescript": "^5",
-    "typescript-eslint": "^8"
+    "typescript-eslint": "^8",
+    "vitest": "^3.2.4"
   }
 }

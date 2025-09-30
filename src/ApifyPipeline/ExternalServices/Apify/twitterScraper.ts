@@ -37,7 +37,7 @@ export const runTwitterScraper = async (
         minimumFavorites: config.minimumEngagement?.favorites,
         minimumReplies: config.minimumEngagement?.replies,
       }),
-    { retries: 2, minTimeoutMs: 1000, factor: 2 },
+    { retries: 3, minTimeoutMs: 1000, factor: 2 },
   );
 
   if (!run?.defaultDatasetId) {
