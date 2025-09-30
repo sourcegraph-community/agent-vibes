@@ -21,7 +21,8 @@
     "enqueue:backfill": "tsx scripts/enqueue-backfill.ts",
     "process:backfill": "curl -X POST http://localhost:3000/api/process-backfill -H 'x-api-key: $INTERNAL_API_KEY'",
     "cleanup:raw-tweets": "tsx scripts/cleanup-old-raw-tweets.ts",
-    "cleanup:sentiment-failures": "tsx scripts/cleanup-sentiment-failures.ts"
+    "cleanup:sentiment-failures": "tsx scripts/cleanup-sentiment-failures.ts",
+    "health-check": "tsx scripts/health-check.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
