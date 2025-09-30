@@ -3,6 +3,10 @@
     {
       "path": "/api/process-sentiments",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/process-backfill",
+      "schedule": "0 */6 * * *"
     }
   ]
 }
