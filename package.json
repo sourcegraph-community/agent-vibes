@@ -16,7 +16,8 @@
     "check": "npm run typecheck && npm run lint",
     "fix": "npm run lint:fix",
     "check:fix": "npm run typecheck && npm run lint:fix",
-    "rotate:supabase": "tsx scripts/rotate-supabase-secrets.ts"
+    "rotate:supabase": "tsx scripts/rotate-supabase-secrets.ts",
+    "replay:sentiments": "tsx scripts/replay-failed-sentiments.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
