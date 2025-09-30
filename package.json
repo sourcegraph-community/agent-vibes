@@ -20,6 +20,7 @@
     "replay:sentiments": "tsx scripts/replay-failed-sentiments.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.58.0",
     "apify": "^3.4.5",
     "next": "15.5.2",
