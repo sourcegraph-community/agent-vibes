@@ -38,12 +38,12 @@ Architecture note: The pipeline is organized as a Vertical Slice `src/ApifyPipel
 - Slice-specific migrations and seeds are located under `src/ApifyPipeline/DataAccess/Migrations` (naming scheme `yyyyMMdd_HHmm_Description.sql`).
 
 ### 3.4 Sentiment Analysis
-- Supabase Edge Function `sentiment-processor` (source: [`supabase/functions/sentiment-processor/index.ts`](file:///home/prinova/CodeProjects/agent-vibes/supabase/functions/sentiment-processor/index.ts)) polls `normalized_tweets` for `pending_sentiment` records and processes them in batches while tracking retry counts per keyword.
+- Supabase Edge Function `sentiment-processor` polls `normalized_tweets` for `pending_sentiment` records and processes them in batches while tracking retry counts per keyword.
 - The function calls `gemini-2.5-flash` or `flash-lite` via Structured Output (enum `positive|neutral|negative`); Google does not provide a dedicated sentiment endpoint.
 - Rate limits and costs (Free ~15 RPM/1.5M tokens per day; paid per current pricing) determine batch size and queueing; Supabase Functions + Storage Queue buffer overruns.
 - API keys (`GEMINI_API_KEY`) are stored in Supabase Secrets or Vercel Env Vars and are regularly rotated.
 - Results (score -1…1, category, extended insights) are stored in `tweet_sentiments`; failed calls go to `sentiment_failures`. A feature-flagged fallback (`SENTIMENT_EDGE_FALLBACK=true`) can run the legacy serverless job if the Edge Function is unavailable.
-- Implementation: Edge-specific orchestration lives in `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor` (mirrored to [`supabase/functions/sentiment-processor`](file:///home/prinova/CodeProjects/agent-vibes/supabase/functions/sentiment-processor/index.ts)) and encapsulates Gemini client configuration.
+- Implementation: Source code lives in `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor` and is built to `supabase/functions/sentiment-processor` via `npm run build:edge-functions` before deployment.
 
 ### 3.5 Frontend / Dashboard
 - Next.js 15 App Router (async Request APIs) visualizes mentions, sentiment distribution, and trends.
@@ -210,7 +210,7 @@ cron_runs
 1. **Start Supabase locally:** `supabase start`, apply schema migrations (tables from Section 6).
 2. **Apify Actor locally:** `apify run` with `apify_config_dev.json`, keep `maxItems` small, either mock tweets or use real test keyword.
 3. **Gemini Mock:** Local stub API (e.g., Express/Edge Function) or replay files to simulate sentiment without cost.
-4. **Sentiment Worker locally:** Supabase Edge Function via `npm run functions:serve` (wraps `supabase functions serve sentiment-processor --env-file supabase/.env.local`); provide local `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `GEMINI_API_KEY` secrets.
+4. **Sentiment Worker locally:** Build Edge Function source with `npm run build:edge-functions`, then serve via `npm run functions:serve`; provide local `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `GEMINI_API_KEY` secrets in `supabase/.env.local`.
 5. **Next.js Frontend:** `npm run dev` (Node 20) with `.env.local`, test `@supabase/ssr` helpers and async Request APIs.
 6. **End-to-End Run:** Actor -> Supabase -> Sentiment -> Frontend; check logs, duplicate statistics, and Gemini quotas; optionally test `next build --turbopack` (beta) against CI.
 

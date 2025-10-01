@@ -313,13 +313,14 @@ create trigger keywords_prevent_update
 - [ ] **TODO:** Set up monitoring alerts for high Edge Function error rate or quota exhaustion.
 
 #### Delivery Notes (2025-10-01)
-- `supabase/functions/sentiment-processor/index.ts` hosts the Supabase Edge Function with built-in retry tracking and append-only status updates.
+- Edge Function source code lives in `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor` following VSA principles.
+- Build script `npm run build:edge-functions` copies source to `supabase/functions/sentiment-processor` for deployment.
 - `app/api/process-sentiments/route.ts` remains the Vercel entry point but delegates processing to the Edge Function via authenticated fetch.
 - `src/ApifyPipeline/Web/Application/Commands/ProcessSentiments/ProcessSentimentsCommandHandler.ts` now invokes the Edge Function and optionally falls back to `runSentimentProcessorJob`.
 - `src/ApifyPipeline/ExternalServices/Supabase/edgeFunctions.ts` centralizes Supabase Functions invocation logic.
 - `src/ApifyPipeline/ExternalServices/Gemini/GeminiClient.ts` defaults to `gemini-2.5-flash` and keeps exponential backoff + token tracking.
-- `package.json` introduces `npm run functions:serve` for local Supabase Edge execution.
-- **Environment Variables Required:** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, optional `SUPABASE_FUNCTIONS_URL`, `GEMINI_API_KEY`, `GEMINI_MODEL` (defaults to `gemini-2.5-flash`), `INTERNAL_API_KEY` (recommended), `SENTIMENT_EDGE_FALLBACK` (optional).
+- `package.json` introduces `npm run build:edge-functions` for building and `npm run functions:serve` for local Supabase Edge execution.
+- **Environment Variables Required:** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, optional `SUPABASE_FUNCTIONS_URL`, `GEMINI_API_KEY`, `CRON_SECRET` (recommended for production), `INTERNAL_API_KEY` (optional for manual triggers), `SENTIMENT_EDGE_FALLBACK` (optional).
 
 #### Production Readiness (2025-10-01)
 - ✅ **Security:** Supabase Edge Function secured via bearer auth; Vercel route still enforces cron/API key.

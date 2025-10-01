@@ -7,6 +7,7 @@ All primary references now reflect the Supabase Edge Function architecture, Gemi
 - **Authentication:** Added `CRON_SECRET` support to `/api/start-apify-run` following Vercel's recommended pattern (Authorization: Bearer header), with fallback support for `x-vercel-cron` header and `x-api-key` for manual triggers.
 - **Data Integrity:** Fixed cron run status logging to occur AFTER successful data persistence, eliminating false success reports.
 - **Model Standardization:** All references updated to use `gemini-2.5-flash` consistently across code and documentation.
+- **VSA Compliance:** Moved Edge Function source code into `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor` to maintain slice ownership; build script copies to deployment location.
 
 ## Alignment Highlights
 - **Sentiment Processing:** `/api/process-sentiments` proxies to the Supabase Edge Function [`sentiment-processor`](file:///home/prinova/CodeProjects/agent-vibes/supabase/functions/sentiment-processor/index.ts); docs in [`specification.md`](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L37-L48), [`implementation-plan.md`](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/implementation-plan.md#L289-L333), and [`overview.md`](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/overview.md#L8-L21) now describe the Edge-first path and optional fallback.

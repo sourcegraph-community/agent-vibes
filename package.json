@@ -23,7 +23,8 @@
     "cleanup:raw-tweets": "tsx scripts/cleanup-old-raw-tweets.ts",
     "cleanup:sentiment-failures": "tsx scripts/cleanup-sentiment-failures.ts",
     "health-check": "tsx scripts/health-check.ts",
-    "functions:serve": "supabase functions serve sentiment-processor --env-file supabase/.env.local"
+    "build:edge-functions": "tsx scripts/build-edge-functions.ts",
+    "functions:serve": "npm run build:edge-functions && supabase functions serve sentiment-processor --env-file supabase/.env.local"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

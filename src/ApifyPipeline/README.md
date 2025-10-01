@@ -54,6 +54,8 @@ src/ApifyPipeline/
 │   └── ExternalServices/             # Third-party integrations
 │       ├── Apify/                    # Tweet collection client
 │       ├── Gemini/                   # Sentiment analysis client
+│       │   └── EdgeFunctions/        # Supabase Edge Function source
+│       │       └── sentimentProcessor/  # Built to supabase/functions/
 │       └── Supabase/                 # Database client
 ├── Background/                       # Time-triggered scheduled jobs
 │   ├── Jobs/                         # Job definitions (Vercel cron)
@@ -606,6 +608,8 @@ This feature adheres to Vertical Slice Architecture principles:
 ### Commands
 ```bash
 npm run health-check              # Validate environment
+npm run build:edge-functions      # Build Edge Functions for deployment
+npm run functions:serve           # Serve Edge Functions locally
 npm run enqueue:backfill          # Queue historical data
 npm run replay:sentiments         # Retry failures
 npm run cleanup:raw-tweets        # Archive old data

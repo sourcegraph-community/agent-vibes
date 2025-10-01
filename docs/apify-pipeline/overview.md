@@ -16,7 +16,7 @@ Architecture note: The repository follows a Vertical Slice Architecture. The com
 ## Components & Responsibilities
 - **Apify Actor:** Data collection, normalization, delivery to Supabase – either via X API (Pro tier) or Apify Scraper with regulatory throttling. (Slice: `src/ApifyPipeline/Background/Jobs/TweetCollector`)
 - **Supabase:** Persistence layer (tables for raw data, normalized tweets, sentiment results) with `sb_secret_*` keys and PG17-compliant extensions. (Slice: `src/ApifyPipeline/DataAccess`)
-- **Google Gemini:** Structured-output classification executed by Supabase Edge Function `sentiment-processor` (source mirrored in `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor`).
+- **Google Gemini:** Structured-output classification executed by Supabase Edge Function `sentiment-processor` (source: `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor`).
 - **Next.js Frontend:** Display of statistics, filtering, trend detection; build target Node.js 20+ on Vercel. (Slice: `src/ApifyPipeline/Web/Components/Dashboard`)
 - **Vercel Cron:** Time-triggered execution of the internal `/api/start-apify-run` proxy. (Slice: `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`)
 
@@ -102,7 +102,7 @@ graph TB
 - Supabase secret rotation runs via `npm run rotate:supabase` (TypeScript script [`scripts/rotate-supabase-secrets.ts`](file:///home/prinova/CodeProjects/agent-vibes/scripts/rotate-supabase-secrets.ts) uses Supabase Management API + Secrets Endpoint).
 - The ingestion slice provides `/api/start-apify-run` via `app/api/start-apify-run/route.ts` and delegates to `src/ApifyPipeline/Web/Application/Commands/StartApifyRun` + `Background/Jobs/TweetCollector`.
 - The Apify Actor under `src/ApifyPipeline/Background/Jobs/TweetCollector/TweetCollectorJob.ts` fetches keywords from Supabase, starts the Twitter scraper, writes `cron_runs`, `raw_tweets` and `normalized_tweets`, and marks duplicates.
-- Supabase Edge Function `sentiment-processor` lives at [`supabase/functions/sentiment-processor/index.ts`](file:///home/prinova/CodeProjects/agent-vibes/supabase/functions/sentiment-processor/index.ts); `/api/process-sentiments` proxies to it with optional fallback to the legacy job.
+- Supabase Edge Function `sentiment-processor` source lives at `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor` and is built to `supabase/functions/sentiment-processor` via `npm run build:edge-functions`; `/api/process-sentiments` proxies to it with optional fallback to the legacy job.
 
 ## Open Items for Later Iterations
 - Instrument monitoring/alerting for Supabase Edge Function failures and fallback invocations.
