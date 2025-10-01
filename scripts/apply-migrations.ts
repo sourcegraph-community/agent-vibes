@@ -6,8 +6,9 @@
  */
 
 import { config } from 'dotenv';
-import { readFileSync } from 'node:fs';
+import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 // Load .env.local
 config({ path: '.env.local' });
@@ -20,57 +21,79 @@ const colors = {
   reset: '\x1b[0m',
 };
 
-function validateEnvironment(): void {
-  const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
-  const missing = required.filter(key => !process.env[key]);
-
-  if (missing.length > 0) {
-    console.error(`${colors.red}❌ Missing required environment variables${colors.reset}`);
-    console.error(`Required: ${missing.join(', ')}`);
-    process.exit(1);
+function resolveConnectionString(): string {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (databaseUrl) {
+    return databaseUrl;
   }
-}
 
-async function executeSqlDirect(sql: string, name: string): Promise<void> {
-  console.log(`${colors.yellow}Executing ${name}...${colors.reset}`);
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabasePassword = process.env.SUPABASE_DB_PASSWORD;
 
-  // Extract project ref from Supabase URL
-  const supabaseUrl = process.env.SUPABASE_URL!;
+  if (!supabaseUrl || !supabasePassword) {
+    throw new Error('Set DATABASE_URL or SUPABASE_URL/SUPABASE_DB_PASSWORD');
+  }
+
   const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
 
   if (!projectRef) {
     throw new Error('Could not extract project ref from SUPABASE_URL');
   }
 
-  // Build PostgreSQL connection string
-  const connectionString = `postgresql://postgres.${projectRef}:${process.env.SUPABASE_SERVICE_ROLE_KEY}@aws-0-us-east-1.pooler.supabase.com:6543/postgres`;
+  const host = process.env.SUPABASE_DB_HOST ?? `db.${projectRef}.supabase.co`;
+  const port = process.env.SUPABASE_DB_PORT ?? '5432';
+  const username = process.env.SUPABASE_DB_USER ?? 'postgres';
 
-  // Use psql if available
-  const { execSync } = await import('node:child_process');
+  return `postgresql://${username}:${supabasePassword}@${host}:${port}/postgres`;
+}
+
+function ensureSslConnectionString(connectionString: string): string {
+  return connectionString.includes('?')
+    ? `${connectionString}&sslmode=require`
+    : `${connectionString}?sslmode=require`;
+}
+
+async function executeSqlDirect(sql: string, name: string, connectionString: string): Promise<void> {
+  console.log(`${colors.yellow}Executing ${name}...${colors.reset}`);
+
+  const tempFile = join('/tmp', `migration-${Date.now()}.sql`);
 
   try {
-    const tempFile = join('/tmp', `migration-${Date.now()}.sql`);
-    const { writeFileSync, unlinkSync } = await import('node:fs');
-
     writeFileSync(tempFile, sql);
 
-    execSync(`psql "${connectionString}" -f "${tempFile}"`, {
+    execFileSync('psql', ['-v', 'ON_ERROR_STOP=1', '-d', ensureSslConnectionString(connectionString), '-f', tempFile], {
       stdio: 'pipe',
     });
-
-    unlinkSync(tempFile);
 
     console.log(`${colors.green}✅ Successfully executed ${name}${colors.reset}`);
   } catch (error) {
     console.error(`${colors.red}❌ Failed to execute ${name}${colors.reset}`);
+    if (error instanceof Error) {
+      const stderr = (error as any).stderr?.toString() ?? '';
+      const stdout = (error as any).stdout?.toString() ?? '';
+      if (stderr) {
+        console.error(stderr.trim());
+      }
+      if (stdout) {
+        console.error(stdout.trim());
+      }
+    }
     throw error;
+  } finally {
+    try {
+      unlinkSync(tempFile);
+    } catch (cleanupError) {
+      if (cleanupError instanceof Error) {
+        console.warn(`${colors.yellow}Warning: could not remove temp file ${tempFile}: ${cleanupError.message}${colors.reset}`);
+      }
+    }
   }
 }
 
 async function main(): Promise<void> {
   console.log('=== Applying Database Migrations ===\n');
 
-  validateEnvironment();
+  const connectionString = resolveConnectionString();
 
   const rootDir = join(__dirname, '..');
 
@@ -96,29 +119,11 @@ async function main(): Promise<void> {
     },
   ];
 
-  console.log(`${colors.blue}Note: This requires 'psql' to be installed on your system${colors.reset}`);
-  console.log(`${colors.blue}If you don't have psql, copy the SQL files to Supabase SQL Editor instead${colors.reset}\n`);
-
-  try {
-    // Check if psql is available
-    const { execSync } = await import('node:child_process');
-    execSync('which psql', { stdio: 'ignore' });
-  } catch {
-    console.error(`${colors.red}❌ 'psql' command not found${colors.reset}`);
-    console.log(`\n${colors.yellow}Alternative: Manual SQL execution${colors.reset}`);
-    console.log('1. Open Supabase SQL Editor in your project');
-    console.log('2. Execute these files in order:');
-    migrations.concat(seeds).forEach(file => {
-      console.log(`   - ${file.path}`);
-    });
-    process.exit(1);
-  }
-
   try {
     // Apply migrations
     for (const migration of migrations) {
       const sql = readFileSync(migration.path, 'utf8');
-      await executeSqlDirect(sql, migration.name);
+      await executeSqlDirect(sql, migration.name, connectionString);
     }
 
     console.log('');
@@ -126,7 +131,7 @@ async function main(): Promise<void> {
     // Apply seeds
     for (const seed of seeds) {
       const sql = readFileSync(seed.path, 'utf8');
-      await executeSqlDirect(sql, seed.name);
+      await executeSqlDirect(sql, seed.name, connectionString);
     }
 
     console.log(`\n${colors.green}✅ All migrations applied successfully!${colors.reset}`);

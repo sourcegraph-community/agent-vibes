@@ -5,8 +5,29 @@ create schema if not exists public;
 create extension if not exists "pgcrypto" schema public;
 create extension if not exists "uuid-ossp" schema public;
 
-create type if not exists public.normalized_tweet_status as enum ('pending_sentiment', 'processed', 'failed');
-create type if not exists public.cron_run_status as enum ('queued', 'running', 'succeeded', 'partial_success', 'failed');
+do $$
+begin
+  if not exists (
+    select 1 from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where n.nspname = 'public' and t.typname = 'normalized_tweet_status'
+  ) then
+    create type public.normalized_tweet_status as enum ('pending_sentiment', 'processed', 'failed');
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where n.nspname = 'public' and t.typname = 'cron_run_status'
+  ) then
+    create type public.cron_run_status as enum ('queued', 'running', 'succeeded', 'partial_success', 'failed');
+  end if;
+end;
+$$;
 
 create or replace function public.enforce_append_only()
 returns trigger
@@ -162,38 +183,47 @@ create index if not exists idx_tweet_sentiments_normalized on public.tweet_senti
 create index if not exists idx_sentiment_failures_normalized on public.sentiment_failures (normalized_tweet_id, last_attempt_at desc);
 create index if not exists idx_keywords_enabled_priority on public.keywords (is_enabled, priority);
 
+drop trigger if exists raw_tweets_set_timestamps on public.raw_tweets;
 create trigger raw_tweets_set_timestamps
   before insert on public.raw_tweets
   for each row execute function public.set_ingestion_timestamps();
 
+drop trigger if exists normalized_tweets_set_status_changed_at on public.normalized_tweets;
 create trigger normalized_tweets_set_status_changed_at
   before insert on public.normalized_tweets
   for each row execute function public.set_status_changed_at();
 
+drop trigger if exists tweet_sentiments_set_processed_at on public.tweet_sentiments;
 create trigger tweet_sentiments_set_processed_at
   before insert on public.tweet_sentiments
   for each row execute function public.set_processed_at();
 
+drop trigger if exists cron_runs_prevent_mutation on public.cron_runs;
 create trigger cron_runs_prevent_mutation
   before update or delete on public.cron_runs
   for each row execute function public.enforce_append_only();
 
+drop trigger if exists raw_tweets_prevent_mutation on public.raw_tweets;
 create trigger raw_tweets_prevent_mutation
   before update or delete on public.raw_tweets
   for each row execute function public.enforce_append_only();
 
+drop trigger if exists normalized_tweets_prevent_mutation on public.normalized_tweets;
 create trigger normalized_tweets_prevent_mutation
   before update or delete on public.normalized_tweets
   for each row execute function public.enforce_append_only();
 
+drop trigger if exists tweet_sentiments_prevent_mutation on public.tweet_sentiments;
 create trigger tweet_sentiments_prevent_mutation
   before update or delete on public.tweet_sentiments
   for each row execute function public.enforce_append_only();
 
+drop trigger if exists sentiment_failures_prevent_mutation on public.sentiment_failures;
 create trigger sentiment_failures_prevent_mutation
   before update or delete on public.sentiment_failures
   for each row execute function public.enforce_append_only();
 
+drop trigger if exists keywords_prevent_mutation on public.keywords;
 create trigger keywords_prevent_mutation
   before update or delete on public.keywords
   for each row execute function public.enforce_append_only();
@@ -265,14 +295,38 @@ begin
 end;
 $$;
 
-create policy if not exists normalized_tweets_dashboard_read
-  on public.normalized_tweets
-  for select
-  using (public.dashboard_role() = 'dashboard');
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'normalized_tweets'
+      and policyname = 'normalized_tweets_dashboard_read'
+  ) then
+    create policy normalized_tweets_dashboard_read
+      on public.normalized_tweets
+      for select
+      using (public.dashboard_role() = 'dashboard');
+  end if;
+end;
+$$;
 
-create policy if not exists tweet_sentiments_dashboard_read
-  on public.tweet_sentiments
-  for select
-  using (public.dashboard_role() = 'dashboard');
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'tweet_sentiments'
+      and policyname = 'tweet_sentiments_dashboard_read'
+  ) then
+    create policy tweet_sentiments_dashboard_read
+      on public.tweet_sentiments
+      for select
+      using (public.dashboard_role() = 'dashboard');
+  end if;
+end;
+$$;
 
 commit;

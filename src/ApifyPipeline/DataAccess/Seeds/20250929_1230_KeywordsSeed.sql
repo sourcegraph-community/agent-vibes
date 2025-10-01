@@ -50,6 +50,106 @@ with seed_run as (
   returning id
 ), run_id as (
   select coalesce((select id from seed_run), '11111111-1111-4111-8111-111111111111'::uuid) as id
+), seed_data as (
+  select *
+  from (
+    values
+      (
+        '22222222-2222-4222-9222-222222222222'::uuid,
+        '32222222-2222-4222-9222-222222222222'::uuid,
+        'twitter',
+        '1876543210',
+        1,
+        'c0dingwizard',
+        'Coding Wizard',
+        now() - interval '26 hours',
+        now() - interval '25 hours',
+        'en',
+        'Exploring agentic AI workflows to boost developer productivity. #AgenticAI',
+        'https://twitter.com/c0dingwizard/status/1876543210',
+        128,
+        34,
+        array['agentic ai', 'workflow automation'],
+        'processed'::public.normalized_tweet_status,
+        now() - interval '25 hours',
+        jsonb_build_object('collector', 'apify-demo'),
+        now() - interval '25 hours',
+        now() - interval '25 hours'
+      ),
+      (
+        '33333333-3333-4333-9333-333333333333'::uuid,
+        '43333333-3333-4333-9333-333333333333'::uuid,
+        'twitter',
+        '1876543999',
+        1,
+        'mlops_daily',
+        'MLOps Daily',
+        now() - interval '20 hours',
+        now() - interval '19 hours',
+        'en',
+        'Prompt engineering is evolving into fully autonomous agent pipelines. Fascinating times!',
+        'https://twitter.com/mlops_daily/status/1876543999',
+        89,
+        22,
+        array['prompt engineering', 'agentic ai'],
+        'processed'::public.normalized_tweet_status,
+        now() - interval '19 hours',
+        jsonb_build_object('collector', 'apify-demo'),
+        now() - interval '19 hours',
+        now() - interval '19 hours'
+      )
+  ) as s(
+    normalized_id,
+    raw_id,
+    platform,
+    platform_id,
+    revision,
+    author_handle,
+    author_name,
+    posted_at,
+    collected_at,
+    language,
+    content,
+    url,
+    engagement_likes,
+    engagement_retweets,
+    keyword_snapshot,
+    status,
+    status_changed_at,
+    model_context,
+    ingested_at,
+    created_at
+  )
+), raw_seed as (
+  insert into public.raw_tweets (
+    id,
+    run_id,
+    platform,
+    platform_id,
+    collected_at,
+    payload,
+    ingestion_reason,
+    ingested_at,
+    created_at
+  )
+  select
+    s.raw_id,
+    r.id,
+    s.platform,
+    s.platform_id,
+    s.collected_at,
+    jsonb_build_object(
+      'platform_id', s.platform_id,
+      'content', s.content,
+      'author_handle', s.author_handle
+    ),
+    'seed-demo',
+    s.ingested_at,
+    s.created_at
+  from run_id r
+  join seed_data s on true
+  on conflict (id) do nothing
+  returning id
 )
 insert into public.normalized_tweets (
   id,
@@ -97,53 +197,7 @@ select
   s.ingested_at,
   s.created_at
 from run_id r
-cross join lateral (
-  values
-    (
-      '22222222-2222-4222-9222-222222222222'::uuid,
-      '32222222-2222-4222-9222-222222222222'::uuid,
-      'twitter',
-      '1876543210',
-      1,
-      'c0dingwizard',
-      'Coding Wizard',
-      now() - interval '26 hours',
-      now() - interval '25 hours',
-      'en',
-      'Exploring agentic AI workflows to boost developer productivity. #AgenticAI',
-      'https://twitter.com/c0dingwizard/status/1876543210',
-      128,
-      34,
-      array['agentic ai', 'workflow automation'],
-      'processed',
-      now() - interval '25 hours',
-      jsonb_build_object('collector', 'apify-demo'),
-      now() - interval '25 hours',
-      now() - interval '25 hours'
-    ),
-    (
-      '33333333-3333-4333-9333-333333333333'::uuid,
-      '43333333-3333-4333-9333-333333333333'::uuid,
-      'twitter',
-      '1876543999',
-      1,
-      'mlops_daily',
-      'MLOps Daily',
-      now() - interval '20 hours',
-      now() - interval '19 hours',
-      'en',
-      'Prompt engineering is evolving into fully autonomous agent pipelines. Fascinating times!',
-      'https://twitter.com/mlops_daily/status/1876543999',
-      89,
-      22,
-      array['prompt engineering', 'agentic ai'],
-      'processed',
-      now() - interval '19 hours',
-      jsonb_build_object('collector', 'apify-demo'),
-      now() - interval '19 hours',
-      now() - interval '19 hours'
-    )
-) as s(normalized_id, raw_id, platform, platform_id, revision, author_handle, author_name, posted_at, collected_at, language, content, url, engagement_likes, engagement_retweets, keyword_snapshot, status, status_changed_at, model_context, ingested_at, created_at)
+join seed_data s on true
 on conflict (platform, platform_id, revision) do nothing;
 
 insert into public.tweet_sentiments (

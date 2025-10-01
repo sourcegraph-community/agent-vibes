@@ -88,8 +88,9 @@ This guide provides step-by-step instructions for testing the Apify Pipeline loc
 - **Node.js:** 20+ (required by Next.js 15)
 - **npm:** Latest version
 - **Git:** For repository access
+- **psql (Postgres client):** Required for `npm run apply-migrations`
 - **curl or Postman:** For API testing
-- **Database client:** (optional) psql, pgAdmin, or Supabase Studio for data inspection
+- **Database client:** (optional) pgAdmin or Supabase Studio for data inspection
 
 ---
 
@@ -125,6 +126,11 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+DATABASE_URL=postgresql://postgres.<ref>@aws-1-<region>.pooler.supabase.com:5432/postgres
+# Optional fallback if DATABASE_URL is omitted
+# SUPABASE_DB_PASSWORD=service-role-password
+# SUPABASE_DB_HOST=aws-1-<region>.pooler.supabase.com
+# SUPABASE_DB_PORT=5432
 
 # Apify Configuration (REQUIRED for tweet collection)
 APIFY_TOKEN=your-apify-token
@@ -180,16 +186,22 @@ INTERNAL_API_KEY=your-random-secret-key
 Apply the Apify Pipeline migration to your Supabase database:
 
 ```bash
-# Option 1: Using Supabase CLI (recommended)
+# Option 1: Project script (recommended for local / CI)
+# Requires: psql installed + DATABASE_URL pointing to Supabase session pooler
+npm run apply-migrations
+
+# Option 2: Supabase CLI
 supabase db push
 
-# Option 2: Manual SQL execution
+# Option 3: Manual SQL execution
 # 1. Open Supabase Studio → SQL Editor
 # 2. Copy contents of src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql
 # 3. Execute the SQL
 # 4. Copy contents of src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql
 # 5. Execute the SQL
 ```
+
+The migrations are idempotent—the scripts drop/recreate triggers and policies as needed, and the seed now inserts matching `raw_tweets` records before inserting into `normalized_tweets`.
 
 **Verify Migration:**
 

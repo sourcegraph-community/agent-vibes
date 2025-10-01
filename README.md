@@ -97,7 +97,7 @@ npm run lint:fix         # Fix linting issues
 ### Apify Pipeline Operations
 ```bash
 npm run health-check               # Validate environment & connections
-npm run apply-migrations           # Apply database migrations programmatically
+npm run apply-migrations           # Apply database migrations programmatically (requires psql)
 npm run enqueue:backfill           # Queue historical data (run once, configurable)
 npm run process:backfill           # Process backfill batch (manual, repeat per batch)
 npm run replay:sentiments          # Retry failed sentiment processing
@@ -106,7 +106,7 @@ npm run cleanup:sentiment-failures # Remove stale failure records
 npm run rotate:supabase            # Rotate Supabase secrets (ops only)
 ```
 
-**Note:** All Apify Pipeline scripts automatically load `.env.local` via `dotenv`. Ensure environment variables are configured before running.
+**Note:** All Apify Pipeline scripts automatically load `.env.local` via `dotenv`. Ensure environment variables are configured before running. Set `DATABASE_URL` (or `SUPABASE_URL`/`SUPABASE_DB_PASSWORD` with optional `SUPABASE_DB_HOST` and `SUPABASE_DB_PORT`) to the Supabase session pooler connection string so migrations run over IPv4, and install the `psql` client locally.
 
 ---
 
@@ -250,6 +250,7 @@ See [VSA Architecture Guide](~/CodeProjects/agent-docs/vsa-architecture.md) for 
 **Apply Migrations:**
 ```bash
 # Option 1: Programmatically (recommended for local)
+# Requires psql client + Supabase session pooler DATABASE_URL in .env.local
 npm run apply-migrations
 
 # Option 2: Supabase CLI
@@ -258,6 +259,10 @@ supabase db push
 # Option 3: Manual via Supabase Studio SQL Editor
 # Execute SQL files in order from src/ApifyPipeline/DataAccess/Migrations/
 ```
+
+- `DATABASE_URL` should point at the Supavisor **session mode** pooler (e.g. `postgresql://postgres.<ref>@aws-1-<region>.pooler.supabase.com:5432/postgres`).
+- If `DATABASE_URL` is absent, the script falls back to `SUPABASE_URL` + `SUPABASE_DB_PASSWORD`, with optional `SUPABASE_DB_HOST`/`SUPABASE_DB_PORT`.
+- The SQL is idempotent: rerunning migrations will skip existing enums, triggers, and policies, and the seed inserts their dependent `raw_tweets` rows automatically.
 
 ---
 
