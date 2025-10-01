@@ -1,4 +1,8 @@
+import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+
+// Load .env.local
+config({ path: '.env.local' });
 
 interface CleanupOptions {
   dryRun?: boolean;

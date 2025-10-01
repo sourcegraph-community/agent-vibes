@@ -5,8 +5,12 @@
  * Executes SQL files directly via PostgreSQL connection
  */
 
+import { config } from 'dotenv';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+// Load .env.local
+config({ path: '.env.local' });
 
 const colors = {
   green: '\x1b[0;32m',

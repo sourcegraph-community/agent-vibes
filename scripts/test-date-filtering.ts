@@ -5,8 +5,12 @@
  * Demonstrates how sinceDate is calculated
  */
 
+import { config } from 'dotenv';
 import { createSupabaseServiceClient } from '@/src/ApifyPipeline/ExternalServices/Supabase/client';
 import { getLastCollectedDate } from '@/src/ApifyPipeline/DataAccess/Repositories/NormalizedTweetsRepository';
+
+// Load .env.local
+config({ path: '.env.local' });
 
 const colors = {
   green: '\x1b[0;32m',

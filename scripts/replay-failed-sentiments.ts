@@ -1,8 +1,12 @@
+import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseEnv, getGeminiEnv } from '../src/ApifyPipeline/Infrastructure/Config/env';
 import { GeminiClient } from '../src/ApifyPipeline/ExternalServices/Gemini/GeminiClient';
 import { TweetSentimentsRepository } from '../src/ApifyPipeline/DataAccess/Repositories/TweetSentimentsRepository';
 import { SentimentProcessor } from '../src/ApifyPipeline/Core/Services/SentimentProcessor';
+
+// Load .env.local
+config({ path: '.env.local' });
 
 interface ReplayOptions {
   minRetryCount?: number;

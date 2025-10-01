@@ -1,5 +1,9 @@
+import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { BackfillProcessorJob } from '../src/ApifyPipeline/Background/Jobs/BackfillProcessor/BackfillProcessorJob';
+
+// Load .env.local
+config({ path: '.env.local' });
 
 async function main() {
   const supabaseUrl = process.env.SUPABASE_URL;

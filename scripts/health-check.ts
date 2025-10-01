@@ -5,8 +5,11 @@
  * Monitors critical components and alerts on issues
  */
 
-import 'dotenv/config';
+import { config } from 'dotenv';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+
+// Load .env.local
+config({ path: '.env.local' });
 
 // Colors for output
 const colors = {

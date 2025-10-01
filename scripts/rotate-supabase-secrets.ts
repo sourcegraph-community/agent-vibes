@@ -1,5 +1,9 @@
+import { config } from 'dotenv';
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
+
+// Load .env.local
+config({ path: '.env.local' });
 
 const SUPABASE_API_BASE = 'https://api.supabase.com/v1';
 

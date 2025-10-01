@@ -1,7 +1,11 @@
 #!/usr/bin/env tsx
 
+import { config } from 'dotenv';
 import { copyFileSync, mkdirSync, readdirSync, statSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+
+// Load .env.local (if needed for any env-based config)
+config({ path: '.env.local' });
 
 const SOURCE_DIR = 'src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor';
 const TARGET_DIR = 'supabase/functions/sentiment-processor';
