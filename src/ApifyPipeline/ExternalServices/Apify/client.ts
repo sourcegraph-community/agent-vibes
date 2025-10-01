@@ -11,6 +11,8 @@ export interface StartApifyRunInput {
     maxItemsPerKeyword?: number;
     keywordBatchSize?: number;
     cooldownSeconds?: number;
+    useDateFiltering?: boolean;
+    defaultLookbackDays?: number;
     minimumEngagement?: {
       retweets?: number;
       favorites?: number;

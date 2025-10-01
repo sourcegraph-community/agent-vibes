@@ -8,6 +8,8 @@ export interface TwitterScraperConfig {
   tweetLanguage?: string | null;
   sort?: 'Top' | 'Latest';
   maxItemsPerKeyword?: number;
+  sinceDate?: string | null;
+  untilDate?: string | null;
   minimumEngagement?: {
     retweets?: number;
     favorites?: number;
@@ -33,6 +35,8 @@ export const runTwitterScraper = async (
         sort: config.sort ?? 'Top',
         maxItems: config.maxItemsPerKeyword,
         includeSearchTerms: true,
+        sinceDate: config.sinceDate ?? undefined,
+        untilDate: config.untilDate ?? undefined,
         minimumRetweets: config.minimumEngagement?.retweets,
         minimumFavorites: config.minimumEngagement?.favorites,
         minimumReplies: config.minimumEngagement?.replies,

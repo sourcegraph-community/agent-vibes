@@ -18,7 +18,7 @@ async function main() {
   const totalDays = parseInt(process.env.BACKFILL_DAYS || '30', 10);
   const batchDays = parseInt(process.env.BACKFILL_BATCH_SIZE || '5', 10);
   const numBatches = Math.ceil(totalDays / batchDays);
-  
+
   const endDate = new Date();
 
   console.log(`Configuration:`);

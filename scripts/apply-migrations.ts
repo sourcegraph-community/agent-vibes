@@ -29,11 +29,11 @@ function validateEnvironment(): void {
 
 async function executeSqlDirect(sql: string, name: string): Promise<void> {
   console.log(`${colors.yellow}Executing ${name}...${colors.reset}`);
-  
+
   // Extract project ref from Supabase URL
   const supabaseUrl = process.env.SUPABASE_URL!;
   const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
-  
+
   if (!projectRef) {
     throw new Error('Could not extract project ref from SUPABASE_URL');
   }
@@ -43,19 +43,19 @@ async function executeSqlDirect(sql: string, name: string): Promise<void> {
 
   // Use psql if available
   const { execSync } = await import('node:child_process');
-  
+
   try {
     const tempFile = join('/tmp', `migration-${Date.now()}.sql`);
     const { writeFileSync, unlinkSync } = await import('node:fs');
-    
+
     writeFileSync(tempFile, sql);
-    
+
     execSync(`psql "${connectionString}" -f "${tempFile}"`, {
       stdio: 'pipe',
     });
-    
+
     unlinkSync(tempFile);
-    
+
     console.log(`${colors.green}✅ Successfully executed ${name}${colors.reset}`);
   } catch (error) {
     console.error(`${colors.red}❌ Failed to execute ${name}${colors.reset}`);
@@ -69,7 +69,7 @@ async function main(): Promise<void> {
   validateEnvironment();
 
   const rootDir = join(__dirname, '..');
-  
+
   const migrations = [
     {
       name: '20250929_1200_InitApifyPipeline.sql',
@@ -78,6 +78,10 @@ async function main(): Promise<void> {
     {
       name: '20250930_1500_AddBackfillBatches.sql',
       path: join(rootDir, 'src/ApifyPipeline/DataAccess/Migrations/20250930_1500_AddBackfillBatches.sql'),
+    },
+    {
+      name: '20251001_1630_AddCollectedAtIndex.sql',
+      path: join(rootDir, 'src/ApifyPipeline/DataAccess/Migrations/20251001_1630_AddCollectedAtIndex.sql'),
     },
   ];
 

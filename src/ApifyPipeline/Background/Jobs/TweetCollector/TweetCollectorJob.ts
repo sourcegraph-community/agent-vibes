@@ -10,6 +10,7 @@ import { insertCronRun } from '@/src/ApifyPipeline/DataAccess/Repositories/CronR
 import { insertRawTweets } from '@/src/ApifyPipeline/DataAccess/Repositories/RawTweetsRepository';
 import {
   insertNormalizedTweets,
+  getLastCollectedDate,
   type NormalizedTweetInsert,
 } from '@/src/ApifyPipeline/DataAccess/Repositories/NormalizedTweetsRepository';
 import { fetchExistingNormalizedIds } from '@/src/ApifyPipeline/DataAccess/Repositories/NormalizedTweetsLookup';
@@ -27,6 +28,8 @@ const ingestionSchema = z
     maxItemsPerKeyword: z.number().int().min(1).max(500).default(200),
     keywordBatchSize: z.number().int().min(1).max(5).default(5),
     cooldownSeconds: z.number().int().min(0).max(900).default(300),
+    useDateFiltering: z.boolean().default(true),
+    defaultLookbackDays: z.number().int().min(1).max(30).default(7),
     minimumEngagement: z
       .object({
         retweets: z.number().int().min(0).optional(),
@@ -42,6 +45,8 @@ const ingestionSchema = z
     maxItemsPerKeyword: 200,
     keywordBatchSize: 5,
     cooldownSeconds: 300,
+    useDateFiltering: true,
+    defaultLookbackDays: 7,
     minimumEngagement: {},
   });
 
@@ -106,6 +111,28 @@ Actor.main(async () => {
     const ingestionConfig = input.ingestion;
     const keywordBatches = chunkArray(keywords, ingestionConfig.keywordBatchSize);
 
+    // Calculate sinceDate once for all keywords if date filtering is enabled
+    let sinceDate: string | null = null;
+    if (ingestionConfig.useDateFiltering) {
+      const lastCollectedAt = await getLastCollectedDate(supabase);
+
+      if (lastCollectedAt) {
+        // Use last collected date (YYYY-MM-DD format)
+        sinceDate = new Date(lastCollectedAt).toISOString().split('T')[0];
+      } else {
+        // No previous data - use default lookback
+        const lookbackDate = new Date();
+        lookbackDate.setDate(lookbackDate.getDate() - ingestionConfig.defaultLookbackDays);
+        sinceDate = lookbackDate.toISOString().split('T')[0];
+      }
+
+      log.info('Using date filter for collection', {
+        lastCollectedAt,
+        sinceDate,
+        keywords,
+      });
+    }
+
     const candidateMap = new Map<string, CandidateRecord>();
     const errors: unknown[] = [];
 
@@ -116,6 +143,7 @@ Actor.main(async () => {
           tweetLanguage: ingestionConfig.tweetLanguage,
           sort: ingestionConfig.sort,
           maxItemsPerKeyword: ingestionConfig.maxItemsPerKeyword,
+          sinceDate,
           minimumEngagement: ingestionConfig.minimumEngagement,
         });
 
@@ -254,6 +282,8 @@ Actor.main(async () => {
         requestedMaxItems: ingestionConfig.maxItemsPerKeyword,
         sort: ingestionConfig.sort,
         tweetLanguage: ingestionConfig.tweetLanguage,
+        useDateFiltering: ingestionConfig.useDateFiltering,
+        defaultLookbackDays: ingestionConfig.defaultLookbackDays,
         requestedAt: startedAt,
         inputMetadata: input.metadata ?? {},
         candidateCount: candidateMap.size,

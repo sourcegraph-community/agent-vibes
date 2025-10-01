@@ -100,3 +100,24 @@ export const insertNormalizedTweets = async (
 
   return results;
 };
+
+export const getLastCollectedDate = async (
+  client: SupabaseServiceClient,
+): Promise<string | null> => {
+  const { data, error } = await client
+    .from('normalized_tweets')
+    .select('collected_at')
+    .order('collected_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // No rows found
+      return null;
+    }
+    throw error;
+  }
+
+  return data?.collected_at ?? null;
+};

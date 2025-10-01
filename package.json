@@ -25,7 +25,8 @@
     "health-check": "tsx scripts/health-check.ts",
     "apply-migrations": "tsx scripts/apply-migrations.ts",
     "build:edge-functions": "tsx scripts/build-edge-functions.ts",
-    "functions:serve": "npm run build:edge-functions && supabase functions serve sentiment-processor --env-file supabase/.env.local"
+    "functions:serve": "npm run build:edge-functions && supabase functions serve sentiment-processor --env-file supabase/.env.local",
+    "test:date-filtering": "tsx scripts/test-date-filtering.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

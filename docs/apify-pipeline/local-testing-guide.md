@@ -1,8 +1,8 @@
 # Apify Pipeline - Local Testing Guide
 
 **Document Owner:** Engineering Team  
-**Last Updated:** September 30, 2025  
-**Related Documents:** [Specification](specification.md), [Overview](overview.md), [Operational Runbook](../../src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md)
+**Last Updated:** October 1, 2025  
+**Related Documents:** [Specification](specification.md), [Overview](overview.md), [Date-Based Collection Strategy](date-based-collection-strategy.md), [Operational Runbook](../../src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md)
 
 ---
 
@@ -247,6 +247,7 @@ npm run health-check
 ```bash
 curl -X POST http://localhost:3000/api/start-apify-run \
   -H "Content-Type: application/json" \
+  -H "x-api-key: $INTERNAL_API_KEY" \
   -d '{
     "triggerSource": "manual-test",
     "ingestion": {

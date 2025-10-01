@@ -7,14 +7,14 @@ Architecture note: The repository follows a Vertical Slice Architecture. The com
 
 ## High-Level Flow
 1. **Trigger:** A Vercel Cron Job (Pro plan) calls the internal endpoint `/api/start-apify-run`, which then invokes the Apify Run API. The App Router file `app/api/start-apify-run/route.ts` re-exports the slice endpoint `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`. Manual runs can also be triggered.
-2. **Data Collection (Apify Actor):** The Actor uses either X API Pro access (~US$5k/month) or the Apify Tweet Scraper; the latter is subject to anti-monitoring restrictions, so intervals must be carefully throttled.
+2. **Data Collection (Apify Actor):** The Actor uses the Apify Twitter Search Scraper, which is subject to anti-monitoring restrictions, so intervals must be carefully throttled.
 3. **Preprocessing:** Raw tweets are cleaned, enriched (e.g., source, timestamp, platform), and transformed into a uniform format.
 4. **Persistence (Supabase):** Normalized records are stored in Supabase. Historical values are preserved and form the foundation for analysis.
 5. **Sentiment Analysis (Gemini):** Supabase Edge Function `sentiment-processor` invokes Gemini 2.5 via Structured Output (no dedicated sentiment API) and stores results back in Supabase; costs/TPS are monitored depending on model variant (Flash, Flash Lite, Pro).
 6. **Frontend (Vercel):** A Next.js application visualizes the data (trends, metrics, individual records) and exclusively consumes the Supabase API.
 
 ## Components & Responsibilities
-- **Apify Actor:** Data collection, normalization, delivery to Supabase – either via X API (Pro tier) or Apify Scraper with regulatory throttling. (Slice: `src/ApifyPipeline/Background/Jobs/TweetCollector`)
+- **Apify Actor:** Data collection, normalization, delivery to Supabase using Apify Twitter Search Scraper with anti-monitoring throttling. (Slice: `src/ApifyPipeline/Background/Jobs/TweetCollector`)
 - **Supabase:** Persistence layer (tables for raw data, normalized tweets, sentiment results) with `sb_secret_*` keys and PG17-compliant extensions. (Slice: `src/ApifyPipeline/DataAccess`)
 - **Google Gemini:** Structured-output classification executed by Supabase Edge Function `sentiment-processor` (source: `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor`).
 - **Next.js Frontend:** Display of statistics, filtering, trend detection; build target Node.js 20+ on Vercel. (Slice: `src/ApifyPipeline/Web/Components/Dashboard`)

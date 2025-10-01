@@ -17,12 +17,12 @@ Architecture note: The pipeline is organized as a Vertical Slice `src/ApifyPipel
 ### 3.1 Data Collection
 - Vercel Cron calls the internal endpoint `/api/start-apify-run`, which proxies the Apify Run API call; intervals under 24h require at least the Vercel Pro plan. The route `app/api/start-apify-run/route.ts` imports the handler `src/ApifyPipeline/Web/Application/Commands/StartApifyRun` (REPR entry point).
 - Manual triggers via Apify UI or REST endpoint remain unchanged.
-- Data collection requires either X API Pro access (~US$5k/month) or the Apify Tweet Scraper; scraper runs must respect anti-monitoring requirements (pauses, max five queries). The actor defaults to a five-minute cooldown between keyword batches and limits each batch to five queries to comply.
+- Data collection uses the Apify Twitter Search Scraper; scraper runs must respect anti-monitoring requirements (pauses, max five queries). The actor defaults to a five-minute cooldown between keyword batches and limits each batch to five queries to comply.
 - Actor uses a predefined keyword list (configurable via Supabase table `keywords`).
 - On API limit errors or network errors, retry occurs (exponential up to 3 attempts).
 - Monitoring of duplicate rate: Stores tweet IDs in Supabase, runs document ratio `new vs. duplicated` (via `cron_runs`).
 
-> Note: X API Pro costs ~US$5k/month; scraper runs risk account throttling at high frequency.
+> Note: Apify scraper runs risk account throttling at high frequency.
 
 ### 3.2 Data Processing
 - Actor normalizes tweets to a uniform schema (`normalized_tweets`).
@@ -56,10 +56,10 @@ Architecture note: The pipeline is organized as a Vertical Slice `src/ApifyPipel
 - **Availability:** Planned uptime 24/7; cron window may fail at most two consecutive runs.
 - **Scalability:** Increase frequency and data sources without code changes (configuration only).
 - **Security:** Secrets as `sb_secret_*` in Vercel/Apify/Supabase secret stores; no secrets in repo and regular rotation.
-- **Compliance:** Adherence to X API Terms or Apify scraper guidelines; data deletion on request.
+- **Compliance:** Adherence to Apify scraper guidelines; data deletion on request.
 
 ## 5. Architecture & Components
-- **Apify Actor:** Node.js/TypeScript scripts, either X API Pro (budget approval) or Apify Tweet Scraper with anti-monitoring pacing. (Slice: `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`)
+- **Apify Actor:** Node.js/TypeScript scripts using Apify Twitter Search Scraper with anti-monitoring pacing. (Slice: `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`)
 - **Supabase:** Postgres + Edge Functions, auth via `sb_secret_*` keys; PG17-compatible extensions (e.g., alternatives to TimescaleDB) are considered. (Slice: `src/ApifyPipeline/DataAccess`)
 - **Sentiment Worker:** Supabase Edge Function with Gemini 2.5 Structured Output, optional Vercel Serverless fallback for bulk re-runs. (Slice: `src/ApifyPipeline/ExternalServices/Gemini`)
 - **Frontend:** Next.js 15 App Router on Vercel (Node.js 20, async Request APIs, `@supabase/ssr` integration). (Slice: `src/ApifyPipeline/Web/Components/Dashboard`)
@@ -125,7 +125,7 @@ cron_runs
 ## 7. Workflows
 ### 7.1 Automatic Run
 1. Vercel Cron calls `/api/start-apify-run` (Vercel Function) which proxies the Apify Run API call. The route imports the slice endpoint `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`.
-2. Actor loads X API Pro credentials or Apify Scraper tokens and reads `keywords` from Supabase.
+2. Actor uses Apify Scraper tokens and reads `keywords` from Supabase.
 3. Actor fetches tweets, stores raw data (`raw_tweets`).
 4. Actor transforms and upserts `normalized_tweets`.
 5. Actor marks records as `pending_sentiment`.
@@ -143,11 +143,11 @@ cron_runs
 - Sentiment worker attempts up to 2 automatic retries; then entry in `sentiment_failures`.
 
 ## 8. Integrations & Secrets
-- **X API / Apify Tokens:** X API Pro keys (Key, Secret, Bearer) or Apify Token in Apify KV Store (Production) and `.env.local` (Development).
+- **Apify Tokens:** Apify Token in Apify KV Store (Production) and `.env.local` (Development).
 - **Supabase Secret Keys:** `sb_secret_*` values in Vercel & Apify Secret Store; `sb_publishable_*` for client-side use.
 - **Gemini API Key:** In Vercel Secret Store (Edge Function) / Supabase Secrets; rotation parallel to model version (`gemini-2.5-*`).
 - **API Authentication:** `CRON_SECRET` for Vercel cron authentication (recommended), `INTERNAL_API_KEY` for manual API triggers (optional).
-- **Environment Variables:** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_FUNCTIONS_URL` (optional override), `SUPABASE_PUBLISHABLE_KEY`, `X_API_KEY`, `APIFY_TOKEN`, `GEMINI_API_KEY`, `CRON_SECRET` (recommended for production), `INTERNAL_API_KEY` (optional for manual triggers), `SENTIMENT_EDGE_FALLBACK` (optional toggle to run the legacy job when the Edge Function fails).
+- **Environment Variables:** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_FUNCTIONS_URL` (optional override), `SUPABASE_PUBLISHABLE_KEY`, `APIFY_TOKEN`, `APIFY_ACTOR_ID`, `GEMINI_API_KEY`, `CRON_SECRET` (recommended for production), `INTERNAL_API_KEY` (optional for manual triggers), `SENTIMENT_EDGE_FALLBACK` (optional toggle to run the legacy job when the Edge Function fails).
 
 ## 9. Deployment & Environments
 - **Development:** Local Actor test with Apify CLI, Supabase local DB or project dev project; Next.js 15 App uses async Request APIs (`npm run dev`, Node 20).
