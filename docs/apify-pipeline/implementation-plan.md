@@ -424,7 +424,7 @@ create trigger keywords_prevent_update
 - `src/ApifyPipeline/Background/Jobs/BackfillProcessor/BackfillProcessorJob.ts` implements queue-based batch processing with priority management and Apify rate limit compliance.
 - `src/ApifyPipeline/DataAccess/Migrations/20250930_1500_AddBackfillBatches.sql` provisions `backfill_batches` table with status tracking, priority ordering, and metadata storage.
 - `app/api/process-backfill/route.ts` exposes endpoint for manual backfill processing (no automated cron).
-- `scripts/enqueue-backfill.ts` enables queuing of 30-day historical backfill (6 batches × 5 days).
+- `scripts/enqueue-backfill.ts` enables queuing of configurable historical backfill (default: 30 days = 6 batches × 5 days; customizable via `BACKFILL_DAYS` and `BACKFILL_BATCH_SIZE` env vars).
 - `scripts/cleanup-old-raw-tweets.ts` and `scripts/cleanup-sentiment-failures.ts` enforce retention policies with dry-run support.
 - `src/ApifyPipeline/Infrastructure/Utilities/auth.ts` extracts reusable authentication logic for API endpoints.
 - `src/ApifyPipeline/Docs/monitoring-guide.md` documents monitoring dashboards, KPIs (success rate >95%, storage <80%), alert channels, and operational queries.

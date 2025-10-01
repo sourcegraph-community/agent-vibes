@@ -36,7 +36,7 @@ with seed_run as (
   ) values (
     '11111111-1111-4111-8111-111111111111',
     'seed-demo',
-    array['agentic ai', 'prompt engineering'],
+    array['ampcode.com', '"ampcode"'],
     now() - interval '1 day',
     now() - interval '1 day' + interval '12 minutes',
     'succeeded',

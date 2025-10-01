@@ -203,7 +203,7 @@ WHERE table_schema = 'public'
 SELECT id, keyword, enabled FROM keywords ORDER BY created_at;
 ```
 
-Expected: 5 tables present, at least 10 keywords with `enabled = true`
+Expected: 5 tables present, 4 keywords with `enabled = true`
 
 ### Step 4: Start Development Server
 
@@ -542,8 +542,14 @@ tsx test-gemini.ts
 **Enqueue Backfill Batches (Once):**
 
 ```bash
-# Enqueue 30 days of backfill in 5-day chunks (6 batches)
+# Default: 30 days in 5-day chunks (6 batches)
 npm run enqueue:backfill
+
+# Testing: Only 5 days (1 batch)
+BACKFILL_DAYS=5 npm run enqueue:backfill
+
+# Custom: 10 days in 5-day chunks (2 batches)
+BACKFILL_DAYS=10 BACKFILL_BATCH_SIZE=5 npm run enqueue:backfill
 ```
 
 **Process Backfill Queue Manually (Repeat 6x):**

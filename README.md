@@ -98,8 +98,8 @@ npm run lint:fix         # Fix linting issues
 ```bash
 npm run health-check               # Validate environment & connections
 npm run apply-migrations           # Apply database migrations programmatically
-npm run enqueue:backfill           # Queue historical data (run once)
-npm run process:backfill           # Process backfill batch (manual, repeat 6x)
+npm run enqueue:backfill           # Queue historical data (run once, configurable)
+npm run process:backfill           # Process backfill batch (manual, repeat per batch)
 npm run replay:sentiments          # Retry failed sentiment processing
 npm run cleanup:raw-tweets         # Archive old raw data
 npm run cleanup:sentiment-failures # Remove stale failure records
@@ -229,7 +229,7 @@ See [VSA Architecture Guide](~/CodeProjects/agent-docs/vsa-architecture.md) for 
 ### Supabase (PostgreSQL)
 
 **Schema:**
-- `keywords` - Tracked search terms
+- `keywords` - Tracked search terms (4 Amp-related keywords)
 - `cron_runs` - Execution history and metrics
 - `raw_tweets` - Original Apify payloads
 - `normalized_tweets` - Standardized tweet data

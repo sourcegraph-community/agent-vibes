@@ -261,8 +261,11 @@ LIMIT 10;
 ### Test Backfill Workflow (Manual Only)
 
 ```bash
-# 1. Enqueue backfill batches (30 days, run once)
-npm run enqueue:backfill
+# 1. Enqueue backfill batches (run once)
+npm run enqueue:backfill  # Default: 30 days
+
+# OR for testing with less data:
+BACKFILL_DAYS=5 npm run enqueue:backfill  # Just 5 days
 
 # 2. Process batches manually (repeat 6 times)
 npm run process:backfill

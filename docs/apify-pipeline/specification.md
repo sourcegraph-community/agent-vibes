@@ -34,7 +34,7 @@ Architecture note: The pipeline is organized as a Vertical Slice `src/ApifyPipel
 - Normalized data in `normalized_tweets`.
 - Sentiment results in `tweet_sentiments`.
 - Historization without mutations (append-only revisions); each status change inserts a new row keyed by tweet ID and incremented `revision`.
-- Backfill strategy: One-time manual division of the last 30 days into 6 batches (5 days each) with increased `maxItems`; processed manually to control rate limits and costs. No automated cron - all backfill processing is user-triggered.
+- Backfill strategy: One-time manual division of historical data into configurable batches (default: 30 days, 5 days per batch = 6 batches) with increased `maxItems`; processed manually to control rate limits and costs. Configurable via `BACKFILL_DAYS` and `BACKFILL_BATCH_SIZE` environment variables for testing. No automated cron - all backfill processing is user-triggered.
 - Slice-specific migrations and seeds are located under `src/ApifyPipeline/DataAccess/Migrations` (naming scheme `yyyyMMdd_HHmm_Description.sql`).
 
 ### 3.4 Sentiment Analysis

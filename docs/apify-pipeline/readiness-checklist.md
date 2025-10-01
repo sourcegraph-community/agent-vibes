@@ -55,7 +55,7 @@ npm run check  # ✅ Passes typecheck + lint
 | Item | Status | Location | Notes |
 |------|--------|----------|-------|
 | Migration Script | ✅ Present | `src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql` | Creates all tables, views, triggers |
-| Seed Script | ✅ Present | `src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql` | Pre-populates 10 keywords |
+| Seed Script | ✅ Present | `src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql` | Pre-populates 4 keywords |
 | Rollback Script | ❌ Missing | N/A | Not critical for local testing |
 
 **Action Required:**

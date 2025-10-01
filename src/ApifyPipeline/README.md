@@ -193,7 +193,7 @@ Vercel Cron → Job → Command Handler → Core Logic → DataAccess/ExternalSe
 **keywords**
 - Tracked search terms
 - Fields: `id`, `keyword`, `enabled`, `created_at`, `updated_at`
-- Seeded with 10+ AI agent names
+- Seeded with 4 Amp-related keywords
 
 **cron_runs**
 - Execution history and metrics
@@ -369,8 +369,10 @@ INTERNAL_API_KEY=your-random-secret-key
 
 **Flow:**
 ```bash
-# 1. Enqueue batches (30 days, 5-day chunks) - RUN ONCE
-npm run enqueue:backfill
+# 1. Enqueue batches (configurable) - RUN ONCE
+npm run enqueue:backfill  # Default: 30 days = 6 batches
+# OR for testing:
+BACKFILL_DAYS=5 npm run enqueue:backfill  # Just 5 days = 1 batch
 
 # 2. Process each batch manually (repeat until queue is empty)
 npm run process:backfill
@@ -383,8 +385,12 @@ npm run process:backfill
 # Backfill is manual-only (no automated cron)
 ```
 
+**Configuration:**
+- `BACKFILL_DAYS` - Total days to backfill (default: 30)
+- `BACKFILL_BATCH_SIZE` - Days per batch (default: 5)
+- Default: 6 batches × 5 days = 30 days total
+
 **Timeline:** 
-- 6 batches total (30 days)
 - Manually process each batch (5-20 minutes per batch)
 - Process all before or after deployment as needed
 
