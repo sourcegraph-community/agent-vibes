@@ -1,4 +1,6 @@
-export type ProcessBackfillCommand = Record<string, never>;
+export interface ProcessBackfillCommand {
+  forceNewApifyRun?: boolean;
+}
 
 export interface ProcessBackfillCommandResult {
   success: boolean;

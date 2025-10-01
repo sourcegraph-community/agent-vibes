@@ -6,7 +6,7 @@ export interface ProcessBackfillDependencies {
 }
 
 export const processBackfillCommandHandler = async (
-  _command: ProcessBackfillCommand,
+  command: ProcessBackfillCommand,
   dependencies: ProcessBackfillDependencies,
 ): Promise<ProcessBackfillCommandResult> => {
   try {
@@ -20,7 +20,9 @@ export const processBackfillCommandHandler = async (
       } satisfies ProcessBackfillCommandResult;
     }
 
-    await job.processBatch(nextBatch.id);
+    await job.processBatch(nextBatch.id, {
+      forceNewApifyRun: command.forceNewApifyRun ?? false,
+    });
 
     return {
       success: true,
