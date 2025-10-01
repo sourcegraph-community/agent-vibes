@@ -332,7 +332,7 @@ export { startApifyRunEndpoint as POST } from '@/src/ApifyPipeline/...'
 - Dataset pagination handling
 
 **Issues:**
-- ⚠️ Line 18: Hardcoded actor ID `'apify/twitter-search-scraper'`
+- ⚠️ Line 18: Hardcoded actor ID `'apidojo/tweet-scraper'`
   - Should be environment variable
 - ⚠️ Line 40: `retries: 2` (spec requires 3)
 
@@ -536,7 +536,7 @@ Duration    ~320ms
 **Status:** INTENTIONAL DESIGN - No change needed
 
 **Analysis:**
-- `DEFAULT_TWITTER_SCRAPER_ACTOR = 'apify/twitter-search-scraper'` serves as a sensible default
+- `DEFAULT_TWITTER_SCRAPER_ACTOR = 'apidojo/tweet-scraper'` serves as a sensible default
 - The function signature `runTwitterScraper(config, actorId = DEFAULT_TWITTER_SCRAPER_ACTOR)` allows override
 - Two actor flows exist by design:
   1. `client.ts` uses `env.actorId` from `APIFY_ACTOR_ID` for API-triggered runs

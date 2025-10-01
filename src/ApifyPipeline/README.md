@@ -286,7 +286,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 # Apify Configuration
 APIFY_TOKEN=your-apify-token
-APIFY_ACTOR_ID=apify/twitter-search-scraper
+APIFY_ACTOR_ID=apidojo/tweet-scraper
 # APIFY_ACTOR_BUILD=latest  # Optional
 
 # Google Gemini Configuration

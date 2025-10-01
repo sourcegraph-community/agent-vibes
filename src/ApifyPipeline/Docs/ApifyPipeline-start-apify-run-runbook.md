@@ -91,7 +91,7 @@ Supabase Persistence (cron_runs, raw_tweets, normalized_tweets)
 SUPABASE_URL              # Supabase project URL
 SUPABASE_SERVICE_ROLE_KEY # Service role key (sb_secret_*)
 APIFY_TOKEN               # Apify API token
-APIFY_ACTOR_ID            # Twitter scraper actor ID (default: apify/twitter-search-scraper)
+APIFY_ACTOR_ID            # Twitter scraper actor ID (default: apidojo/tweet-scraper)
 ```
 
 **Verification:**

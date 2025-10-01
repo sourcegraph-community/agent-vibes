@@ -39,7 +39,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-anon-key]
 
 # Apify (from Dashboard → Settings → Integrations)
 APIFY_TOKEN=[your-apify-token]
-APIFY_ACTOR_ID=apify/twitter-search-scraper
+APIFY_ACTOR_ID=apidojo/tweet-scraper
 
 # Gemini (from https://aistudio.google.com/)
 GEMINI_API_KEY=[your-gemini-api-key]
@@ -329,7 +329,7 @@ npm run lint:fix       # Auto-fix lint issues
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ Yes | Client DB access | Same as SUPABASE_URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ Yes | Client DB access | Supabase Dashboard → API |
 | `APIFY_TOKEN` | ✅ Yes | Tweet collection | Apify Dashboard → Integrations |
-| `APIFY_ACTOR_ID` | ✅ Yes | Actor to run | Use: `apify/twitter-search-scraper` |
+| `APIFY_ACTOR_ID` | ✅ Yes | Actor to run | Use: `apidojo/tweet-scraper` |
 | `GEMINI_API_KEY` | ✅ Yes | Sentiment analysis | Google AI Studio |
 | `INTERNAL_API_KEY` | ⚠️ Optional | Manual API auth | Generate: `openssl rand -hex 32` |
 | `APIFY_ACTOR_BUILD` | ❌ No | Actor version | Defaults to latest |

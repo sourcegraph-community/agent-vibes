@@ -68,7 +68,8 @@ export const startApifyActorRun = async (
 
   const env = getApifyEnv();
 
-  const requestUrl = new URL(`${APIFY_API_BASE_URL}/acts/${env.actorId}/runs`);
+  const actorPath = env.actorId.replace(/\//g, '~');
+  const requestUrl = new URL(`${APIFY_API_BASE_URL}/acts/${actorPath}/runs`);
   requestUrl.searchParams.set('token', env.token);
 
   const response = await fetch(requestUrl, {

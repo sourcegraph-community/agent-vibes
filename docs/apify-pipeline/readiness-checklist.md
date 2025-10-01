@@ -100,7 +100,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 
 # Apify Configuration
 APIFY_TOKEN=your-apify-token-here
-APIFY_ACTOR_ID=apify/twitter-search-scraper
+APIFY_ACTOR_ID=apidojo/tweet-scraper
 
 # Google Gemini Configuration
 GEMINI_API_KEY=your-gemini-api-key-here
@@ -242,7 +242,7 @@ Before running the first test, complete these steps:
   - [ ] Account created (or free trial activated)
   - [ ] API token generated
   - [ ] Sufficient compute units available
-  - [ ] Access to `apify/twitter-search-scraper` verified
+  - [ ] Access to `apidojo/tweet-scraper` verified
 
 - [ ] **Google Gemini API Access**
   - [ ] API key obtained from [AI Studio](https://aistudio.google.com/)
@@ -347,7 +347,7 @@ Before running the first test, complete these steps:
    - **Priority:** Medium
 
 4. **Apify Actor Custom Build** (unclear if needed)
-   - **Impact:** Relies on public `apify/twitter-search-scraper`
+   - **Impact:** Relies on public `apidojo/tweet-scraper`
    - **Current Status:** Using public actor (sufficient for testing)
    - **Priority:** Low (public actor works)
 

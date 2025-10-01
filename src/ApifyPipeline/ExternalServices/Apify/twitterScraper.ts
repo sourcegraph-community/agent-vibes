@@ -17,7 +17,7 @@ export interface TwitterScraperConfig {
   };
 }
 
-export const DEFAULT_TWITTER_SCRAPER_ACTOR = 'apify/twitter-search-scraper';
+export const DEFAULT_TWITTER_SCRAPER_ACTOR = 'apidojo/tweet-scraper';
 
 export const runTwitterScraper = async (
   config: TwitterScraperConfig,

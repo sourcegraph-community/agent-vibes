@@ -76,7 +76,7 @@ This guide provides step-by-step instructions for testing the Apify Pipeline loc
 
 2. **Apify Account** (required for tweet collection)
    - Active account with API token
-   - Access to `apify/twitter-search-scraper` actor or custom actor
+   - Access to `apidojo/tweet-scraper` actor (or compatible custom actor)
    - Sufficient compute units for testing
 
 3. **Google Gemini API** (required for sentiment analysis)
@@ -134,7 +134,7 @@ DATABASE_URL=postgresql://postgres.<ref>@aws-1-<region>.pooler.supabase.com:5432
 
 # Apify Configuration (REQUIRED for tweet collection)
 APIFY_TOKEN=your-apify-token
-APIFY_ACTOR_ID=apify/twitter-search-scraper
+APIFY_ACTOR_ID=apidojo/tweet-scraper
 # Optional: specify actor build
 # APIFY_ACTOR_BUILD=latest
 
@@ -162,7 +162,7 @@ INTERNAL_API_KEY=your-random-secret-key
 **Apify:**
 - Dashboard → Settings → Integrations
 - `APIFY_TOKEN`: "Personal API tokens"
-- `APIFY_ACTOR_ID`: Use `apify/twitter-search-scraper` or your custom actor ID
+- `APIFY_ACTOR_ID`: Use `apidojo/tweet-scraper` or your custom actor ID
 
 **Google Gemini:**
 - Visit [Google AI Studio](https://aistudio.google.com/)
@@ -278,7 +278,7 @@ curl -X POST http://localhost:3000/api/start-apify-run \
 {
   "data": {
     "runId": "abc123-def456-...",
-    "actorId": "apify/twitter-search-scraper",
+    "actorId": "apidojo/tweet-scraper",
     "status": "RUNNING",
     "url": "https://console.apify.com/actors/.../runs/...",
     "startedAt": "2025-09-30T17:11:00.000Z"

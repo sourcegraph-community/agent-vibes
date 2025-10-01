@@ -158,7 +158,7 @@ Update JSON fixtures to adjust stats, copy, or chart data - routes reload on eve
 | `NEXT_PUBLIC_SUPABASE_URL` | Client DB access | ✅ Yes | Same as SUPABASE_URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client DB access | ✅ Yes | Team 1Password vault |
 | `APIFY_TOKEN` | Tweet collection | ✅ Yes | Ask #ops-oncall |
-| `APIFY_ACTOR_ID` | Actor to run | ✅ Yes | `apify/twitter-search-scraper` |
+| `APIFY_ACTOR_ID` | Actor to run | ✅ Yes | `apidojo/tweet-scraper` |
 | `GEMINI_API_KEY` | Sentiment analysis | ✅ Yes | Ask #ops-oncall |
 | `INTERNAL_API_KEY` | Manual API auth | ⚠️ Optional | Generate: `openssl rand -hex 32` |
 

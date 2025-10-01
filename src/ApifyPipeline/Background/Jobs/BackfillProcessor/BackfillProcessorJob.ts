@@ -87,6 +87,8 @@ export class BackfillProcessorJob {
         startDate: batch.startDate,
         endDate: batch.endDate,
         maxItems,
+        actorPath: env.actorId.replace(/\//g, '~'),
+        token: env.token,
       });
 
       await this.recordBatchExecution(batchId, runId);
@@ -157,13 +159,14 @@ export class BackfillProcessorJob {
     startDate: string;
     endDate: string;
     maxItems: number;
+    actorPath: string;
+    token: string;
   }): Promise<string> {
-    const env = getApifyEnv();
-    const response = await fetch(`https://api.apify.com/v2/acts/${env.actorId}/runs`, {
+    const response = await fetch(`https://api.apify.com/v2/acts/${params.actorPath}/runs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${env.token}`,
+        Authorization: `Bearer ${params.token}`,
       },
       body: JSON.stringify({
         input: {
