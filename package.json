@@ -19,7 +19,7 @@
     "rotate:supabase": "tsx scripts/rotate-supabase-secrets.ts",
     "replay:sentiments": "tsx scripts/replay-failed-sentiments.ts",
     "enqueue:backfill": "tsx scripts/enqueue-backfill.ts",
-    "process:backfill": "curl -X POST http://localhost:3000/api/process-backfill -H 'x-api-key: $INTERNAL_API_KEY'",
+    "process:backfill": "tsx scripts/process-backfill.ts",
     "cleanup:raw-tweets": "tsx scripts/cleanup-old-raw-tweets.ts",
     "cleanup:sentiment-failures": "tsx scripts/cleanup-sentiment-failures.ts",
     "health-check": "tsx scripts/health-check.ts",

@@ -570,10 +570,10 @@ BACKFILL_DAYS=10 BACKFILL_BATCH_SIZE=5 npm run enqueue:backfill
 **Process Backfill Queue Manually (Repeat 6x):**
 
 ```bash
-# Option 1: Via npm script
+# Option 1: Via npm script (loads .env.local and calls the job directly)
 npm run process:backfill
 
-# Option 2: Via API
+# Option 2: Via API (requires dev server running and INTERNAL_API_KEY header)
 curl -X POST http://localhost:3000/api/process-backfill \
   -H "x-api-key: $INTERNAL_API_KEY"
 ```
