@@ -10,12 +10,37 @@ const isJsonRequest = (request: Request): boolean => {
   return contentType?.includes('application/json') ?? false;
 };
 
+const isAuthorized = (request: Request): boolean => {
+  // Allow Vercel Cron requests with CRON_SECRET
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    return true;
+  }
+
+  // Fallback: Allow requests with x-vercel-cron header (legacy support)
+  if (request.headers.get('x-vercel-cron')) {
+    return true;
+  }
+
+  // Allow manual requests with valid API key
+  const apiKey = request.headers.get('x-api-key');
+  const expectedKey = process.env.INTERNAL_API_KEY;
+
+  if (expectedKey && apiKey === expectedKey) {
+    return true;
+  }
+
+  return false;
+};
+
 const resolveTriggerSource = (request: Request, provided?: string): string => {
   if (provided) {
     return provided;
   }
 
-  if (request.headers.get('x-vercel-cron')) {
+  if (request.headers.get('x-vercel-cron') || request.headers.get('authorization')?.startsWith('Bearer ')) {
     return 'vercel-cron';
   }
 
@@ -25,6 +50,14 @@ const resolveTriggerSource = (request: Request, provided?: string): string => {
 export const startApifyRunEndpoint = async (request: Request): Promise<Response> => {
   if (request.method !== 'POST') {
     return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+  }
+
+  // Authentication check
+  if (!isAuthorized(request)) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 },
+    );
   }
 
   let payload: Partial<StartApifyRunCommandInput> = {};

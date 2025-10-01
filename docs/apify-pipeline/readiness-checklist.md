@@ -84,6 +84,7 @@ npm run check  # ✅ Passes typecheck + lint
 | `APIFY_TOKEN` | Tweet collection | `/api/start-apify-run` | **HIGH** |
 | `APIFY_ACTOR_ID` | Tweet collection | `/api/start-apify-run` | Low |
 | `GEMINI_API_KEY` | Sentiment analysis | `/api/process-sentiments` | **HIGH** |
+| `CRON_SECRET` | Vercel cron authentication | `/api/start-apify-run` (recommended) | **HIGH** |
 | `INTERNAL_API_KEY` | Manual API calls | Manual triggers (optional) | **MEDIUM** |
 
 **Action Items:**
@@ -103,6 +104,9 @@ APIFY_ACTOR_ID=apify/twitter-search-scraper
 
 # Google Gemini Configuration
 GEMINI_API_KEY=your-gemini-api-key-here
+
+# API Authentication (Production Recommended)
+CRON_SECRET=your-random-secret-key-here
 
 # Optional: For manual API testing
 INTERNAL_API_KEY=your-random-secret-key-here

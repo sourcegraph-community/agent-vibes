@@ -51,19 +51,21 @@ export const handleProcessSentiments = async (
       maxRetries: command.maxRetries,
     });
 
-    return fallback.success
-      ? {
-          success: true,
-          message: `Fallback job succeeded after edge failure: ${fallback.stats.processed} processed, ${fallback.stats.failed} failed`,
-          stats: fallback.stats,
-          source: 'fallback_job',
-        }
-      : {
-          success: false,
-          message: `Edge function failed (${edgeResponse.message}) and fallback job also failed (${fallback.error ?? 'Unknown error'})`,
-          stats: fallback.stats,
-          source: 'fallback_job',
-        } satisfies ProcessSentimentsResponse;
+    if (fallback.success) {
+      return {
+        success: true,
+        message: `Fallback job succeeded after edge failure: ${fallback.stats.processed} processed, ${fallback.stats.failed} failed`,
+        stats: fallback.stats,
+        source: 'fallback_job',
+      } satisfies ProcessSentimentsResponse;
+    }
+
+    return {
+      success: false,
+      message: `Edge function failed (${edgeResponse.message}) and fallback job also failed (${fallback.error ?? 'Unknown error'})`,
+      stats: fallback.stats,
+      source: 'fallback_job',
+    } satisfies ProcessSentimentsResponse;
   }
   catch (error) {
     if (fallbackEnabled) {
@@ -73,19 +75,21 @@ export const handleProcessSentiments = async (
         maxRetries: command.maxRetries,
       });
 
-      return fallback.success
-        ? {
-            success: true,
-            message: `Fallback job succeeded after edge exception: ${fallback.stats.processed} processed, ${fallback.stats.failed} failed`,
-            stats: fallback.stats,
-            source: 'fallback_job',
-          }
-        : {
-            success: false,
-            message: `Edge function request errored (${error instanceof Error ? error.message : String(error)}) and fallback failed (${fallback.error ?? 'Unknown error'})`,
-            stats: fallback.stats,
-            source: 'fallback_job',
-          } satisfies ProcessSentimentsResponse;
+      if (fallback.success) {
+        return {
+          success: true,
+          message: `Fallback job succeeded after edge exception: ${fallback.stats.processed} processed, ${fallback.stats.failed} failed`,
+          stats: fallback.stats,
+          source: 'fallback_job',
+        } satisfies ProcessSentimentsResponse;
+      }
+
+      return {
+        success: false,
+        message: `Edge function request errored (${error instanceof Error ? error.message : String(error)}) and fallback failed (${fallback.error ?? 'Unknown error'})`,
+        stats: fallback.stats,
+        source: 'fallback_job',
+      } satisfies ProcessSentimentsResponse;
     }
 
     return {

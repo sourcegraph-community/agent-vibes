@@ -197,29 +197,6 @@ Actor.main(async () => {
     const processedDuplicateCount = existingPlatformIds.size;
     const processedErrorCount = errors.length;
     const status = determineStatus(processedNewCount, errors);
-    const finishedAt = new Date().toISOString();
-
-    await insertCronRun(supabase, {
-      id: runId,
-      triggerSource: input.triggerSource,
-      keywordBatch: keywords,
-      startedAt,
-      finishedAt,
-      status,
-      processedNewCount,
-      processedDuplicateCount,
-      processedErrorCount,
-      metadata: {
-        batchesAttempted: keywordBatches.length,
-        requestedMaxItems: ingestionConfig.maxItemsPerKeyword,
-        sort: ingestionConfig.sort,
-        tweetLanguage: ingestionConfig.tweetLanguage,
-        requestedAt: startedAt,
-        inputMetadata: input.metadata ?? {},
-        candidateCount: candidateMap.size,
-      },
-      errors,
-    });
 
     const rawRows = Array.from(normalizedPrototypes.keys()).map((platformId) => {
       const candidate = candidateMap.get(platformId);
@@ -258,6 +235,31 @@ Actor.main(async () => {
     if (normalizedRows.length > 0) {
       await insertNormalizedTweets(supabase, normalizedRows);
     }
+
+    // Insert cron run AFTER successful data persistence
+    const finishedAt = new Date().toISOString();
+
+    await insertCronRun(supabase, {
+      id: runId,
+      triggerSource: input.triggerSource,
+      keywordBatch: keywords,
+      startedAt,
+      finishedAt,
+      status,
+      processedNewCount,
+      processedDuplicateCount,
+      processedErrorCount,
+      metadata: {
+        batchesAttempted: keywordBatches.length,
+        requestedMaxItems: ingestionConfig.maxItemsPerKeyword,
+        sort: ingestionConfig.sort,
+        tweetLanguage: ingestionConfig.tweetLanguage,
+        requestedAt: startedAt,
+        inputMetadata: input.metadata ?? {},
+        candidateCount: candidateMap.size,
+      },
+      errors,
+    });
 
     log.info('Apify ingestion run completed.', {
       runId,

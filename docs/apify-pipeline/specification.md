@@ -146,7 +146,8 @@ cron_runs
 - **X API / Apify Tokens:** X API Pro keys (Key, Secret, Bearer) or Apify Token in Apify KV Store (Production) and `.env.local` (Development).
 - **Supabase Secret Keys:** `sb_secret_*` values in Vercel & Apify Secret Store; `sb_publishable_*` for client-side use.
 - **Gemini API Key:** In Vercel Secret Store (Edge Function) / Supabase Secrets; rotation parallel to model version (`gemini-2.5-*`).
-- **Environment Variables:** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_FUNCTIONS_URL` (optional override), `SUPABASE_PUBLISHABLE_KEY`, `X_API_KEY`, `APIFY_TOKEN`, `GEMINI_API_KEY`, `GEMINI_MODEL` (defaults to `gemini-2.5-flash`), `SENTIMENT_EDGE_FALLBACK` (optional toggle to run the legacy job when the Edge Function fails).
+- **API Authentication:** `CRON_SECRET` for Vercel cron authentication (recommended), `INTERNAL_API_KEY` for manual API triggers (optional).
+- **Environment Variables:** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_FUNCTIONS_URL` (optional override), `SUPABASE_PUBLISHABLE_KEY`, `X_API_KEY`, `APIFY_TOKEN`, `GEMINI_API_KEY`, `CRON_SECRET` (recommended for production), `INTERNAL_API_KEY` (optional for manual triggers), `SENTIMENT_EDGE_FALLBACK` (optional toggle to run the legacy job when the Edge Function fails).
 
 ## 9. Deployment & Environments
 - **Development:** Local Actor test with Apify CLI, Supabase local DB or project dev project; Next.js 15 App uses async Request APIs (`npm run dev`, Node 20).

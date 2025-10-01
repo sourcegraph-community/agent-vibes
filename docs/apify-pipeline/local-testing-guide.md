@@ -135,6 +135,9 @@ APIFY_ACTOR_ID=apify/twitter-search-scraper
 # Google Gemini Configuration (REQUIRED for sentiment analysis)
 GEMINI_API_KEY=your-gemini-api-key
 
+# API Authentication (Production Recommended)
+CRON_SECRET=your-random-secret-key
+
 # Internal API Key (RECOMMENDED for manual testing)
 INTERNAL_API_KEY=your-random-secret-key
 
@@ -160,11 +163,17 @@ INTERNAL_API_KEY=your-random-secret-key
 - Click "Get API key" → Create new key
 - `GEMINI_API_KEY`: Copy the generated key
 
+**CRON_SECRET (Production Recommended):**
+- Generate a secure random string: `openssl rand -hex 32`
+- `CRON_SECRET`: Used by Vercel for cron job authentication (sent as `Authorization: Bearer` header)
+- Required for: `/api/start-apify-run` when deployed to Vercel
+- Vercel automatically includes this in cron requests
+
 **Internal API Key (Optional but Recommended):**
 - Generate a secure random string: `openssl rand -hex 32`
 - `INTERNAL_API_KEY`: Used for authenticating manual API calls
-- Required for: `/api/process-backfill`, `/api/process-sentiments` (when called manually)
-- Vercel Cron jobs bypass this authentication
+- Required for: `/api/start-apify-run`, `/api/process-backfill`, `/api/process-sentiments` (when called manually)
+- Fallback authentication method when CRON_SECRET is not available
 
 ### Step 3: Database Setup
 
@@ -371,7 +380,7 @@ LIMIT 5;
 - `sentiment_label`: one of `positive`, `neutral`, `negative`
 - `sentiment_score`: between -1.0 and 1.0
 - `summary`: brief text summary
-- `model_version`: `gemini-2.0-flash-exp` (or configured model)
+- `model_version`: `gemini-2.5-flash` (or configured model)
 
 **Update Normalized Tweet Status:**
 ```sql
@@ -516,7 +525,7 @@ tsx test-gemini.ts
   sentimentLabel: 'positive',
   sentimentScore: 0.8,
   summary: 'Highly positive feedback about AI coding agent...',
-  modelVersion: 'gemini-2.0-flash-exp',
+  modelVersion: 'gemini-2.5-flash',
   tokensUsed: 42,
   latencyMs: 1250
 }
