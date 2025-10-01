@@ -423,18 +423,18 @@ create trigger keywords_prevent_update
 #### Delivery Notes (2025-09-30)
 - `src/ApifyPipeline/Background/Jobs/BackfillProcessor/BackfillProcessorJob.ts` implements queue-based batch processing with priority management and Apify rate limit compliance.
 - `src/ApifyPipeline/DataAccess/Migrations/20250930_1500_AddBackfillBatches.sql` provisions `backfill_batches` table with status tracking, priority ordering, and metadata storage.
-- `app/api/process-backfill/route.ts` exposes endpoint for Vercel Cron integration (every 6 hours).
+- `app/api/process-backfill/route.ts` exposes endpoint for manual backfill processing (no automated cron).
 - `scripts/enqueue-backfill.ts` enables queuing of 30-day historical backfill (6 batches × 5 days).
 - `scripts/cleanup-old-raw-tweets.ts` and `scripts/cleanup-sentiment-failures.ts` enforce retention policies with dry-run support.
 - `src/ApifyPipeline/Infrastructure/Utilities/auth.ts` extracts reusable authentication logic for API endpoints.
 - `src/ApifyPipeline/Docs/monitoring-guide.md` documents monitoring dashboards, KPIs (success rate >95%, storage <80%), alert channels, and operational queries.
 - `src/ApifyPipeline/Docs/data-retention-policy.md` defines retention periods (raw_tweets: 90 days, sentiment_failures: 30 days), compliance procedures (GDPR/CCPA), and automated cleanup schedules.
 - `src/ApifyPipeline/Docs/incident-response-runbook.md` provides step-by-step recovery procedures for Apify rate limits, Supabase storage exhaustion, Gemini quota issues, and Vercel cron failures.
-- `vercel.json` updated with backfill cron job (6-hour intervals).
+- `vercel.json` configured with automated crons for regular collection (every 2h) and sentiment processing (every 30min). Backfill is manual-only.
 - **Environment Variables Required:** Existing variables sufficient; no new requirements.
 
 #### Production Readiness (2025-09-30)
-- ✅ **Backfill System:** Queue-based processing with priority management; respects Apify rate limits (6-hour intervals, ≤5 queries).
+- ✅ **Backfill System:** Queue-based processing with priority management; manual-only trigger to control rate limits and costs (no automated cron, ≤5 queries per batch).
 - ✅ **Monitoring:** Comprehensive dashboards documented with actionable KPIs and SQL queries.
 - ✅ **Data Retention:** Policies defined with automated cleanup scripts and compliance procedures.
 - ✅ **Incident Response:** Detailed runbooks for 4 critical scenarios with time-boxed recovery steps.

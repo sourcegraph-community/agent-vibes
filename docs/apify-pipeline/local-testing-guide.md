@@ -537,21 +537,24 @@ tsx test-gemini.ts
 
 ### Test Complete Workflows
 
-#### Workflow 1: Backfill Historical Data
+#### Workflow 1: Backfill Historical Data (Manual Only)
 
-**Enqueue Backfill Batches:**
+**Enqueue Backfill Batches (Once):**
 
 ```bash
-# Enqueue 7 days of backfill in 1-day chunks
-npm run enqueue:backfill -- --days=7 --batch-size=1
+# Enqueue 30 days of backfill in 5-day chunks (6 batches)
+npm run enqueue:backfill
 ```
 
-**Process Backfill Queue:**
+**Process Backfill Queue Manually (Repeat 6x):**
 
 ```bash
-# Process one batch at a time
+# Option 1: Via npm script
+npm run process:backfill
+
+# Option 2: Via API
 curl -X POST http://localhost:3000/api/process-backfill \
-  -H "Content-Type: application/json"
+  -H "x-api-key: $INTERNAL_API_KEY"
 ```
 
 **Monitor Backfill Progress:**
@@ -565,14 +568,15 @@ SELECT
   status,
   keywords,
   created_at,
-  processed_at
+  updated_at
 FROM backfill_batches
-ORDER BY created_at DESC;
+ORDER BY priority DESC, created_at;
 ```
 
 **Expected:**
-- Batches transition: `pending` → `processing` → `completed`
-- `metadata` contains `apifyRunId` and `completedAt`
+- Batches transition: `pending` → `running` → `completed`
+- `metadata` contains `apifyRunId` and processing details
+- No automated cron - all processing is manual
 - Historical tweets appear in `normalized_tweets` with earlier `posted_at` dates
 
 #### Workflow 2: Failed Sentiment Replay

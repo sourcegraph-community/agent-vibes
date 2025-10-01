@@ -96,12 +96,14 @@ npm run lint:fix         # Fix linting issues
 
 ### Apify Pipeline Operations
 ```bash
-npm run health-check              # Validate environment & connections
-npm run enqueue:backfill          # Queue historical data collection
-npm run replay:sentiments         # Retry failed sentiment processing
-npm run cleanup:raw-tweets        # Archive old raw data
+npm run health-check               # Validate environment & connections
+npm run apply-migrations           # Apply database migrations programmatically
+npm run enqueue:backfill           # Queue historical data (run once)
+npm run process:backfill           # Process backfill batch (manual, repeat 6x)
+npm run replay:sentiments          # Retry failed sentiment processing
+npm run cleanup:raw-tweets         # Archive old raw data
 npm run cleanup:sentiment-failures # Remove stale failure records
-npm run rotate:supabase           # Rotate Supabase secrets (ops only)
+npm run rotate:supabase            # Rotate Supabase secrets (ops only)
 ```
 
 ---
@@ -124,6 +126,7 @@ Automated social intelligence system that collects tweets about AI coding agents
 - Dashboard: `/dashboard` (overview, keywords, tweets)
 - API Endpoints: `/api/start-apify-run`, `/api/process-sentiments`, `/api/process-backfill`
 - Documentation: [src/ApifyPipeline/README.md](src/ApifyPipeline/README.md)
+- Collection Strategy: [docs/apify-pipeline/collection-strategy.md](docs/apify-pipeline/collection-strategy.md) - **Backfill vs Regular Collection**
 - Testing Guide: [docs/apify-pipeline/local-testing-guide.md](docs/apify-pipeline/local-testing-guide.md)
 - Operational Runbook: [src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md](src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md)
 
@@ -209,8 +212,9 @@ See [VSA Architecture Guide](~/CodeProjects/agent-docs/vsa-architecture.md) for 
 - Domain: Internal Vercel URL (not public domain yet)
 
 **Cron Jobs (Vercel):**
-- Tweet Collection: Runs every 6 hours
-- Sentiment Processing: Runs every hour
+- Tweet Collection: Every 2 hours (`/api/start-apify-run`)
+- Sentiment Processing: Every 30 minutes (`/api/process-sentiments`)
+- Backfill Processing: Manual only (no automated cron)
 - Requires: Vercel Pro plan for <24h intervals
 
 **Configuration:**
@@ -243,11 +247,14 @@ See [VSA Architecture Guide](~/CodeProjects/agent-docs/vsa-architecture.md) for 
 
 **Apply Migrations:**
 ```bash
-# Option 1: Supabase CLI (recommended)
+# Option 1: Programmatically (recommended for local)
+npm run apply-migrations
+
+# Option 2: Supabase CLI
 supabase db push
 
-# Option 2: Manual via Supabase Studio
-# Execute SQL files in order via SQL Editor
+# Option 3: Manual via Supabase Studio SQL Editor
+# Execute SQL files in order from src/ApifyPipeline/DataAccess/Migrations/
 ```
 
 ---

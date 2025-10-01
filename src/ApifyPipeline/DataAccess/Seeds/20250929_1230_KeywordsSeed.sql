@@ -2,11 +2,10 @@ begin;
 
 insert into public.keywords (keyword, is_enabled, priority, source, note)
 values
-  ('agentic ai', true, 10, 'analytics', 'Core campaign keyword'),
-  ('prompt engineering', true, 20, 'analytics', 'High-signal technique discussions'),
-  ('autonomous agents', true, 30, 'analytics', 'Track broader agent discourse'),
-  ('workflow automation', false, 40, 'analytics', 'Secondary focus – keep disabled until Q4'),
-  ('multi-agent systems', true, 30, 'analytics', 'Monitor academic/research mentions')
+  ('ampcode.com', true, 10, 'marketing', 'Direct domain mentions'),
+  ('"ampcode"', true, 20, 'marketing', 'Exact product name matches'),
+  ('"sourcegraph amp"', true, 30, 'marketing', 'Full product references'),
+  ('(to:ampcode)', true, 40, 'marketing', 'Direct mentions and replies')
 on conflict (keyword) do update set
   is_enabled = excluded.is_enabled,
   priority = excluded.priority,

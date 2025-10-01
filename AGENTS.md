@@ -1,7 +1,7 @@
 - Stack: Next.js 15 (App Router), TypeScript, Tailwind v4 (@tailwindcss/postcss), Supabase (Postgres + Edge Functions), Apify (Twitter scraping), Gemini 2.5 (sentiment analysis)
 - Dev/build/start: `npm run dev` | `npm run build` | `npm run start` (Turbopack)
 - Typecheck/lint/tests: `npm run typecheck`; lint: `npm run lint`; fix: `npm run fix`; combined: `npm run check`; tests: `npm test`; watch: `npm run test:watch`
-- Apify Pipeline scripts: `npm run build:edge-functions` (build Edge Functions), `npm run functions:serve` (serve Edge Functions locally), `npm run health-check` (validate env), `npm run enqueue:backfill` (queue historical data), `npm run replay:sentiments` (retry failures), `npm run cleanup:raw-tweets` (cleanup old data), `npm run rotate:supabase` (rotate secrets)
+- Apify Pipeline scripts: `npm run apply-migrations` (apply DB migrations), `npm run build:edge-functions` (build Edge Functions), `npm run functions:serve` (serve Edge Functions locally), `npm run health-check` (validate env), `npm run enqueue:backfill` (queue historical data, run once), `npm run process:backfill` (process batch manually, repeat 6x), `npm run replay:sentiments` (retry failures), `npm run cleanup:raw-tweets` (cleanup old data), `npm run rotate:supabase` (rotate secrets)
 - App Router: [layout.tsx](app/layout.tsx), [page.tsx](app/page.tsx) (client), [globals.css](app/globals.css)
 - API routes (Knock): [subscribe/route.ts](app/api/notifications/subscribe/route.ts), [send/route.ts](app/api/notifications/send/route.ts) using `@knocklabs/node`
 - Service Worker: [public/sw.js](public/sw.js); registered via [useKnockNotifications.ts](app/hooks/useKnockNotifications.ts)
@@ -26,7 +26,7 @@
 - Architecture: Vertical Slice Architecture (VSA) - features in `src/ApifyPipeline` own end-to-end use cases (Web/Application/Commands, Background/Jobs, Core, DataAccess, ExternalServices)
 - Supabase Edge Functions: Source in `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor`, built to `supabase/functions/` via `npm run build:edge-functions` (git-ignored); Deno runtime requires `.ts` extensions in imports
 - VSA pattern: Request → Endpoint → Handler → Core Logic → Repository → Response; side-effects at boundaries; pure functions in Core
-- Apify Pipeline: Tweet collection (Apify Actor) → normalization → sentiment analysis (Gemini via Supabase Edge Function) → dashboard (Next.js); see [docs/apify-pipeline](docs/apify-pipeline) for full spec
+- Apify Pipeline: Regular collection (every 2h via Vercel cron) + manual backfill → normalization → sentiment analysis (every 30min via cron, Gemini via Supabase Edge Function) → dashboard (Next.js); backfill is manual-only (no automated cron); see [docs/apify-pipeline/collection-strategy.md](docs/apify-pipeline/collection-strategy.md) for collection strategy
 - Apify Docs: `https://docs.apify.com/`
 - Vercel Docs: `https://vercel.com/docs`
 - Supabase Docs: `https://supabase.com/docs`

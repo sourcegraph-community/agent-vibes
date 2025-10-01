@@ -1,12 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/process-sentiments",
-      "schedule": "*/30 * * * *"
+      "path": "/api/start-apify-run",
+      "schedule": "0 */2 * * *"
     },
     {
-      "path": "/api/process-backfill",
-      "schedule": "0 */6 * * *"
+      "path": "/api/process-sentiments",
+      "schedule": "*/30 * * * *"
     }
   ]
 }

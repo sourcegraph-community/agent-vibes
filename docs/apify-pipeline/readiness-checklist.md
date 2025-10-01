@@ -442,9 +442,10 @@ curl -X POST http://localhost:3000/api/process-sentiments \
   -H "Content-Type: application/json" \
   -d '{"batchSize": 5}'
 
-# Process backfill (requires INTERNAL_API_KEY)
+# Process backfill manually (requires INTERNAL_API_KEY, repeat 6x)
 curl -X POST http://localhost:3000/api/process-backfill \
   -H "x-api-key: $INTERNAL_API_KEY"
+# Note: Backfill is manual-only, no automated cron
 ```
 
 ---

@@ -331,12 +331,12 @@ INTERNAL_API_KEY=your-random-secret-key
 
 ### 1. Scheduled Collection (Automated)
 
-**Frequency:** Every 6 hours (Vercel cron)
+**Frequency:** Every 2 hours (Vercel cron)
 
 **Flow:**
 1. Cron triggers `/api/start-apify-run`
 2. Handler fetches enabled keywords
-3. Apify scrapes tweets (Top sort, 200 per keyword)
+3. Apify scrapes tweets (Top sort, 50-100 per keyword)
 4. Results normalized and stored
 5. Duplicate tweets skipped
 6. Metrics recorded in `cron_runs`
@@ -345,9 +345,11 @@ INTERNAL_API_KEY=your-random-secret-key
 - Check `cron_runs` table for status
 - Alert on `status = 'failed'` or low `processed_new_count`
 
+**Note:** See [Collection Strategy Guide](../../docs/apify-pipeline/collection-strategy.md) for details on regular vs backfill collection.
+
 ### 2. Scheduled Sentiment Processing (Automated)
 
-**Frequency:** Every 1 hour (Vercel cron)
+**Frequency:** Every 30 minutes (Vercel cron)
 
 **Flow:**
 1. Cron triggers `/api/process-sentiments`
@@ -361,26 +363,34 @@ INTERNAL_API_KEY=your-random-secret-key
 - Alert on high failure count
 - Monitor Gemini API quota usage
 
-### 3. Historical Backfill (Manual)
+### 3. Historical Backfill (One-Time Setup)
 
-**Use Case:** Collect historical data before pipeline was deployed
+**Use Case:** Collect historical data when first setting up the pipeline
 
 **Flow:**
 ```bash
-# 1. Enqueue batches (7 days, 1-day chunks)
-npm run enqueue:backfill -- --days=7 --batch-size=1
+# 1. Enqueue batches (30 days, 5-day chunks) - RUN ONCE
+npm run enqueue:backfill
 
-# 2. Process batches one at a time
-curl -X POST http://localhost:3000/api/process-backfill \
-  -H "x-api-key: $INTERNAL_API_KEY"
+# 2. Process each batch manually (repeat until queue is empty)
+npm run process:backfill
 
-# 3. Check queue status
+# 3. Check queue status between batches
 # SQL: SELECT * FROM backfill_batches ORDER BY created_at DESC;
 
-# 4. Repeat step 2 until all batches processed
+# 4. Deploy to Vercel
+# Regular collection starts automatically (every 2h)
+# Backfill is manual-only (no automated cron)
 ```
 
-**Timeline:** Each batch takes ~5-20 minutes depending on Apify actor performance.
+**Timeline:** 
+- 6 batches total (30 days)
+- Manually process each batch (5-20 minutes per batch)
+- Process all before or after deployment as needed
+
+**Important:** Backfill is manual-only. Regular collection (every 2h) is automated and runs indefinitely.
+
+**See:** [Collection Strategy Guide](../../docs/apify-pipeline/collection-strategy.md) for detailed explanation.
 
 ### 4. Failed Sentiment Retry (Manual)
 
@@ -556,6 +566,7 @@ ORDER BY hour DESC;
 - [Docs/README.md](Docs/README.md) - Slice documentation index
 
 **Project Root:**
+- [../../docs/apify-pipeline/collection-strategy.md](../../docs/apify-pipeline/collection-strategy.md) - **Collection strategy (backfill vs regular)**
 - [../../docs/apify-pipeline/local-testing-guide.md](../../docs/apify-pipeline/local-testing-guide.md) - Comprehensive testing
 - [../../docs/apify-pipeline/internal-testing-quickstart.md](../../docs/apify-pipeline/internal-testing-quickstart.md) - Quick reference
 - [../../docs/apify-pipeline/specification.md](../../docs/apify-pipeline/specification.md) - Technical requirements

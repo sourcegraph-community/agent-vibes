@@ -12,7 +12,7 @@ async function main() {
   const supabase = createClient(supabaseUrl, supabaseKey);
   const job = new BackfillProcessorJob(supabase);
 
-  const keywords = ['cursor', 'windsurf', 'cline', 'aider', 'copilot'];
+  const keywords = ['ampcode.com', '"ampcode"', '"sourcegraph amp"', '(to:ampcode)'];
 
   const endDate = new Date();
   const batchDays = 5;

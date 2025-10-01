@@ -258,21 +258,26 @@ LIMIT 10;
 
 ## Advanced Testing
 
-### Test Backfill Workflow
+### Test Backfill Workflow (Manual Only)
 
 ```bash
-# 1. Enqueue 7 days of backfill
-npm run enqueue:backfill -- --days=7 --batch-size=1
+# 1. Enqueue backfill batches (30 days, run once)
+npm run enqueue:backfill
 
-# 2. Process batches (requires INTERNAL_API_KEY)
+# 2. Process batches manually (repeat 6 times)
+npm run process:backfill
+
+# OR via API:
 curl -X POST http://localhost:3000/api/process-backfill \
   -H "x-api-key: $INTERNAL_API_KEY"
 
-# 3. Check queue status
+# 3. Check queue status between batches
 # SQL:
 SELECT id, start_date, end_date, status 
 FROM backfill_batches 
 ORDER BY created_at DESC;
+
+# Note: Backfill is manual-only. No automated cron.
 ```
 
 ### Test Failed Sentiment Replay
@@ -362,11 +367,14 @@ curl -X POST http://localhost:3000/api/process-sentiments \
   }'
 ```
 
-### `/api/process-backfill` (Historical Data)
+### `/api/process-backfill` (Historical Data - Manual Only)
 
 ```bash
+# Process next pending batch
 curl -X POST http://localhost:3000/api/process-backfill \
   -H "x-api-key: $INTERNAL_API_KEY"
+
+# Note: No automated cron. Repeat manually for each batch.
 ```
 
 ---
