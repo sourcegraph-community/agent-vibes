@@ -1,5 +1,6 @@
 import type { ProcessSentimentsCommand } from './ProcessSentimentsCommand';
 import { runSentimentProcessorJob } from '../../../../Background/Jobs/SentimentProcessor';
+import { invokeSentimentProcessorFunction } from '../../../../ExternalServices/Supabase/edgeFunctions';
 
 export interface ProcessSentimentsResponse {
   success: boolean;
@@ -11,26 +12,86 @@ export interface ProcessSentimentsResponse {
     totalLatencyMs: number;
     totalTokens: number;
   };
+  source?: 'supabase_edge' | 'fallback_job';
 }
 
 export const handleProcessSentiments = async (
   command: ProcessSentimentsCommand,
 ): Promise<ProcessSentimentsResponse> => {
-  const result = await runSentimentProcessorJob({
-    batchSize: command.batchSize,
-    modelVersion: command.modelVersion,
-  });
+  const fallbackEnabled = process.env.SENTIMENT_EDGE_FALLBACK === 'true';
 
-  if (result.success) {
-    return {
-      success: true,
-      message: `Processed ${result.stats.processed} tweets, ${result.stats.failed} failed`,
-      stats: result.stats,
-    };
+  try {
+    const edgeResponse = await invokeSentimentProcessorFunction({
+      batchSize: command.batchSize,
+      modelVersion: command.modelVersion,
+      maxRetries: command.maxRetries,
+    });
+
+    if (edgeResponse.success) {
+      return {
+        success: true,
+        message: edgeResponse.message,
+        stats: edgeResponse.stats,
+        source: 'supabase_edge',
+      } satisfies ProcessSentimentsResponse;
+    }
+
+    if (!fallbackEnabled) {
+      return {
+        success: false,
+        message: edgeResponse.message,
+        stats: edgeResponse.stats,
+        source: 'supabase_edge',
+      } satisfies ProcessSentimentsResponse;
+    }
+
+    const fallback = await runSentimentProcessorJob({
+      batchSize: command.batchSize,
+      modelVersion: command.modelVersion,
+      maxRetries: command.maxRetries,
+    });
+
+    return fallback.success
+      ? {
+          success: true,
+          message: `Fallback job succeeded after edge failure: ${fallback.stats.processed} processed, ${fallback.stats.failed} failed`,
+          stats: fallback.stats,
+          source: 'fallback_job',
+        }
+      : {
+          success: false,
+          message: `Edge function failed (${edgeResponse.message}) and fallback job also failed (${fallback.error ?? 'Unknown error'})`,
+          stats: fallback.stats,
+          source: 'fallback_job',
+        } satisfies ProcessSentimentsResponse;
   }
+  catch (error) {
+    if (fallbackEnabled) {
+      const fallback = await runSentimentProcessorJob({
+        batchSize: command.batchSize,
+        modelVersion: command.modelVersion,
+        maxRetries: command.maxRetries,
+      });
 
-  return {
-    success: false,
-    message: result.error ?? 'Unknown error occurred',
-  };
+      return fallback.success
+        ? {
+            success: true,
+            message: `Fallback job succeeded after edge exception: ${fallback.stats.processed} processed, ${fallback.stats.failed} failed`,
+            stats: fallback.stats,
+            source: 'fallback_job',
+          }
+        : {
+            success: false,
+            message: `Edge function request errored (${error instanceof Error ? error.message : String(error)}) and fallback failed (${fallback.error ?? 'Unknown error'})`,
+            stats: fallback.stats,
+            source: 'fallback_job',
+          } satisfies ProcessSentimentsResponse;
+    }
+
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Edge function invocation failed',
+      source: 'supabase_edge',
+    } satisfies ProcessSentimentsResponse;
+  }
 };

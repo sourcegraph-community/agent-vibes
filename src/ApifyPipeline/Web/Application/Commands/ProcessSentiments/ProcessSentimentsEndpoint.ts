@@ -35,6 +35,7 @@ export const POST = async (request: Request): Promise<NextResponse> => {
     const command: ProcessSentimentsCommand = {
       batchSize: body.batchSize ?? 10,
       modelVersion: body.modelVersion,
+      maxRetries: body.maxRetries,
     };
 
     const response = await handleProcessSentiments(command);

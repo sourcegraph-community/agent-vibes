@@ -17,11 +17,13 @@ const optionalEnvSchema = z.object({
   VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
   NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
+  SUPABASE_FUNCTIONS_URL: z.string().url().optional(),
 });
 
 export interface SupabaseEnvConfig {
   supabaseUrl: string;
   supabaseServiceRoleKey: string;
+  supabaseFunctionsUrl: string;
 }
 
 export interface SupabaseClientEnvConfig {
@@ -40,15 +42,22 @@ export interface GeminiEnvConfig {
 }
 
 export const getSupabaseEnv = (env: NodeJS.ProcessEnv = process.env): SupabaseEnvConfig => {
-  const parsed = baseEnvSchema.safeParse(env);
+  const base = baseEnvSchema.safeParse(env);
+  const optional = optionalEnvSchema.safeParse(env);
 
-  if (!parsed.success) {
-    throw new Error(parsed.error.flatten().formErrors.join('\n'));
+  if (!base.success) {
+    throw new Error(base.error.flatten().formErrors.join('\n'));
   }
 
+  const supabaseUrl = base.data.SUPABASE_URL;
+  const supabaseFunctionsUrl = optional.success && optional.data.SUPABASE_FUNCTIONS_URL
+    ? optional.data.SUPABASE_FUNCTIONS_URL.replace(/\/$/, '')
+    : new URL('functions/v1/', supabaseUrl).toString().replace(/\/$/, '');
+
   return {
-    supabaseUrl: parsed.data.SUPABASE_URL,
-    supabaseServiceRoleKey: parsed.data.SUPABASE_SERVICE_ROLE_KEY,
+    supabaseUrl,
+    supabaseServiceRoleKey: base.data.SUPABASE_SERVICE_ROLE_KEY,
+    supabaseFunctionsUrl,
   } satisfies SupabaseEnvConfig;
 };
 

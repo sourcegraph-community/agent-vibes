@@ -26,7 +26,7 @@ const ingestionSchema = z
     sort: z.enum(['Top', 'Latest']).default('Top'),
     maxItemsPerKeyword: z.number().int().min(1).max(500).default(200),
     keywordBatchSize: z.number().int().min(1).max(5).default(5),
-    cooldownSeconds: z.number().int().min(0).max(900).default(0),
+    cooldownSeconds: z.number().int().min(0).max(900).default(300),
     minimumEngagement: z
       .object({
         retweets: z.number().int().min(0).optional(),
@@ -41,7 +41,7 @@ const ingestionSchema = z
     sort: 'Top',
     maxItemsPerKeyword: 200,
     keywordBatchSize: 5,
-    cooldownSeconds: 0,
+    cooldownSeconds: 300,
     minimumEngagement: {},
   });
 

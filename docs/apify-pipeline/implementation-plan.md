@@ -193,7 +193,7 @@ create trigger keywords_prevent_update
 | `runCooldownMinutes` | Pause between runs | ≥5 minutes | [apify-scraper-params.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/apify-scraper-params.md#L11-L13) | Ops | Dynamically adjust based on `sort`. | Config |
 | `minimumRetweets`/`minimumFavorites`/`minimumReplies` | Engagement filter | Default `null`; set campaign-specific | [specification.md §12](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L188-L190) | Analytics | High values reduce volume. | Config |
 | `APIFY_TOKEN` | Apify auth | Rotate quarterly | [specification.md §8](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L142-L146) | Ops | Required for cron & manual run. | Secret |
-| `SUPABASE_SECRET_KEY` | Service role | Keep in Vercel & Apify secret store | [specification.md §8](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L142-L146) | Ops | Do not expose in logs. | Secret |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role | Keep in Vercel & Apify secret store; use `sb_secret_*` rotation | [specification.md §8](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L142-L149) | Ops | Do not expose in logs; required for Edge Function auth. | Secret |
 
 ##### Vercel Cron Runbook Outline
 - **Trigger:** Vercel Cron (z. B. `0 */2 * * *`) ruft `/api/start-apify-run` nur auf Production auf ([vercel-cron.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/vercel-cron.md#L4-L14)); die Route `app/api/start-apify-run/route.ts` re-exportiert den Slice-Endpunkt `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`.
@@ -287,58 +287,53 @@ create trigger keywords_prevent_update
 **Review:** [Code Review Document](file:///home/prinova/CodeProjects/agent-vibes/docs/code-review/milestone-3-review.md)
 
 ### Goals & Success Criteria
-- ✅ API endpoint processes `normalized_tweets` entries with `pending_sentiment` status, calls `gemini-2.0-flash-exp` with structured output (enum labels), stores results in `tweet_sentiments` ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L38-L43), [gemini-sentiment.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/gemini-sentiment.md#L4-L21)).
-- ✅ Failure handling writes to `sentiment_failures` with per-tweet retry counts and supports manual replays.
-- ✅ Rate-limit guardrails implemented (4s delay = 15 RPM) with jitter and comprehensive documentation.
-- ✅ Authentication protects endpoint from abuse (Vercel Cron header + API key).
-- ✅ Automatic processing via Vercel Cron every 30 minutes.
+- ✅ Supabase Edge Function `sentiment-processor` processes `pending_sentiment` entries, calls `gemini-2.5-flash` with structured output, and persists results in `tweet_sentiments` with append-only status revisions ([specification.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/specification.md#L37-L48), [gemini-sentiment.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/gemini-sentiment.md#L5-L24)).
+- ✅ `/api/process-sentiments` now proxies to the Supabase Edge Function while enforcing Vercel Cron + API key authentication.
+- ✅ Fallback job (`SENTIMENT_EDGE_FALLBACK=true`) can execute the legacy serverless processor if the Edge Function fails.
+- ✅ Rate-limit guardrails maintained (4s delay = 15 RPM) with documented retry handling and Supabase logging.
+- ✅ Automatic processing via Vercel Cron every 30 minutes using the Supabase Functions endpoint.
 
 ### Task Checklist
-- [x] Implement API endpoint (`/api/process-sentiments`) with batch processing logic.
-- [x] Create prompt template enforcing enum output (`positive|neutral|negative`) and summary field.
-- [x] Add Gemini client wrapper with exponential backoff + jitter + cost logging.
-- [x] Build CLI script to replay failed sentiments: `npm run replay:sentiments`.
-- [x] Add authentication (Vercel Cron header + API key validation).
-- [x] Implement per-tweet retry tracking with database queries.
-- [x] Add rate limiting (4-second delay between requests).
-- [x] Configure Vercel Cron in `vercel.json` for automatic processing.
-- [x] Update documentation with configuration and deployment guide.
+- [x] Scaffold Supabase Edge Function (`supabase/functions/sentiment-processor`) with batch processing, sentiment persistence, and failure logging.
+- [x] Update Next.js handler to call the Edge Function and add optional fallback execution path.
+- [x] Upgrade Gemini client defaults to `gemini-2.5-flash` and align retry configuration.
+- [x] Add Supabase functions URL handling + environment validation.
+- [x] Provide local dev script `npm run functions:serve` for running the Edge Function with `supabase` CLI.
+- [x] Refresh documentation/runbooks to describe the Edge-first architecture and new environment variables.
 
 ### Dependencies & Touchpoints
-- **Ops:** ✅ Gemini API key stored in Vercel environment variables; cost tracking via token usage logs.
-- **Analytics:** ✅ Sentiment categories (`positive|neutral|negative`) and summary schema approved.
+- **Ops:** ✅ Supabase service role + `sb_secret_*` secrets provisioned for Edge deployment; Vercel Pro cron retained.
+- **Analytics:** ✅ Sentiment categories (`positive|neutral|negative`) and summary schema remain approved under Gemini 2.5 output.
 
 ### Risk Mitigation & Validation
-- [x] Token usage tracking implemented; logged per request with latency metrics.
-- [x] Rate limits enforced: 15 RPM (free tier) via 4-second delay between API calls.
+- [x] Edge Function respects rate limiting (4s pauses) and logs latency + token usage per batch.
+- [x] `/api/process-sentiments` fallback validated locally with Edge Function disabled.
 - [x] All tests passing (64 tests); TypeScript strict mode validated; ESLint clean.
-- [ ] **TODO:** Run load test with mock Gemini stub before production rollout ([gemini-sentiment.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/gemini-sentiment.md#L10-L16)).
-- [ ] **TODO:** Set up monitoring alerts for high error rate or quota exhaustion.
+- [ ] **TODO:** Run load test with mock Gemini stub before production rollout ([gemini-sentiment.md](file:///home/prinova/CodeProjects/agent-vibes/docs/apify-pipeline/web-results/gemini-sentiment.md#L10-L24)).
+- [ ] **TODO:** Set up monitoring alerts for high Edge Function error rate or quota exhaustion.
 
-#### Delivery Notes (2025-09-30)
-- `app/api/process-sentiments/route.ts` re-exports slice endpoint with authentication.
-- `src/ApifyPipeline/Web/Application/Commands/ProcessSentiments/` implements REPR pattern with auth checks.
-- `src/ApifyPipeline/Core/Services/SentimentProcessor.ts` orchestrates batch processing with per-tweet retry tracking and rate limiting.
-- `src/ApifyPipeline/ExternalServices/Gemini/GeminiClient.ts` handles Gemini 2.0 Flash API with structured output, retry logic, and token tracking.
-- `src/ApifyPipeline/DataAccess/Repositories/TweetSentimentsRepository.ts` provides methods for sentiment CRUD, failure tracking, and retry count queries.
-- `scripts/replay-failed-sentiments.ts` enables manual replay of failed sentiments with dry-run support.
-- `vercel.json` configures automatic processing every 30 minutes via Vercel Cron.
-- **Environment Variables Required:** `GEMINI_API_KEY`, `INTERNAL_API_KEY` (recommended), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+#### Delivery Notes (2025-10-01)
+- `supabase/functions/sentiment-processor/index.ts` hosts the Supabase Edge Function with built-in retry tracking and append-only status updates.
+- `app/api/process-sentiments/route.ts` remains the Vercel entry point but delegates processing to the Edge Function via authenticated fetch.
+- `src/ApifyPipeline/Web/Application/Commands/ProcessSentiments/ProcessSentimentsCommandHandler.ts` now invokes the Edge Function and optionally falls back to `runSentimentProcessorJob`.
+- `src/ApifyPipeline/ExternalServices/Supabase/edgeFunctions.ts` centralizes Supabase Functions invocation logic.
+- `src/ApifyPipeline/ExternalServices/Gemini/GeminiClient.ts` defaults to `gemini-2.5-flash` and keeps exponential backoff + token tracking.
+- `package.json` introduces `npm run functions:serve` for local Supabase Edge execution.
+- **Environment Variables Required:** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, optional `SUPABASE_FUNCTIONS_URL`, `GEMINI_API_KEY`, `GEMINI_MODEL` (defaults to `gemini-2.5-flash`), `INTERNAL_API_KEY` (recommended), `SENTIMENT_EDGE_FALLBACK` (optional).
 
-#### Production Readiness (2025-09-30)
-- ✅ **Security:** Authentication with Vercel Cron header + API key validation; production error sanitization.
-- ✅ **Reliability:** Per-tweet retry tracking; exponential backoff with jitter; comprehensive error handling.
-- ✅ **Scalability:** Rate limiting prevents quota exhaustion; configurable batch sizes.
-- ✅ **Automation:** Vercel Cron runs every 30 minutes; replay script available for manual recovery.
-- ✅ **Observability:** Token usage tracking; latency metrics; detailed failure logs.
-- ✅ **Documentation:** Comprehensive guide at [`sentiment-processing.md`](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Docs/sentiment-processing.md).
+#### Production Readiness (2025-10-01)
+- ✅ **Security:** Supabase Edge Function secured via bearer auth; Vercel route still enforces cron/API key.
+- ✅ **Reliability:** Edge Function retries + append-only status writes; optional fallback ensures continuity.
+- ✅ **Scalability:** Rate limiting + Supabase-managed execution scale; configurable batch sizes.
+- ✅ **Automation:** Vercel Cron triggers Edge Function every 30 minutes; replay script remains available for manual recovery.
+- ✅ **Observability:** Token usage + latency metrics captured via Supabase logs; failure table retains retry history.
+- ✅ **Documentation:** Updated sentiment processing guide to cover Edge deployment and local testing workflow.
 
 #### Known Limitations & Future Enhancements
-- Using experimental Gemini model (`gemini-2.0-flash-exp`) instead of stable version - consider switching to `gemini-2.5-flash` for production.
-- Sequential processing (no parallelization) - acceptable for current scale with rate limiting.
-- No Zod validation for API request body - manual parsing with defaults.
-- Test coverage focused on prompt templates - additional unit/integration tests recommended.
-- Implemented as API route instead of Supabase Edge Function - acceptable alternative with Vercel Cron automation.
+- Sequential processing (no parallelization) - acceptable for current scale with rate limiting; consider queue-based fan-out later.
+- No Supabase queue integration yet - evaluate Storage Queue for burst handling.
+- Automated monitoring/alerting for Edge Function not wired (pending TODO above).
+- Additional integration tests for Edge invocation recommended.
 
 ---
 

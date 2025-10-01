@@ -17,7 +17,7 @@ Architecture note: The pipeline is organized as a Vertical Slice `src/ApifyPipel
 ### 3.1 Data Collection
 - Vercel Cron calls the internal endpoint `/api/start-apify-run`, which proxies the Apify Run API call; intervals under 24h require at least the Vercel Pro plan. The route `app/api/start-apify-run/route.ts` imports the handler `src/ApifyPipeline/Web/Application/Commands/StartApifyRun` (REPR entry point).
 - Manual triggers via Apify UI or REST endpoint remain unchanged.
-- Data collection requires either X API Pro access (~US$5k/month) or the Apify Tweet Scraper; scraper runs must respect anti-monitoring requirements (pauses, max five queries).
+- Data collection requires either X API Pro access (~US$5k/month) or the Apify Tweet Scraper; scraper runs must respect anti-monitoring requirements (pauses, max five queries). The actor defaults to a five-minute cooldown between keyword batches and limits each batch to five queries to comply.
 - Actor uses a predefined keyword list (configurable via Supabase table `keywords`).
 - On API limit errors or network errors, retry occurs (exponential up to 3 attempts).
 - Monitoring of duplicate rate: Stores tweet IDs in Supabase, runs document ratio `new vs. duplicated` (via `cron_runs`).
@@ -33,17 +33,17 @@ Architecture note: The pipeline is organized as a Vertical Slice `src/ApifyPipel
 - Raw data optionally in `raw_tweets` table (JSON) for debugging.
 - Normalized data in `normalized_tweets`.
 - Sentiment results in `tweet_sentiments`.
-- Historization without mutations (append-only); updates via `upsert` by tweet ID.
+- Historization without mutations (append-only revisions); each status change inserts a new row keyed by tweet ID and incremented `revision`.
 - Backfill strategy: One-time division of the last 30 days into several 5-day runs with increased `maxItems`; with X API Pro, runs can be more frequent, Apify Scraper requires pauses (>5 minutes) and limited query batches.
 - Slice-specific migrations and seeds are located under `src/ApifyPipeline/DataAccess/Migrations` (naming scheme `yyyyMMdd_HHmm_Description.sql`).
 
 ### 3.4 Sentiment Analysis
-- Supabase Edge Function monitors new entries in `normalized_tweets` (primary path for sentiment processing) and tracks the last processed tweet timestamp per keyword.
+- Supabase Edge Function `sentiment-processor` (source: [`supabase/functions/sentiment-processor/index.ts`](file:///home/prinova/CodeProjects/agent-vibes/supabase/functions/sentiment-processor/index.ts)) polls `normalized_tweets` for `pending_sentiment` records and processes them in batches while tracking retry counts per keyword.
 - The function calls `gemini-2.5-flash` or `flash-lite` via Structured Output (enum `positive|neutral|negative`); Google does not provide a dedicated sentiment endpoint.
 - Rate limits and costs (Free ~15 RPM/1.5M tokens per day; paid per current pricing) determine batch size and queueing; Supabase Functions + Storage Queue buffer overruns.
 - API keys (`GEMINI_API_KEY`) are stored in Supabase Secrets or Vercel Env Vars and are regularly rotated.
-- Results (score -1…1, category, extended insights) are stored in `tweet_sentiments`; failed calls go to `sentiment_failures`, fallback remains a Vercel Serverless Function for re-runs.
-- Implementation: Supabase Edge Functions for classification are located in the slice under `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/SentimentClassify` and encapsulate all Gemini-specific clients.
+- Results (score -1…1, category, extended insights) are stored in `tweet_sentiments`; failed calls go to `sentiment_failures`. A feature-flagged fallback (`SENTIMENT_EDGE_FALLBACK=true`) can run the legacy serverless job if the Edge Function is unavailable.
+- Implementation: Edge-specific orchestration lives in `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor` (mirrored to [`supabase/functions/sentiment-processor`](file:///home/prinova/CodeProjects/agent-vibes/supabase/functions/sentiment-processor/index.ts)) and encapsulates Gemini client configuration.
 
 ### 3.5 Frontend / Dashboard
 - Next.js 15 App Router (async Request APIs) visualizes mentions, sentiment distribution, and trends.
@@ -59,7 +59,7 @@ Architecture note: The pipeline is organized as a Vertical Slice `src/ApifyPipel
 - **Compliance:** Adherence to X API Terms or Apify scraper guidelines; data deletion on request.
 
 ## 5. Architecture & Components
-- **Apify Actor:** Node.js/TypeScript scripts, either X API Pro (budget approval) or Apify Tweet Scraper with anti-monitoring pacing. (Slice: `src/ApifyPipeline/Web/Application/Commands/TriggerApifyRun`)
+- **Apify Actor:** Node.js/TypeScript scripts, either X API Pro (budget approval) or Apify Tweet Scraper with anti-monitoring pacing. (Slice: `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`)
 - **Supabase:** Postgres + Edge Functions, auth via `sb_secret_*` keys; PG17-compatible extensions (e.g., alternatives to TimescaleDB) are considered. (Slice: `src/ApifyPipeline/DataAccess`)
 - **Sentiment Worker:** Supabase Edge Function with Gemini 2.5 Structured Output, optional Vercel Serverless fallback for bulk re-runs. (Slice: `src/ApifyPipeline/ExternalServices/Gemini`)
 - **Frontend:** Next.js 15 App Router on Vercel (Node.js 20, async Request APIs, `@supabase/ssr` integration). (Slice: `src/ApifyPipeline/Web/Components/Dashboard`)
@@ -129,8 +129,8 @@ cron_runs
 3. Actor fetches tweets, stores raw data (`raw_tweets`).
 4. Actor transforms and upserts `normalized_tweets`.
 5. Actor marks records as `pending_sentiment`.
-6. Supabase trigger/function fires, calls Gemini 2.5 via Structured Output.
-7. Sentiment result is stored in `tweet_sentiments`, status set to `processed`.
+6. Vercel cron proxy `/api/process-sentiments` invokes Supabase Edge Function `sentiment-processor`, which calls Gemini 2.5 via Structured Output.
+7. Sentiment result is stored in `tweet_sentiments`, status revisions are inserted with `processed` or `failed` markers.
 8. Dashboard consumes data via Supabase API.
 
 ### 7.2 Manual Run
@@ -146,7 +146,7 @@ cron_runs
 - **X API / Apify Tokens:** X API Pro keys (Key, Secret, Bearer) or Apify Token in Apify KV Store (Production) and `.env.local` (Development).
 - **Supabase Secret Keys:** `sb_secret_*` values in Vercel & Apify Secret Store; `sb_publishable_*` for client-side use.
 - **Gemini API Key:** In Vercel Secret Store (Edge Function) / Supabase Secrets; rotation parallel to model version (`gemini-2.5-*`).
-- **Environment Variables:** `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY`, `X_API_KEY`, `APIFY_TOKEN`, `GEMINI_API_KEY`.
+- **Environment Variables:** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_FUNCTIONS_URL` (optional override), `SUPABASE_PUBLISHABLE_KEY`, `X_API_KEY`, `APIFY_TOKEN`, `GEMINI_API_KEY`, `GEMINI_MODEL` (defaults to `gemini-2.5-flash`), `SENTIMENT_EDGE_FALLBACK` (optional toggle to run the legacy job when the Edge Function fails).
 
 ## 9. Deployment & Environments
 - **Development:** Local Actor test with Apify CLI, Supabase local DB or project dev project; Next.js 15 App uses async Request APIs (`npm run dev`, Node 20).
@@ -209,7 +209,7 @@ cron_runs
 1. **Start Supabase locally:** `supabase start`, apply schema migrations (tables from Section 6).
 2. **Apify Actor locally:** `apify run` with `apify_config_dev.json`, keep `maxItems` small, either mock tweets or use real test keyword.
 3. **Gemini Mock:** Local stub API (e.g., Express/Edge Function) or replay files to simulate sentiment without cost.
-4. **Sentiment Worker locally:** Supabase Edge Function via `supabase functions serve` or Vercel Dev Function (`vercel dev`), each with dummy keys.
+4. **Sentiment Worker locally:** Supabase Edge Function via `npm run functions:serve` (wraps `supabase functions serve sentiment-processor --env-file supabase/.env.local`); provide local `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `GEMINI_API_KEY` secrets.
 5. **Next.js Frontend:** `npm run dev` (Node 20) with `.env.local`, test `@supabase/ssr` helpers and async Request APIs.
 6. **End-to-End Run:** Actor -> Supabase -> Sentiment -> Frontend; check logs, duplicate statistics, and Gemini quotas; optionally test `next build --turbopack` (beta) against CI.
 

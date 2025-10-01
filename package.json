@@ -22,7 +22,8 @@
     "process:backfill": "curl -X POST http://localhost:3000/api/process-backfill -H 'x-api-key: $INTERNAL_API_KEY'",
     "cleanup:raw-tweets": "tsx scripts/cleanup-old-raw-tweets.ts",
     "cleanup:sentiment-failures": "tsx scripts/cleanup-sentiment-failures.ts",
-    "health-check": "tsx scripts/health-check.ts"
+    "health-check": "tsx scripts/health-check.ts",
+    "functions:serve": "supabase functions serve sentiment-processor --env-file supabase/.env.local"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

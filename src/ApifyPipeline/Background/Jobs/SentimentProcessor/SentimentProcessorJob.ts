@@ -40,7 +40,7 @@ export const runSentimentProcessorJob = async (
     const repository = new TweetSentimentsRepository(supabase);
 
     const processor = new SentimentProcessor(geminiClient, repository, {
-      modelVersion: config.modelVersion ?? 'gemini-2.0-flash-exp',
+      modelVersion: config.modelVersion ?? 'gemini-2.5-flash',
       batchSize: config.batchSize ?? 10,
       maxRetries: config.maxRetries ?? 2,
       rateLimitDelayMs: 4000, // 15 RPM = 1 request per 4 seconds
