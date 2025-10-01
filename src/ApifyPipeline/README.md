@@ -4,6 +4,8 @@
 
 The Apify Pipeline is a self-contained feature slice that automates the collection, normalization, sentiment analysis, and visualization of social media mentions about AI coding agents. It follows Vertical Slice Architecture (VSA) principles, owning its entire use case from API endpoints to database access.
 
+> **📚 Documentation:** All comprehensive documentation can be found at `../../docs/apify-pipeline` and their sub-folders.
+
 ---
 
 ## Feature Overview
@@ -294,7 +296,12 @@ GEMINI_API_KEY=your-gemini-api-key
 INTERNAL_API_KEY=your-random-secret-key
 ```
 
-**Validation:** Environment variables are validated at runtime via `Infrastructure/Config/env.ts`
+**Environment Loading:** All Apify Pipeline scripts automatically load `.env.local` via `dotenv` (imported in each script). Variables are validated at runtime via `Infrastructure/Config/env.ts`.
+
+**Troubleshooting:** If scripts report "Missing required environment variables":
+1. Verify `.env.local` exists in project root
+2. Check variable names match exactly (case-sensitive)
+3. Ensure no syntax errors in `.env.local`
 
 ### Request Configuration
 
@@ -632,6 +639,8 @@ npm run replay:sentiments         # Retry failures
 npm run cleanup:raw-tweets        # Archive old data
 npm run rotate:supabase           # Rotate secrets (ops)
 ```
+
+**Note:** All scripts automatically load `.env.local` via `dotenv`. Ensure environment variables are configured in `.env.local` before running.
 
 ### API Endpoints
 ```bash

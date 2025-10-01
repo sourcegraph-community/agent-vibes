@@ -106,6 +106,8 @@ npm run cleanup:sentiment-failures # Remove stale failure records
 npm run rotate:supabase            # Rotate Supabase secrets (ops only)
 ```
 
+**Note:** All Apify Pipeline scripts automatically load `.env.local` via `dotenv`. Ensure environment variables are configured before running.
+
 ---
 
 ## Features
@@ -283,6 +285,16 @@ SELECT * FROM keywords WHERE enabled = true;
 
 -- Re-run seed if empty
 -- Execute: src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql
+```
+
+**"Scripts not loading .env.local"**
+```bash
+# All Apify Pipeline scripts (npm run health-check, enqueue:backfill, etc.) 
+# automatically load .env.local via dotenv (installed as dev dependency)
+# If you see "Missing required environment variables", verify:
+# 1. .env.local exists in project root
+# 2. Variable names match exactly (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, etc.)
+# 3. No syntax errors in .env.local file
 ```
 
 **More troubleshooting:** See [Local Testing Guide](docs/apify-pipeline/local-testing-guide.md#common-issues--troubleshooting)

@@ -228,7 +228,7 @@ This sequence tests the entire pipeline from tweet collection → normalization 
 #### Test 1: Health Check (Baseline Verification)
 
 ```bash
-# Check system health
+# Check system health (automatically loads .env.local via dotenv)
 npm run health-check
 ```
 
@@ -239,6 +239,8 @@ npm run health-check
 ✓ Database tables present
 ✓ Keywords configured: 10 enabled
 ```
+
+**Note:** All Apify Pipeline scripts (`npm run health-check`, `enqueue:backfill`, `replay:sentiments`, etc.) automatically load `.env.local` via `dotenv`. You don't need to manually export variables or use `source`.
 
 #### Test 2: Tweet Collection (Apify Integration)
 
@@ -649,17 +651,24 @@ npm run cleanup:sentiment-failures -- --max-age-days=90
 **Symptom:**
 ```
 Error: APIFY_TOKEN and APIFY_ACTOR_ID must be configured.
+❌ Missing required environment variables
 ```
 
 **Solution:**
 1. Verify `.env.local` exists in project root
 2. Check variable names match exactly (case-sensitive)
-3. Restart dev server after adding variables
+3. Ensure no syntax errors in `.env.local` (no quotes around values needed)
+4. Restart dev server after adding variables (for Next.js endpoints)
+
+**Note:** All Apify Pipeline scripts (`npm run health-check`, `enqueue:backfill`, etc.) automatically load `.env.local` via `dotenv` (installed as dev dependency). You don't need to manually source or export variables.
 
 **Verification:**
 ```bash
-# Check if variables are loaded
-node -e "require('dotenv').config({ path: '.env.local' }); console.log('APIFY_TOKEN:', !!process.env.APIFY_TOKEN)"
+# Check if .env.local is being loaded
+npm run health-check
+
+# If successful, you'll see environment validation pass
+# If it fails, check .env.local syntax and variable names
 ```
 
 ### Issue 2: Supabase Connection Failure

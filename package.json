@@ -45,6 +45,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/ui": "^3.2.4",
+    "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-plugin-react": "^7",
     "eslint-plugin-react-hooks": "^5",

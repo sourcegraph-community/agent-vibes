@@ -5,6 +5,7 @@
  * Monitors critical components and alerts on issues
  */
 
+import 'dotenv/config';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 // Colors for output
