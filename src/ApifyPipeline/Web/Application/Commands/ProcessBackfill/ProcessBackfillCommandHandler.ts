@@ -1,5 +1,6 @@
 import type { BackfillProcessorJob } from '@/src/ApifyPipeline/Background/Jobs/BackfillProcessor/BackfillProcessorJob';
 import type { ProcessBackfillCommand, ProcessBackfillCommandResult } from './ProcessBackfillCommand';
+import { exit } from 'process';
 
 export interface ProcessBackfillDependencies {
   createJob: () => BackfillProcessorJob;

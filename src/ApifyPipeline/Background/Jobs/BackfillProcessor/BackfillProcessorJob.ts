@@ -14,6 +14,7 @@ import {
   type ApifyTweetItem,
 } from '@/src/ApifyPipeline/Core/Transformations/normalizeTweet';
 import { getApifyEnv } from '../../../Infrastructure/Config/env';
+import { exit } from 'node:process';
 
 export interface BackfillBatch {
   id: string;
@@ -116,7 +117,7 @@ export class BackfillProcessorJob {
       .order('priority', { ascending: false })
       .order('created_at', { ascending: true })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -528,27 +529,25 @@ export class BackfillProcessorJob {
       errors,
     });
 
-    const rawRows = Array.from(normalizedPrototypes.entries()).map(
-      ([platformId, prototype]) => {
-        const candidate = candidateMap.get(platformId);
-        if (!candidate) {
-          throw new Error(`Missing candidate for platformId ${platformId}`);
-        }
+    const rawRows = Array.from(normalizedPrototypes.keys()).map((platformId) => {
+      const candidate = candidateMap.get(platformId);
+      if (!candidate) {
+        throw new Error(`Missing candidate for platformId ${platformId}`);
+      }
 
-        return {
-          runId: internalRunId,
-          platform: 'twitter' as const,
-          platformId,
-          collectedAt: candidate.collectedAt,
-          payload: {
-            item: candidate.item,
-            keywords: candidate.keywords,
-            fetchedAt: candidate.collectedAt,
-          },
-          ingestionReason: 'backfill' as const,
-        };
-      },
-    );
+      return {
+        runId: internalRunId,
+        platform: 'twitter' as const,
+        platformId,
+        collectedAt: candidate.collectedAt,
+        payload: {
+          item: candidate.item,
+          keywords: candidate.keywords,
+          fetchedAt: candidate.collectedAt,
+        },
+        ingestionReason: 'backfill' as const,
+      };
+    });
 
     const rawRecords = rawRows.length > 0 ? await insertRawTweets(this.supabase, rawRows) : [];
     const rawIdByPlatform = new Map<string, string | null>();
