@@ -1,7 +1,7 @@
 # Apify Pipeline - Local Testing Guide
 
 **Document Owner:** Engineering Team  
-**Last Updated:** October 1, 2025  
+**Last Updated:** October 2, 2025  
 **Related Documents:** [Specification](specification.md), [Overview](overview.md), [Date-Based Collection Strategy](date-based-collection-strategy.md), [Operational Runbook](../../src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md)
 
 ---
@@ -9,13 +9,19 @@
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Prerequisites](#prerequisites)
-3. [Environment Setup](#environment-setup)
-4. [Testing Workflow](#testing-workflow)
-5. [Component-Level Testing](#component-level-testing)
-6. [Integration Testing](#integration-testing)
-7. [Common Issues & Troubleshooting](#common-issues--troubleshooting)
-8. [Data Verification](#data-verification)
+2. [Quickstart Checklist](#quickstart-checklist)
+3. [Prerequisites](#prerequisites)
+4. [Environment Setup](#environment-setup)
+5. [Testing Workflow](#testing-workflow)
+6. [Component-Level Testing](#component-level-testing)
+7. [Integration Testing](#integration-testing)
+8. [Common Issues & Troubleshooting](#common-issues--troubleshooting)
+9. [Data Verification](#data-verification)
+10. [Development Commands](#development-commands)
+11. [API Endpoint Reference](#api-endpoint-reference)
+12. [Next Steps](#next-steps)
+13. [Resources](#resources)
+14. [Appendix: Sample Test Data](#appendix-sample-test-data)
 
 ---
 
@@ -28,26 +34,26 @@ This guide provides step-by-step instructions for testing the Apify Pipeline loc
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Local Testing Environment                              │
-│                                                          │
-│  ┌────────────────┐      ┌─────────────────┐          │
-│  │  Next.js App   │──────│  API Endpoints  │          │
-│  │  (localhost)   │      │  /api/*         │          │
-│  └────────────────┘      └─────────────────┘          │
-│           │                       │                     │
-│           │                       ▼                     │
-│           │            ┌─────────────────────┐         │
-│           │            │  Background Jobs    │         │
-│           │            │  - TweetCollector   │         │
-│           │            │  - SentimentProc.   │         │
-│           │            └─────────────────────┘         │
-│           │                       │                     │
-│           ▼                       ▼                     │
-│  ┌──────────────────────────────────────────┐         │
-│  │         External Services                 │         │
-│  │  - Supabase (Cloud)                       │         │
-│  │  - Apify (Cloud)                          │         │
-│  │  - Google Gemini (Cloud)                  │         │
-│  └──────────────────────────────────────────┘         │
+│                                                         │
+│  ┌────────────────┐      ┌─────────────────┐            │
+│  │  Next.js App   │──────│  API Endpoints  │            │
+│  │  (localhost)   │      │  /api/*         │            │
+│  └────────────────┘      └─────────────────┘            │
+│           │                       │                      │
+│           │                       ▼                      │
+│           │            ┌─────────────────────┐           │
+│           │            │  Background Jobs    │           │
+│           │            │  - TweetCollector   │           │
+│           │            │  - SentimentProc.   │           │
+│           │            └─────────────────────┘           │
+│           │                       │                      │
+│           ▼                       ▼                      │
+│  ┌──────────────────────────────────────────┐            │
+│  │         External Services                 │            │
+│  │  - Supabase (Cloud)                       │            │
+│  │  - Apify (Cloud)                          │            │
+│  │  - Google Gemini (Cloud)                  │            │
+│  └──────────────────────────────────────────┘            │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -62,6 +68,119 @@ This guide provides step-by-step instructions for testing the Apify Pipeline loc
 | **External Services** | `src/ApifyPipeline/ExternalServices/` | Apify, Supabase, Gemini clients |
 | **Core Logic** | `src/ApifyPipeline/Core/` | Pure business logic & transformations |
 | **Dashboard** | `app/dashboard/` | Frontend visualization |
+
+---
+
+## Quickstart Checklist
+
+### 1. 5-Minute Setup
+
+```bash
+# Copy the template
+cp .env.example .env.local
+
+# Fill in credentials
+nano .env.local
+```
+
+**Populate these values:**
+
+```bash
+# Supabase (Dashboard → Settings → API)
+SUPABASE_URL=https://[your-project].supabase.co
+SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
+NEXT_PUBLIC_SUPABASE_URL=https://[your-project].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-anon-key]
+
+# Apify (Dashboard → Settings → Integrations)
+APIFY_TOKEN=[your-apify-token]
+APIFY_ACTOR_ID=apidojo/tweet-scraper
+
+# Gemini (https://aistudio.google.com/)
+GEMINI_API_KEY=[your-gemini-api-key]
+
+# Optional: Manual API auth
+INTERNAL_API_KEY=$(openssl rand -hex 32)
+```
+
+```bash
+# Install dependencies
+npm install
+
+# Apply migrations (Supabase CLI)
+supabase db push
+# —or— apply SQL manually using the migration and seed scripts
+```
+
+```bash
+# Sanity check
+npm run health-check
+
+# Start the dev server
+npm run dev
+```
+
+Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
+
+### 2. Quick Test Sequence (≈5 minutes)
+
+1. **Tweet collection**
+   ```bash
+   curl -X POST http://localhost:3000/api/start-apify-run \
+     -H "Content-Type: application/json" \
+     -H "x-api-key: $INTERNAL_API_KEY" \
+     -d '{
+       "triggerSource": "manual-test",
+       "ingestion": {
+         "maxItemsPerKeyword": 20,
+         "keywordBatchSize": 2,
+         "sort": "Top"
+       }
+     }'
+   ```
+   - Expect `202 Accepted` with a `runId`
+   - Monitor the run in Apify Console
+
+2. **Verify data landed**
+   ```sql
+   SELECT id, status, processed_new_count, processed_duplicate_count, started_at
+   FROM cron_runs
+   ORDER BY started_at DESC
+   LIMIT 1;
+
+   SELECT COUNT(*) AS tweet_count
+   FROM normalized_tweets;
+   ```
+
+3. **Process sentiments**
+   ```bash
+   curl -X POST http://localhost:3000/api/process-sentiments \
+     -H "Content-Type: application/json" \
+     -d '{"batchSize": 10}'
+   ```
+   - Expect `200 OK` with a `processed` count
+
+4. **Spot-check the dashboard**
+   - [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
+   - [http://localhost:3000/dashboard/keywords](http://localhost:3000/dashboard/keywords)
+   - [http://localhost:3000/dashboard/tweets](http://localhost:3000/dashboard/tweets)
+
+### 3. Success Criteria
+
+- ✅ At least one `cron_runs` record with `status = succeeded`
+- ✅ New rows in `normalized_tweets`
+- ✅ Corresponding rows in `tweet_sentiments`
+- ✅ Dashboard renders stats without console errors
+- ✅ `npm run health-check` exits with success
+
+### 4. Quick Fixes
+
+| Symptom | Quick Fix |
+|---------|-----------|
+| "Environment variable not found" | Ensure `.env.local` exists, confirm names, rerun `npm run dev` |
+| "No keywords available" | Re-run `src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql` |
+| Apify run fails | Reduce `maxItemsPerKeyword` or `keywordBatchSize`; verify compute units |
+| Gemini quota exceeded | Lower sentiment `batchSize` (e.g. 3) to stay under free-tier limits |
 
 ---
 
@@ -109,16 +228,13 @@ npm install
 
 ### Step 2: Configure Environment Variables
 
-Create a `.env.local` file in the project root (this file is git-ignored):
+Create a `.env.local` file in the project root (git-ignored):
 
 ```bash
-# Quick setup: Copy the template
 cp .env.example .env.local
-
-# Then edit .env.local with your actual values
 ```
 
-**Required Variables:**
+Then edit `.env.local` with your values. Required entries:
 
 ```bash
 # Supabase Configuration (REQUIRED)
@@ -132,90 +248,81 @@ DATABASE_URL=postgresql://postgres.<ref>@aws-1-<region>.pooler.supabase.com:5432
 # SUPABASE_DB_HOST=aws-1-<region>.pooler.supabase.com
 # SUPABASE_DB_PORT=5432
 
-# Apify Configuration (REQUIRED for tweet collection)
+# Apify Configuration (REQUIRED)
 APIFY_TOKEN=your-apify-token
 APIFY_ACTOR_ID=apidojo/tweet-scraper
-# Optional: specify actor build
+# Optional actor build override
 # APIFY_ACTOR_BUILD=latest
 
-# Google Gemini Configuration (REQUIRED for sentiment analysis)
+# Google Gemini Configuration (REQUIRED)
 GEMINI_API_KEY=your-gemini-api-key
 
 # API Authentication (Production Recommended)
 CRON_SECRET=your-random-secret-key
 
-# Internal API Key (RECOMMENDED for manual testing)
+# Internal API Key (Recommended for manual testing)
 INTERNAL_API_KEY=your-random-secret-key
 
 # Optional: Vercel environment indicator
 # VERCEL_ENV=development
 ```
 
-#### Where to Find These Values
+#### Environment Variable Reference
 
-**Supabase:**
-- Dashboard → Settings → API
-- `SUPABASE_URL`: "Project URL"
-- `SUPABASE_SERVICE_ROLE_KEY`: "service_role secret" (⚠️ Keep secure)
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: "anon public"
-
-**Apify:**
-- Dashboard → Settings → Integrations
-- `APIFY_TOKEN`: "Personal API tokens"
-- `APIFY_ACTOR_ID`: Use `apidojo/tweet-scraper` or your custom actor ID
-
-**Google Gemini:**
-- Visit [Google AI Studio](https://aistudio.google.com/)
-- Click "Get API key" → Create new key
-- `GEMINI_API_KEY`: Copy the generated key
-
-**CRON_SECRET (Production Recommended):**
-- Generate a secure random string: `openssl rand -hex 32`
-- `CRON_SECRET`: Used by Vercel for cron job authentication (sent as `Authorization: Bearer` header)
-- Required for: `/api/start-apify-run` when deployed to Vercel
-- Vercel automatically includes this in cron requests
-
-**Internal API Key (Optional but Recommended):**
-- Generate a secure random string: `openssl rand -hex 32`
-- `INTERNAL_API_KEY`: Used for authenticating manual API calls
-- Required for: `/api/start-apify-run`, `/api/process-backfill`, `/api/process-sentiments` (when called manually)
-- Fallback authentication method when CRON_SECRET is not available
+| Variable | Required | Purpose | Where to Get |
+|----------|----------|---------|--------------|
+| `SUPABASE_URL` | ✅ | Database connection | Supabase Dashboard → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Server DB access | Supabase Dashboard → API |
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Client DB access | Same as `SUPABASE_URL` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Client DB access | Supabase Dashboard → API |
+| `DATABASE_URL` | ✅ | Script migrations via pooler | Supabase Dashboard → Database | 
+| `APIFY_TOKEN` | ✅ | Tweet collection | Apify Dashboard → Integrations |
+| `APIFY_ACTOR_ID` | ✅ | Actor to run | Use `apidojo/tweet-scraper` or custom |
+| `GEMINI_API_KEY` | ✅ | Sentiment analysis | Google AI Studio |
+| `CRON_SECRET` | ⚠️ | Production cron auth | Generate `openssl rand -hex 32` |
+| `INTERNAL_API_KEY` | ⚠️ | Manual API auth | Generate `openssl rand -hex 32` |
+| `APIFY_ACTOR_BUILD` | ❌ | Actor version pin | Default `latest` |
+| `VERCEL_ENV` | ❌ | Environment flag | Auto-set by Vercel |
 
 ### Step 3: Database Setup
 
-Apply the Apify Pipeline migration to your Supabase database:
+Apply the Apify Pipeline migration to Supabase:
 
 ```bash
-# Option 1: Project script (recommended for local / CI)
-# Requires: psql installed + DATABASE_URL pointing to Supabase session pooler
+# Option 1: Project script (requires DATABASE_URL)
 npm run apply-migrations
 
 # Option 2: Supabase CLI
 supabase db push
 
 # Option 3: Manual SQL execution
-# 1. Open Supabase Studio → SQL Editor
-# 2. Copy contents of src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql
-# 3. Execute the SQL
-# 4. Copy contents of src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql
-# 5. Execute the SQL
+# 1. Supabase Studio → SQL Editor
+# 2. Run src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql
+# 3. Run src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql
 ```
 
-The migrations are idempotent—the scripts drop/recreate triggers and policies as needed, and the seed now inserts matching `raw_tweets` records before inserting into `normalized_tweets`.
+Migrations are idempotent; seeds create four enabled keywords aligned with the current dashboards.
 
 **Verify Migration:**
 
 ```sql
 -- Check tables exist
-SELECT table_name FROM information_schema.tables 
-WHERE table_schema = 'public' 
-  AND table_name IN ('keywords', 'cron_runs', 'raw_tweets', 'normalized_tweets', 'tweet_sentiments');
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND table_name IN (
+    'keywords',
+    'cron_runs',
+    'raw_tweets',
+    'normalized_tweets',
+    'tweet_sentiments'
+  );
 
--- Check keywords are seeded
-SELECT id, keyword, enabled FROM keywords ORDER BY created_at;
+-- Check keywords are seeded (expect 4 enabled keywords)
+SELECT id, keyword, is_enabled
+FROM keywords
+ORDER BY created_at;
 ```
-
-Expected: 5 tables present, 4 keywords with `enabled = true`
 
 ### Step 4: Start Development Server
 
@@ -223,40 +330,28 @@ Expected: 5 tables present, 4 keywords with `enabled = true`
 npm run dev
 ```
 
-The application should start at [http://localhost:3000](http://localhost:3000)
+The application runs at [http://localhost:3000](http://localhost:3000). Verify:
 
-**Verify Server Start:**
-- Visit [http://localhost:3000](http://localhost:3000)
-- Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard) (should load without errors)
+- [http://localhost:3000](http://localhost:3000) loads without errors
+- [http://localhost:3000/dashboard](http://localhost:3000/dashboard) displays the dashboard shell
 
 ---
 
 ## Testing Workflow
 
-### Complete End-to-End Test Sequence
+### Complete End-to-End Sequence
 
-This sequence tests the entire pipeline from tweet collection → normalization → sentiment analysis → dashboard display.
+Follow this sequence to validate tweet collection → normalization → sentiment analysis → dashboard display.
 
-#### Test 1: Health Check (Baseline Verification)
+#### Test 1: Health Check
 
 ```bash
-# Check system health (automatically loads .env.local via dotenv)
 npm run health-check
 ```
 
-**Expected Output:**
-```
-✓ Environment variables configured
-✓ Supabase connection successful
-✓ Database tables present
-✓ Keywords configured: 10 enabled
-```
-
-**Note:** All Apify Pipeline scripts (`npm run health-check`, `enqueue:backfill`, `replay:sentiments`, etc.) automatically load `.env.local` via `dotenv`. You don't need to manually export variables or use `source`.
+The script loads `.env.local`, validates required variables, and inspects Supabase health. Success is indicated by a green summary. Investigate any warning or critical output before proceeding.
 
 #### Test 2: Tweet Collection (Apify Integration)
-
-**Manual API Trigger:**
 
 ```bash
 curl -X POST http://localhost:3000/api/start-apify-run \
@@ -273,7 +368,8 @@ curl -X POST http://localhost:3000/api/start-apify-run \
   }'
 ```
 
-**Expected Response (202 Accepted):**
+**Expected Response (`202 Accepted`):**
+
 ```json
 {
   "data": {
@@ -286,70 +382,40 @@ curl -X POST http://localhost:3000/api/start-apify-run \
 }
 ```
 
-**Monitor Apify Run:**
+Monitor via Apify Console or Supabase:
 
-1. **Via Apify Console:**
-   - Open the URL from the response
-   - Watch run progress (should take 5-20 minutes)
-   - Verify status transitions: `RUNNING` → `SUCCEEDED`
+```sql
+SELECT id, trigger_source, status, processed_new_count, processed_duplicate_count, processed_error_count
+FROM cron_runs
+ORDER BY started_at DESC
+LIMIT 1;
+```
 
-2. **Via Database:**
-   ```sql
-   -- Check cron run status
-   SELECT id, trigger_source, status, processed_new_count, processed_duplicate_count, processed_error_count
-   FROM cron_runs 
-   ORDER BY started_at DESC 
-   LIMIT 1;
-   ```
+Success criteria:
 
-**Success Criteria:**
-- Apify run status: `SUCCEEDED`
-- Database `cron_runs.status`: `succeeded` or `partial_success`
-- `processed_new_count` > 0 (for first run)
-- New records in `raw_tweets` and `normalized_tweets`
+- Apify run status transitions to `SUCCEEDED`
+- Latest `cron_runs.status` is `succeeded` or `partial_success`
+- `processed_new_count` > 0 on the first run
 
 #### Test 3: Data Verification
 
-**Check Raw Tweets:**
 ```sql
-SELECT 
-  id,
-  platform,
-  platform_id,
-  collected_at,
-  jsonb_pretty(payload) as payload_preview
+-- Raw tweets
+SELECT id, platform, platform_id, collected_at, jsonb_pretty(payload) AS payload_preview
 FROM raw_tweets
 ORDER BY collected_at DESC
 LIMIT 3;
-```
 
-**Check Normalized Tweets:**
-```sql
-SELECT 
-  id,
-  platform_id,
-  author_handle,
-  text,
-  status,
-  engagement_likes,
-  engagement_retweets,
-  keywords,
-  posted_at,
-  collected_at
+-- Normalized tweets
+SELECT id, platform_id, author_handle, text, status, engagement_likes, engagement_retweets, keywords, posted_at, collected_at
 FROM normalized_tweets
 ORDER BY collected_at DESC
 LIMIT 5;
 ```
 
-**Expected:**
-- `status` should be `pending_sentiment` for new tweets
-- `keywords` array populated from request
-- Engagement metrics present
-- No duplicates (check `platform_id` uniqueness)
+Expect new rows with `status = 'pending_sentiment'` prior to processing, populated keyword arrays, and realistic engagement metrics.
 
 #### Test 4: Sentiment Processing
-
-**Manual Sentiment Processing:**
 
 ```bash
 curl -X POST http://localhost:3000/api/process-sentiments \
@@ -359,7 +425,8 @@ curl -X POST http://localhost:3000/api/process-sentiments \
   }'
 ```
 
-**Expected Response (200 OK):**
+**Expected Response (`200 OK`):**
+
 ```json
 {
   "data": {
@@ -375,123 +442,59 @@ curl -X POST http://localhost:3000/api/process-sentiments \
 }
 ```
 
-**Verify Sentiment Results:**
+Verify sentiments:
+
 ```sql
--- Check sentiment processing
-SELECT 
-  ts.id,
-  ts.sentiment_label,
-  ts.sentiment_score,
-  ts.summary,
-  ts.model_version,
-  nt.text
+SELECT ts.id, ts.sentiment_label, ts.sentiment_score, ts.summary, ts.model_version, nt.text
 FROM tweet_sentiments ts
 JOIN normalized_tweets nt ON ts.normalized_tweet_id = nt.id
 ORDER BY ts.processed_at DESC
 LIMIT 5;
-```
 
-**Expected:**
-- `sentiment_label`: one of `positive`, `neutral`, `negative`
-- `sentiment_score`: between -1.0 and 1.0
-- `summary`: brief text summary
-- `model_version`: `gemini-2.5-flash` (or configured model)
-
-**Update Normalized Tweet Status:**
-```sql
--- Verify status updated
-SELECT status, COUNT(*) as count
+SELECT status, COUNT(*) AS count
 FROM normalized_tweets
 GROUP BY status;
 ```
 
-**Expected:**
-- `processed` count should increase
-- `pending_sentiment` count should decrease
-
 #### Test 5: Dashboard Verification
 
-**Visit Dashboard:**
-- Navigate to [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
+- Navigate to [http://localhost:3000/dashboard](http://localhost:3000/dashboard) for summary metrics
+- Visit [http://localhost:3000/dashboard/keywords](http://localhost:3000/dashboard/keywords) to confirm keyword toggles
+- Visit [http://localhost:3000/dashboard/tweets](http://localhost:3000/dashboard/tweets) to confirm sentiment labels and engagement metrics
 
-**Check Dashboard Elements:**
-
-1. **Overview Stats:**
-   - Total Tweets
-   - Average Sentiment
-   - Top Keywords
-   - Engagement Metrics
-
-2. **Navigate to Keywords:**
-   - [http://localhost:3000/dashboard/keywords](http://localhost:3000/dashboard/keywords)
-   - Verify keyword list displays
-   - Check enabled/disabled status
-
-3. **Navigate to Tweets:**
-   - [http://localhost:3000/dashboard/tweets](http://localhost:3000/dashboard/tweets)
-   - Verify recent tweets display
-   - Check sentiment labels render correctly
-   - Verify engagement metrics visible
-
-**Expected:**
-- No console errors
-- Data loads from Supabase
-- Charts/visualizations render
-- Filtering works (if implemented)
+Ensure charts render and browser console remains free of errors.
 
 ---
 
 ## Component-Level Testing
 
-### Test Individual Components in Isolation
-
-#### 1. Test Apify Client (Dry Run Mode)
+### 1. Apify Client Dry Run
 
 ```bash
-# Create a test script
-cat > test-apify-client.js << 'EOF'
+cat > test-apify-client.js <<'EOF'
 import { startApifyActorRun } from './src/ApifyPipeline/ExternalServices/Apify/client.js';
 
 const result = await startApifyActorRun(
-  {
-    triggerSource: 'test',
-    ingestion: { maxItemsPerKeyword: 10 }
-  },
+  { triggerSource: 'test', ingestion: { maxItemsPerKeyword: 10 } },
   { dryRun: true }
 );
 
 console.log('Dry run result:', result);
 EOF
 
-# Run with Node ESM
 node --input-type=module < test-apify-client.js
 ```
 
-**Expected Output:**
-```javascript
-{
-  runId: 'dryrun_2025-09-30T...',
-  actorId: 'dryrun-actor',
-  status: 'DRY_RUN',
-  startedAt: '2025-09-30T...',
-  url: 'https://console.apify.com/'
-}
-```
-
-#### 2. Test Normalization Logic
+### 2. Normalization Logic
 
 ```bash
 npm test -- src/ApifyPipeline/Tests/Unit/Core/Transformations/normalizeTweet.test.ts
 ```
 
-**Expected:**
-- All unit tests pass
-- Coverage includes ID extraction, field mapping, validation
-
-#### 3. Test Supabase Connection
+### 3. Supabase Connectivity
 
 ```typescript
-// Create test-supabase.ts
+// test-supabase.ts
 import { createSupabaseServiceClient } from './src/ApifyPipeline/ExternalServices/Supabase/client';
 
 const client = createSupabaseServiceClient();
@@ -509,10 +512,10 @@ console.log('✓ Supabase connected successfully');
 tsx test-supabase.ts
 ```
 
-#### 4. Test Gemini Client
+### 4. Gemini Client
 
 ```typescript
-// Create test-gemini.ts
+// test-gemini.ts
 import { GeminiClient } from './src/ApifyPipeline/ExternalServices/Gemini/GeminiClient';
 import { getGeminiEnv } from './src/ApifyPipeline/Infrastructure/Config/env';
 
@@ -523,7 +526,7 @@ const result = await client.classifySentiment({
   text: 'This AI coding agent is amazing! It boosted my productivity significantly.',
   tweetId: 'test-123',
   authorHandle: 'test_user',
-  postedAt: new Date().toISOString()
+  postedAt: new Date().toISOString(),
 });
 
 console.log('Sentiment result:', result);
@@ -533,78 +536,75 @@ console.log('Sentiment result:', result);
 tsx test-gemini.ts
 ```
 
-**Expected Output:**
-```javascript
-{
-  tweetId: 'test-123',
-  sentimentLabel: 'positive',
-  sentimentScore: 0.8,
-  summary: 'Highly positive feedback about AI coding agent...',
-  modelVersion: 'gemini-2.5-flash',
-  tokensUsed: 42,
-  latencyMs: 1250
-}
-```
-
 ---
 
 ## Integration Testing
 
-### Test Complete Workflows
-
-#### Workflow 1: Backfill Historical Data (Manual Only)
-
-**Enqueue Backfill Batches (Once):**
+### Workflow 1: Backfill Historical Data (Manual)
 
 ```bash
-# Default: 30 days in 5-day chunks (6 batches)
+# Populate queue (default: 30 days in 5-day chunks)
 npm run enqueue:backfill
 
-# Testing: Only 5 days (1 batch)
+# Fewer records for testing
 BACKFILL_DAYS=5 npm run enqueue:backfill
 
-# Custom: 10 days in 5-day chunks (2 batches)
+# Custom window
 BACKFILL_DAYS=10 BACKFILL_BATCH_SIZE=5 npm run enqueue:backfill
 ```
 
-**Process Backfill Queue Manually (Repeat 6x):**
+Process batches:
 
 ```bash
-# Option 1: Via npm script (loads .env.local and calls the job directly)
 npm run process:backfill
-
-# Option 2: Via API (requires dev server running and INTERNAL_API_KEY header)
+# or
 curl -X POST http://localhost:3000/api/process-backfill \
   -H "x-api-key: $INTERNAL_API_KEY"
 ```
 
-**Monitor Backfill Progress:**
+Monitor progress:
 
 ```sql
--- Check backfill batch status
-SELECT 
-  id,
-  start_date,
-  end_date,
-  status,
-  keywords,
-  created_at,
-  updated_at
+SELECT id, start_date, end_date, status, keywords, created_at, updated_at
 FROM backfill_batches
 ORDER BY priority DESC, created_at;
 ```
 
-**Expected:**
-- Batches transition: `pending` → `running` → `completed`
-- `metadata` contains `apifyRunId` and processing details
-- No automated cron - all processing is manual
-- Historical tweets appear in `normalized_tweets` with earlier `posted_at` dates
+Expect status changes `pending → running → completed` and metadata containing `apifyRunId`.
 
-#### Workflow 2: Failed Sentiment Replay
+#### Use a Completed Apify Run (Dataset-Only Backfill)
 
-**Simulate Failure (Optional):**
+1. **Capture run details:** In the Apify Console open the completed run you want to ingest, copy the Run ID (and optionally the Dataset ID shown on the run detail page). Runs must be in the `SUCCEEDED` or `SUCCEEDED_WITH_WARNINGS` state.
+2. **Prepare a matching batch:** Ensure a `backfill_batches` row exists that covers the same keyword set and date window. You can create one with `npm run enqueue:backfill` or insert a custom batch manually.
+3. **Attach the run metadata:** In Supabase Studio → SQL Editor (or via psql) run:
+   ```sql
+   UPDATE backfill_batches
+   SET metadata = COALESCE(metadata, '{}'::jsonb)
+     || jsonb_build_object(
+       'apifyRunId', '<APIFY_RUN_ID>',
+       'apifyDatasetId', '<APIFY_DATASET_ID>' -- optional but helpful for auditing
+     )
+   WHERE id = '<BACKFILL_BATCH_ID>';
+   ```
+   Replace the placeholders with the values from Step 1. Leaving off `apifyDatasetId` is acceptable—the processor retrieves it automatically once the run is inspected.
+4. **Process without forcing a new run:** Make sure `BACKFILL_FORCE_NEW_APIFY_RUN` is **not** set (or is `false`) and run `npm run process:backfill`. The job detects the `apifyRunId`, skips triggering a fresh actor run, and pulls items directly from the existing dataset.
+5. **Verify ingestion:** Check `cron_runs` for a new entry whose metadata contains `reusedApifyRun: true`, and confirm new tweets appear in `normalized_tweets`.
+
+If you accidentally process a batch without `apifyRunId` metadata, the processor throws `Existing Apify run metadata not found...`. Add the metadata or rerun with `BACKFILL_FORCE_NEW_APIFY_RUN=true` to launch a fresh actor execution.
+
+**Retry tips:** If a batch was marked `failed`, set it back to pending before retrying:
 ```sql
--- Manually create a failed sentiment
+UPDATE backfill_batches
+SET status = 'pending',
+    updated_at = now()
+WHERE id = '<BACKFILL_BATCH_ID>';
+```
+Re-running the processor with the same `apifyRunId` keeps using the original Apify dataset (no new actor run). Expect `processedDuplicateCount` to reflect already-ingested tweets and note that historical fields such as `failedAt` or `lastErrorMessage` remain in metadata for traceability.
+
+### Workflow 2: Failed Sentiment Replay
+
+```sql
+-- Optional: seed failures for testing
 INSERT INTO sentiment_failures (normalized_tweet_id, error_message, retry_count, last_attempted_at)
 SELECT id, 'Test failure', 1, now()
 FROM normalized_tweets
@@ -612,46 +612,38 @@ WHERE status = 'pending_sentiment'
 LIMIT 5;
 ```
 
-**Replay Failed Sentiments:**
-
 ```bash
 npm run replay:sentiments
 ```
 
-**Verify Recovery:**
 ```sql
--- Check if failures were reprocessed
-SELECT COUNT(*) FROM sentiment_failures WHERE retry_count >= 1;
+SELECT COUNT(*) AS remaining_failures
+FROM sentiment_failures
+WHERE retry_count >= 1;
 
--- Check if tweets now have sentiments
-SELECT status, COUNT(*) FROM normalized_tweets GROUP BY status;
+SELECT status, COUNT(*)
+FROM normalized_tweets
+GROUP BY status;
 ```
 
-#### Workflow 3: Data Cleanup
-
-**Clean Old Raw Tweets (Retention Testing):**
+### Workflow 3: Data Cleanup
 
 ```bash
-# Dry run first
+# Dry run (keeps last 30 days)
 npm run cleanup:raw-tweets -- --dry-run
 
-# Actual cleanup (keeps last 30 days by default)
+# Execute cleanup
 npm run cleanup:raw-tweets
-```
 
-**Verify Cleanup:**
-```sql
--- Check oldest raw tweet
-SELECT MIN(collected_at) as oldest_raw_tweet FROM raw_tweets;
-
--- Normalized tweets should remain intact
-SELECT COUNT(*) FROM normalized_tweets;
-```
-
-**Clean Sentiment Failures:**
-
-```bash
+# Sentiment failure retention (defaults to 90 days)
 npm run cleanup:sentiment-failures -- --max-age-days=90
+```
+
+Validation queries:
+
+```sql
+SELECT MIN(collected_at) AS oldest_raw_tweet FROM raw_tweets;
+SELECT COUNT(*) FROM normalized_tweets;
 ```
 
 ---
@@ -660,247 +652,278 @@ npm run cleanup:sentiment-failures -- --max-age-days=90
 
 ### Issue 1: Missing Environment Variables
 
-**Symptom:**
 ```
 Error: APIFY_TOKEN and APIFY_ACTOR_ID must be configured.
 ❌ Missing required environment variables
 ```
 
-**Solution:**
-1. Verify `.env.local` exists in project root
-2. Check variable names match exactly (case-sensitive)
-3. Ensure no syntax errors in `.env.local` (no quotes around values needed)
-4. Restart dev server after adding variables (for Next.js endpoints)
+**Fix:**
 
-**Note:** All Apify Pipeline scripts (`npm run health-check`, `enqueue:backfill`, etc.) automatically load `.env.local` via `dotenv` (installed as dev dependency). You don't need to manually source or export variables.
-
-**Verification:**
-```bash
-# Check if .env.local is being loaded
-npm run health-check
-
-# If successful, you'll see environment validation pass
-# If it fails, check .env.local syntax and variable names
-```
+1. Verify `.env.local` exists and matches variable names exactly
+2. Confirm there are no stray quotes or whitespace in `.env.local`
+3. Re-run `npm run health-check` to validate changes
+4. Restart `npm run dev` so Next.js picks up updates
 
 ### Issue 2: Supabase Connection Failure
 
-**Symptom:**
 ```
 Failed to initialize Supabase client
 Database connection timeout
 ```
 
-**Solution:**
-1. Verify Supabase project is active (not paused)
-2. Check URL format: `https://[project-ref].supabase.co`
-3. Confirm service role key is correct (not anon key)
-4. Test connection manually:
+**Fix:**
 
-```bash
-curl -X GET "https://[your-project].supabase.co/rest/v1/keywords?select=id" \
-  -H "apikey: your-service-role-key" \
-  -H "Authorization: Bearer your-service-role-key"
+- Confirm project is active and not paused
+- Ensure URL matches `https://[project-ref].supabase.co`
+- Use the service role key (not the anon key)
+- Test manually:
+  ```bash
+  curl -X GET "https://[your-project].supabase.co/rest/v1/keywords?select=id" \
+    -H "apikey: your-service-role-key" \
+    -H "Authorization: Bearer your-service-role-key"
+  ```
+
+### Issue 3: No Keywords Available
+
+```
+SELECT * FROM keywords WHERE is_enabled = true; -- returns 0 rows
 ```
 
-### Issue 3: Apify Rate Limiting
+**Fix:** Re-run the seed script `src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql` and confirm four enabled keywords are present.
 
-**Symptom:**
-```
-Apify run failed with status 429
-Rate limit exceeded
-```
+### Issue 4: Apify Run Failed or Rate Limited
 
-**Solution:**
-1. Check Apify account compute units
-2. Reduce `keywordBatchSize` (default: 5 → try 2-3)
-3. Increase `cooldownSeconds` (default: 0 → try 10-15)
-4. Monitor Apify console for usage limits
+- Check compute units in the Apify dashboard
+- Reduce `keywordBatchSize` or `maxItemsPerKeyword`
+- Increase `cooldownSeconds`
+- Monitor run logs via the provided console URL
 
-**Adjust Settings:**
-```bash
-curl -X POST http://localhost:3000/api/start-apify-run \
-  -H "Content-Type: application/json" \
-  -d '{
-    "triggerSource": "manual",
-    "ingestion": {
-      "maxItemsPerKeyword": 50,
-      "keywordBatchSize": 2,
-      "cooldownSeconds": 15
-    }
-  }'
-```
+### Issue 5: Gemini API Quota Exhaustion
 
-### Issue 4: Gemini API Quota Exhaustion
+- Free tier allows 15 requests per minute
+- Lower `batchSize` during sentiment processing (e.g. to 3)
+- Space out batch runs or upgrade to a paid tier
 
-**Symptom:**
-```
-Error 429: Resource exhausted
-Gemini API rate limit exceeded
-```
+### Issue 6: Duplicate Tweet Detection
 
-**Solution:**
-1. Free tier: 15 requests per minute
-2. Reduce sentiment batch size:
-   ```bash
-   curl -X POST http://localhost:3000/api/process-sentiments \
-     -d '{"batchSize": 5}'
-   ```
-3. Implement longer delays in production config
-4. Consider upgrading to paid tier
+Investigate duplicates:
 
-**Check Current Usage:**
-- Visit [Google AI Studio](https://aistudio.google.com/)
-- Navigate to API usage dashboard
-
-### Issue 5: Duplicate Tweet Detection Not Working
-
-**Symptom:**
-- `processed_duplicate_count` is always 0
-- Same tweets appear multiple times in database
-
-**Investigation:**
 ```sql
--- Find duplicates
-SELECT platform_id, COUNT(*) as count
+SELECT platform_id, COUNT(*) AS count
 FROM normalized_tweets
 GROUP BY platform_id
 HAVING COUNT(*) > 1;
-
--- Check unique constraint
-SELECT indexname, indexdef 
-FROM pg_indexes 
-WHERE tablename = 'normalized_tweets' 
-  AND indexdef LIKE '%UNIQUE%';
 ```
 
-**Solution:**
-- Ensure migration ran successfully
-- Unique constraint on `(platform, platform_id)` must exist
-- Check if Apify returns consistent ID format
+Verify unique index on `(platform, platform_id)` exists and migrations applied successfully.
 
-### Issue 6: Dashboard Shows No Data
+### Issue 7: Dashboard Shows No Data
 
-**Symptom:**
-- Dashboard loads but displays "No data available"
-- Console shows no errors
+- Confirm views exist:
+  ```sql
+  SELECT table_name
+  FROM information_schema.views
+  WHERE table_schema = 'public'
+    AND table_name IN ('vw_daily_sentiment', 'vw_keyword_trends');
+  ```
+- Ensure ingestion or backfill runs succeeded
+- Check the browser console for API errors
 
-**Investigation:**
-```sql
--- Check if views exist
-SELECT table_name FROM information_schema.views 
-WHERE table_schema = 'public' 
-  AND table_name IN ('vw_daily_sentiment', 'vw_keyword_trends');
+### Troubleshooting Decision Tree
 
--- Check view data
-SELECT * FROM vw_daily_sentiment LIMIT 5;
-SELECT * FROM vw_keyword_trends LIMIT 5;
 ```
+Issue: API returns error
+├─ 401 Unauthorized
+│  ├─ /api/process-backfill → Add INTERNAL_API_KEY header
+│  └─ Other endpoints → Check env variables
+├─ 500 Internal Server Error
+│  ├─ "APIFY_TOKEN not configured" → Check .env.local
+│  ├─ "GEMINI_API_KEY not configured" → Check .env.local
+│  └─ "Supabase connection failed" → Verify SUPABASE_URL & key
+└─ 429 Rate Limit
+   ├─ Apify → Check compute units, reduce batch size
+   └─ Gemini → Free tier: 15 RPM, reduce batch size
 
-**Solution:**
-1. Verify migrations include view definitions
-2. Ingest data via Apify runs or backfill so the views have rows
-3. Run manual query to test data access
-4. Check Supabase RLS policies (should be disabled for service role)
+Issue: No data in database
+├─ Check cron_runs table for errors
+├─ Verify Apify run completed in console
+└─ Check keywords table has is_enabled=true records
+
+Issue: Dashboard shows no data
+├─ Check if views exist (vw_daily_sentiment, vw_keyword_trends)
+├─ Ensure at least one ingestion/backfill run has written tweets
+└─ Check browser console for errors
+```
 
 ---
 
 ## Data Verification
 
-### Quality Checks
-
-#### 1. Data Completeness Check
+### Quick Queries
 
 ```sql
--- Check pipeline health
-SELECT 
-  'cron_runs' as table_name,
-  COUNT(*) as total_records,
-  COUNT(CASE WHEN status = 'succeeded' THEN 1 END) as successful_runs,
-  MAX(started_at) as last_run
+-- Pipeline health snapshot
+SELECT 'cron_runs' AS table_name,
+       COUNT(*) AS records,
+       COUNT(CASE WHEN status = 'succeeded' THEN 1 END) AS successful
 FROM cron_runs
 UNION ALL
-SELECT 
-  'raw_tweets',
-  COUNT(*),
-  COUNT(CASE WHEN ingestion_reason = 'initial' THEN 1 END),
-  MAX(collected_at)
-FROM raw_tweets
-UNION ALL
-SELECT 
-  'normalized_tweets',
-  COUNT(*),
-  COUNT(CASE WHEN status = 'processed' THEN 1 END),
-  MAX(collected_at)
+SELECT 'normalized_tweets', COUNT(*), COUNT(CASE WHEN status = 'processed' THEN 1 END)
 FROM normalized_tweets
 UNION ALL
-SELECT 
-  'tweet_sentiments',
-  COUNT(*),
-  COUNT(CASE WHEN sentiment_label IS NOT NULL THEN 1 END),
-  MAX(processed_at)
+SELECT 'tweet_sentiments', COUNT(*), COUNT(CASE WHEN sentiment_label IS NOT NULL THEN 1 END)
+FROM tweet_sentiments;
+
+-- Recent activity
+SELECT trigger_source, status, processed_new_count AS new_tweets,
+       started_at, finished_at, (finished_at - started_at) AS duration
+FROM cron_runs
+ORDER BY started_at DESC
+LIMIT 5;
+
+-- Sentiment distribution
+SELECT sentiment_label,
+       COUNT(*) AS count,
+       ROUND(AVG(sentiment_score)::numeric, 2) AS avg_score
+FROM tweet_sentiments
+GROUP BY sentiment_label
+ORDER BY count DESC;
+
+-- Top engaged tweets
+SELECT nt.text, nt.author_handle,
+       nt.engagement_likes + nt.engagement_retweets AS total_engagement,
+       ts.sentiment_label, nt.posted_at
+FROM normalized_tweets nt
+LEFT JOIN tweet_sentiments ts ON ts.normalized_tweet_id = nt.id
+ORDER BY total_engagement DESC
+LIMIT 10;
+```
+
+### Quality Checks
+
+```sql
+-- Table inventory + latest timestamps
+SELECT 'cron_runs' AS table_name,
+       COUNT(*) AS total_records,
+       COUNT(CASE WHEN status = 'succeeded' THEN 1 END) AS successful_runs,
+       MAX(started_at) AS last_run
+FROM cron_runs
+UNION ALL
+SELECT 'raw_tweets', COUNT(*), COUNT(CASE WHEN ingestion_reason = 'initial' THEN 1 END), MAX(collected_at)
+FROM raw_tweets
+UNION ALL
+SELECT 'normalized_tweets', COUNT(*), COUNT(CASE WHEN status = 'processed' THEN 1 END), MAX(collected_at)
+FROM normalized_tweets
+UNION ALL
+SELECT 'tweet_sentiments', COUNT(*), COUNT(CASE WHEN sentiment_label IS NOT NULL THEN 1 END), MAX(processed_at)
 FROM tweet_sentiments;
 ```
 
-#### 2. Data Consistency Check
+### Consistency Checks
 
 ```sql
--- Verify referential integrity
-SELECT 
-  'Raw → Normalized' as relationship,
-  COUNT(DISTINCT rt.id) as raw_count,
-  COUNT(DISTINCT nt.raw_tweet_id) as normalized_references
+-- Raw → Normalized linkage
+SELECT 'Raw → Normalized' AS relationship,
+       COUNT(DISTINCT rt.id) AS raw_count,
+       COUNT(DISTINCT nt.raw_tweet_id) AS normalized_references
 FROM raw_tweets rt
 LEFT JOIN normalized_tweets nt ON rt.id = nt.raw_tweet_id;
 
--- Check orphaned sentiments
-SELECT COUNT(*) as orphaned_sentiments
+-- Orphaned sentiments
+SELECT COUNT(*) AS orphaned_sentiments
 FROM tweet_sentiments ts
 LEFT JOIN normalized_tweets nt ON ts.normalized_tweet_id = nt.id
 WHERE nt.id IS NULL;
 ```
 
-**Expected:**
-- All relationships intact (no orphaned records)
-- `normalized_references` ≈ `raw_count` (allowing for duplicates)
-
-#### 3. Sentiment Distribution Check
+### Sentiment Health
 
 ```sql
--- Analyze sentiment distribution
-SELECT 
-  sentiment_label,
-  COUNT(*) as count,
-  ROUND(AVG(sentiment_score)::numeric, 3) as avg_score,
-  MIN(sentiment_score) as min_score,
-  MAX(sentiment_score) as max_score
+SELECT sentiment_label,
+       COUNT(*) AS count,
+       ROUND(AVG(sentiment_score)::numeric, 3) AS avg_score,
+       MIN(sentiment_score) AS min_score,
+       MAX(sentiment_score) AS max_score
 FROM tweet_sentiments
 GROUP BY sentiment_label
 ORDER BY count DESC;
 ```
 
-**Expected:**
-- All three labels present (`positive`, `neutral`, `negative`)
-- Reasonable distribution (not 100% one label)
-- Scores align with labels (positive > 0, negative < 0)
-
-#### 4. Timeline Consistency Check
+### Timeline Consistency
 
 ```sql
--- Check timeline makes sense
-SELECT 
-  MIN(posted_at) as earliest_tweet,
-  MAX(posted_at) as latest_tweet,
-  MIN(collected_at) as first_collection,
-  MAX(collected_at) as last_collection,
-  COUNT(*) as total_tweets
+SELECT MIN(posted_at) AS earliest_tweet,
+       MAX(posted_at) AS latest_tweet,
+       MIN(collected_at) AS first_collection,
+       MAX(collected_at) AS last_collection,
+       COUNT(*) AS total_tweets
 FROM normalized_tweets;
 ```
 
-**Expected:**
-- `posted_at` dates span the backfill period + recent data
-- `collected_at` dates match test execution timeline
-- No future dates
+---
+
+## Development Commands
+
+```bash
+npm run check          # Typecheck + lint
+npm run check:fix      # Typecheck + lint --fix
+npm test               # Unit tests
+npm run test:watch     # Unit tests in watch mode
+npm run typecheck      # TypeScript only
+npm run lint           # ESLint only
+npm run lint:fix       # ESLint --fix
+npm run apply-migrations  # Apply SQL migrations via DATABASE_URL
+npm run build:edge-functions # Build Supabase edge functions
+npm run functions:serve     # Serve edge functions locally
+npm run enqueue:backfill    # Enqueue historical collection batches
+npm run process:backfill    # Process a backfill batch
+npm run replay:sentiments   # Retry failed sentiments
+npm run cleanup:raw-tweets  # Prune raw tweets (30-day retention)
+npm run cleanup:sentiment-failures -- --max-age-days=90 # Prune sentiment failures
+```
+
+---
+
+## API Endpoint Reference
+
+### `/api/start-apify-run`
+
+```bash
+curl -X POST http://localhost:3000/api/start-apify-run \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $INTERNAL_API_KEY" \
+  -d '{
+    "triggerSource": "manual",
+    "ingestion": {
+      "tweetLanguage": "en",
+      "sort": "Top",
+      "maxItemsPerKeyword": 50,
+      "keywordBatchSize": 3,
+      "cooldownSeconds": 5,
+      "minimumEngagement": {
+        "retweets": 5,
+        "favorites": 10
+      }
+    }
+  }'
+```
+
+### `/api/process-sentiments`
+
+```bash
+curl -X POST http://localhost:3000/api/process-sentiments \
+  -H "Content-Type: application/json" \
+  -d '{
+    "batchSize": 10
+  }'
+```
+
+### `/api/process-backfill`
+
+```bash
+curl -X POST http://localhost:3000/api/process-backfill \
+  -H "x-api-key: $INTERNAL_API_KEY"
+```
 
 ---
 
@@ -908,40 +931,41 @@ FROM normalized_tweets;
 
 ### After Successful Local Testing
 
-1. **Review Logs:**
-   - Check console output for warnings
-   - Review Apify run logs for anomalies
-   - Inspect Supabase logs for query performance
+1. **Review logs:**
+   - Console output for warnings
+   - Apify run logs for anomalies
+   - Supabase logs for query performance
 
-2. **Prepare for Production:**
-   - Document any configuration adjustments needed
-   - Note baseline performance metrics (latency, token usage)
-   - Identify any rate limit constraints encountered
+2. **Prepare production configuration:**
+   - Document configuration differences
+   - Capture baseline performance metrics (latency, tokens, backlog)
+   - Identify rate-limit constraints encountered during testing
 
-3. **Deploy to Staging/Production:**
+3. **Deploy to staging/production:**
    - Configure Vercel environment variables
-   - Set up Vercel Cron jobs (requires Pro plan for <24h intervals)
+   - Set up Vercel Cron jobs (Pro plan required for <24h intervals)
    - Enable monitoring and alerting
-   - Refer to [Operational Runbook](../../src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md) for production procedures
+   - Reference the [Operational Runbook](../../src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md)
 
-4. **Continuous Testing:**
-   - Run unit tests: `npm test`
-   - Run type checking: `npm run typecheck`
-   - Run linting: `npm run lint`
-   - Combined checks: `npm run check`
+4. **Continuous testing:**
+   - `npm test`
+   - `npm run typecheck`
+   - `npm run lint`
+   - `npm run check`
 
 ---
 
 ## Resources
 
-### Documentation Links
+### Documentation
 
 - [Apify Pipeline Specification](specification.md)
 - [Architecture Overview](overview.md)
+- [Date-Based Collection Strategy](date-based-collection-strategy.md)
 - [Operational Runbook](../../src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md)
 - [Incident Response Guide](../../src/ApifyPipeline/Docs/incident-response-runbook.md)
 
-### External API Documentation
+### External References
 
 - [Apify API Docs](https://docs.apify.com/api/v2)
 - [Supabase Docs](https://supabase.com/docs)
@@ -950,9 +974,9 @@ FROM normalized_tweets;
 
 ### Support Channels
 
-- **GitHub Issues:** [agent-vibes/issues](https://github.com/sourcegraph-community/agent-vibes/issues)
-- **Slack:** `#apify-pipeline-alerts` (internal)
-- **Email:** Platform Ops Team
+- GitHub Issues: [agent-vibes/issues](https://github.com/sourcegraph-community/agent-vibes/issues)
+- Slack: `#apify-pipeline-alerts`
+- Email: Platform Ops Team
 
 ---
 
@@ -971,7 +995,7 @@ FROM normalized_tweets;
 }
 ```
 
-### Full Test Payload (Comprehensive Testing)
+### Full Test Payload (Comprehensive)
 
 ```json
 {
@@ -1011,4 +1035,6 @@ FROM normalized_tweets;
 
 ---
 
-**End of Local Testing Guide**
+**Time to First Success:** ~10 minutes with existing external accounts  
+**Confidence Level:** High — components validated end-to-end  
+**Last Validated:** October 2, 2025

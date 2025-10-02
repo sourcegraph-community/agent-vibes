@@ -126,6 +126,10 @@ export class BackfillProcessorJob {
       throw new Error(`Failed to get next batch: ${error.message}`);
     }
 
+    if (!data) {
+      return null;
+    }
+
     return {
       id: data.id,
       keywords: data.keywords,
