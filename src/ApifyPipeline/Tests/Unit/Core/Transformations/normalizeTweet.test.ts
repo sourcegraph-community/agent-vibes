@@ -97,8 +97,7 @@ describe('normalizeTweet', () => {
         engagementRetweets: 5,
         status: 'pending_sentiment',
       });
-      expect(result.keywordSnapshot).toContain('bitcoin');
-      expect(result.keywordSnapshot).toContain('crypto');
+      expect(result.keywordSnapshot).toEqual(['bitcoin']);
     });
 
     it('should normalize tweet with minimal fields', () => {
@@ -352,9 +351,7 @@ describe('normalizeTweet', () => {
         keywords: ['bitcoin', 'ethereum'],
       };
       const result = normalizeTweet(item, context);
-      expect(result.keywordSnapshot).toContain('bitcoin');
-      expect(result.keywordSnapshot).toContain('crypto');
-      expect(result.keywordSnapshot).toContain('ethereum');
+      expect(result.keywordSnapshot.sort()).toEqual(['bitcoin', 'crypto']);
       expect(result.keywordSnapshot.filter(k => k === 'bitcoin').length).toBe(1);
     });
 

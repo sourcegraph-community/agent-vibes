@@ -30,35 +30,35 @@ async function TweetList({ filters }: { filters: { language?: string, sentiment?
   return (
     <div className="space-y-4">
       {tweets.map((tweet) => (
-        <div key={tweet.id} className="overflow-hidden rounded-lg bg-white shadow">
+        <div key={tweet.id} className="card-section">
           <div className="px-4 py-5 sm:p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-2">
+            <div className="flex items-start justify-between gap-6">
+              <div className="flex-1 space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
                   {tweet.authorName && (
-                    <span className="font-medium text-gray-900">{tweet.authorName}</span>
+                    <span className="font-medium">{tweet.authorName}</span>
                   )}
                   {tweet.authorHandle && (
-                    <span className="text-sm text-gray-500">@{tweet.authorHandle}</span>
+                    <span className="text-sm text-[var(--muted)]">@{tweet.authorHandle}</span>
                   )}
                   {tweet.language && (
-                    <span className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800">
+                    <span className="badge-muted inline-flex rounded-full px-2 py-1 text-xs font-medium">
                       {tweet.language}
                     </span>
                   )}
                 </div>
-                <p className="mt-2 text-sm text-gray-900">{tweet.content}</p>
+                <p className="text-sm leading-relaxed">{tweet.content}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {tweet.keywords.map((keyword) => (
                     <span
                       key={keyword}
-                      className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800"
+                      className="inline-flex rounded-full bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-300"
                     >
                       {keyword}
                     </span>
                   ))}
                 </div>
-                <div className="mt-3 flex items-center space-x-4 text-sm text-gray-500">
+                <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--muted)]">
                   {tweet.postedAt && (
                     <span>{new Date(tweet.postedAt).toLocaleString()}</span>
                   )}
@@ -73,29 +73,29 @@ async function TweetList({ filters }: { filters: { language?: string, sentiment?
                       href={tweet.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-blue-400 transition hover:text-blue-300"
                     >
                       View original →
                     </a>
                   )}
                 </div>
               </div>
-              <div className="ml-4 shrink-0">
+              <div className="shrink-0 text-center">
                 {tweet.sentimentLabel && (
-                  <div className="text-center">
+                  <div className="space-y-2">
                     <span
                       className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${
                         tweet.sentimentLabel === 'positive'
-                          ? 'bg-green-100 text-green-800'
+                          ? 'bg-green-500/10 text-green-300'
                           : tweet.sentimentLabel === 'negative'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
+                            ? 'bg-red-500/10 text-red-300'
+                            : 'bg-[color:rgba(255,255,255,0.08)] text-[var(--foreground)]'
                       }`}
                     >
                       {tweet.sentimentLabel}
                     </span>
                     {tweet.sentimentScore != null && (
-                      <div className="mt-1 text-xs text-gray-500">
+                      <div className="text-xs text-[var(--muted)]">
                         {tweet.sentimentScore.toFixed(3)}
                       </div>
                     )}
@@ -107,8 +107,8 @@ async function TweetList({ filters }: { filters: { language?: string, sentiment?
         </div>
       ))}
       {tweets.length === 0 && (
-        <div className="rounded-lg bg-white px-4 py-12 text-center shadow">
-          <p className="text-gray-500">No tweets found matching your filters</p>
+        <div className="card-section px-4 py-12 text-center">
+          <p className="text-[var(--muted)]">No tweets found matching your filters</p>
         </div>
       )}
     </div>
@@ -122,17 +122,17 @@ async function FilterBar({ filters }: { filters: { language?: string, sentiment?
   const availableKeywords = await repo.getAvailableKeywords();
 
   return (
-    <div className="rounded-lg bg-white p-4 shadow">
+    <div className="card-section p-4">
       <form method="get" className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <div>
-          <label htmlFor="language" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="language" className="block text-sm font-medium text-[var(--muted)]">
             Language
           </label>
           <select
             id="language"
             name="language"
             defaultValue={filters.language || ''}
-            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+            className="mt-1 block w-full rounded-md border border-[var(--surface-border)] bg-[var(--background)] py-2 pl-3 pr-10 text-sm text-[var(--foreground)] focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All languages</option>
             <option value="en">English</option>
@@ -143,14 +143,14 @@ async function FilterBar({ filters }: { filters: { language?: string, sentiment?
         </div>
 
         <div>
-          <label htmlFor="sentiment" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="sentiment" className="block text-sm font-medium text-[var(--muted)]">
             Sentiment
           </label>
           <select
             id="sentiment"
             name="sentiment"
             defaultValue={filters.sentiment || ''}
-            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+            className="mt-1 block w-full rounded-md border border-[var(--surface-border)] bg-[var(--background)] py-2 pl-3 pr-10 text-sm text-[var(--foreground)] focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All sentiments</option>
             <option value="positive">Positive</option>
@@ -160,14 +160,14 @@ async function FilterBar({ filters }: { filters: { language?: string, sentiment?
         </div>
 
         <div>
-          <label htmlFor="keyword" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="keyword" className="block text-sm font-medium text-[var(--muted)]">
             Keyword
           </label>
           <select
             id="keyword"
             name="keyword"
             defaultValue={filters.keyword || ''}
-            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+            className="mt-1 block w-full rounded-md border border-[var(--surface-border)] bg-[var(--background)] py-2 pl-3 pr-10 text-sm text-[var(--foreground)] focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All keywords</option>
             {availableKeywords.map((keyword) => (
@@ -181,7 +181,7 @@ async function FilterBar({ filters }: { filters: { language?: string, sentiment?
         <div className="flex items-end">
           <button
             type="submit"
-            className="w-full rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="w-full rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent"
           >
             Apply Filters
           </button>
@@ -194,7 +194,7 @@ async function FilterBar({ filters }: { filters: { language?: string, sentiment?
 function LoadingState() {
   return (
     <div className="flex items-center justify-center py-12">
-      <div className="text-gray-500">Loading...</div>
+      <div className="text-[var(--muted)]">Loading...</div>
     </div>
   );
 }
@@ -205,8 +205,8 @@ export default async function TweetsPage(props: TweetListProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Tweets</h2>
-        <p className="mt-1 text-sm text-gray-500">
+        <h2 className="text-2xl font-semibold">Tweets</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">
           Browse and filter tweets with sentiment analysis
         </p>
       </div>

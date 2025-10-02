@@ -165,22 +165,36 @@ const resolveLanguage = (item: ApifyTweetItem): string | null => {
 };
 
 const collectKeywords = (item: ApifyTweetItem, baseKeywords: string[]): string[] => {
+  const normalize = (keyword: string | null | undefined): string | null => {
+    if (!keyword) {
+      return null;
+    }
+
+    const trimmed = keyword.trim().toLowerCase();
+    return trimmed.length > 0 ? trimmed : null;
+  };
+
+  const addKeywords = (keywords: string[] | null | undefined, target: Set<string>) => {
+    if (!keywords) {
+      return;
+    }
+
+    for (const keyword of keywords) {
+      const normalized = normalize(keyword);
+      if (normalized) {
+        target.add(normalized);
+      }
+    }
+  };
+
   const keywordSet = new Set<string>();
 
-  for (const keyword of baseKeywords) {
-    keywordSet.add(keyword.toLowerCase());
-  }
+  addKeywords(item.matchedKeywords, keywordSet);
+  addKeywords(item.matchedQueries, keywordSet);
+  addKeywords(item.searchTerms, keywordSet);
 
-  for (const keyword of item.matchedKeywords ?? []) {
-    keywordSet.add(keyword.toLowerCase());
-  }
-
-  for (const keyword of item.matchedQueries ?? []) {
-    keywordSet.add(keyword.toLowerCase());
-  }
-
-  for (const keyword of item.searchTerms ?? []) {
-    keywordSet.add(keyword.toLowerCase());
+  if (keywordSet.size === 0) {
+    addKeywords(baseKeywords, keywordSet);
   }
 
   return Array.from(keywordSet);
