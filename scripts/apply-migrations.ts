@@ -21,6 +21,27 @@ const colors = {
   reset: '\x1b[0m',
 };
 
+type ExecOutputError = Error & {
+  stdout?: Buffer | string;
+  stderr?: Buffer | string;
+};
+
+function hasExecOutput(error: Error): error is ExecOutputError {
+  return 'stdout' in error || 'stderr' in error;
+}
+
+function normalizeExecOutput(output?: Buffer | string): string {
+  if (typeof output === 'string') {
+    return output;
+  }
+
+  if (Buffer.isBuffer(output)) {
+    return output.toString('utf8');
+  }
+
+  return '';
+}
+
 function resolveConnectionString(): string {
   const databaseUrl = process.env.DATABASE_URL;
   if (databaseUrl) {
@@ -69,13 +90,15 @@ async function executeSqlDirect(sql: string, name: string, connectionString: str
   } catch (error) {
     console.error(`${colors.red}❌ Failed to execute ${name}${colors.reset}`);
     if (error instanceof Error) {
-      const stderr = (error as any).stderr?.toString() ?? '';
-      const stdout = (error as any).stdout?.toString() ?? '';
-      if (stderr) {
-        console.error(stderr.trim());
-      }
-      if (stdout) {
-        console.error(stdout.trim());
+      if (hasExecOutput(error)) {
+        const stderr = normalizeExecOutput(error.stderr).trim();
+        const stdout = normalizeExecOutput(error.stdout).trim();
+        if (stderr) {
+          console.error(stderr);
+        }
+        if (stdout) {
+          console.error(stdout);
+        }
       }
     }
     throw error;

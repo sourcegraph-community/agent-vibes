@@ -22,7 +22,6 @@
 - Mocks: See [mocks](mocks) for static dashboard prototypes and reference assets
 - Client/server: Use `"use client"` where needed (e.g., [page.tsx](app/page.tsx)); keep secrets server-side
 - SW updates: Editing [sw.js](public/sw.js) may require reload; verify registration flow
-- Agent rules: No `.cursor/`, `.cursorrules`, `.windsurfrules`, `.clinerules`, `.goosehints`, `.github/copilot-instructions.md`, or `CLAUDE.md` found
 - Architecture: Vertical Slice Architecture (VSA) - features in `src/ApifyPipeline` own end-to-end use cases (Web/Application/Commands, Background/Jobs, Core, DataAccess, ExternalServices)
 - Supabase Edge Functions: Source in `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor`, built to `supabase/functions/` via `npm run build:edge-functions` (git-ignored); Deno runtime requires `.ts` extensions in imports
 - VSA pattern: Request → Endpoint → Handler → Core Logic → Repository → Response; side-effects at boundaries; pure functions in Core
@@ -30,3 +29,4 @@
 - Apify Docs: `https://docs.apify.com/`
 - Vercel Docs: `https://vercel.com/docs`
 - Supabase Docs: `https://supabase.com/docs`
+- Internal Docs: `docs`
