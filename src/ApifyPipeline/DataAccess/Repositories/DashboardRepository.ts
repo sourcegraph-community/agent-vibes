@@ -43,6 +43,15 @@ export interface DashboardFilters {
   offset?: number
 }
 
+const keywordVariants = (raw: string): string[] => {
+const base = raw.trim().toLowerCase();
+const stripped = base.length >= 2 && base.startsWith('"') && base.endsWith('"')
+  ? base.slice(1, -1).trim()
+    : base;
+  const quoted = `"${stripped}"`;
+  return Array.from(new Set([base, stripped, quoted]));
+};
+
 export class DashboardRepository {
   constructor(private supabase: SupabaseClient) {}
 
@@ -96,7 +105,8 @@ export class DashboardRepository {
     }
 
     if (filters.keyword) {
-      query = query.eq('keyword', filters.keyword.toLowerCase());
+      const variants = keywordVariants(filters.keyword);
+      query = query.in('keyword', variants);
     }
 
     const { data, error } = await query
@@ -150,7 +160,11 @@ export class DashboardRepository {
     }
 
     if (filters.keyword) {
-      query = query.contains('keyword_snapshot', [filters.keyword]);
+      const raw = (filters.keyword ?? '').trim();
+      if (raw) {
+        const arrLiteral = `{${JSON.stringify(raw)}}`;
+        query = query.filter('keyword_snapshot', 'cs', arrLiteral);
+      }
     }
 
     const { data, error } = await query
