@@ -404,7 +404,7 @@ Issue: No data in database
 
 Issue: Dashboard shows no data
 ├─ Check if views exist (vw_daily_sentiment, vw_keyword_trends)
-├─ Verify seed data was applied
+├─ Ensure at least one ingestion/backfill run has written tweets
 └─ Check browser console for errors
 ```
 

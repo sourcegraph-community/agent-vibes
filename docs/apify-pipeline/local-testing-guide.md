@@ -799,7 +799,7 @@ SELECT * FROM vw_keyword_trends LIMIT 5;
 
 **Solution:**
 1. Verify migrations include view definitions
-2. Ensure seed data was applied
+2. Ingest data via Apify runs or backfill so the views have rows
 3. Run manual query to test data access
 4. Check Supabase RLS policies (should be disabled for service role)
 

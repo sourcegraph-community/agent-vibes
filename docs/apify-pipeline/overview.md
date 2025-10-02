@@ -98,7 +98,7 @@ graph TB
 
 ## Current Status
 - The Supabase base schema including append-only triggers and RLS policies exists as a migration under `src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql`.
-- Views `vw_daily_sentiment` and `vw_keyword_trends` are created and provide sample metrics for the dashboard thanks to seed data (`src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql`).
+- Views `vw_daily_sentiment` and `vw_keyword_trends` are created but remain empty until you ingest tweets; the seed file (`src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql`) now only loads default keywords.
 - Supabase secret rotation runs via `npm run rotate:supabase` (TypeScript script [`scripts/rotate-supabase-secrets.ts`](file:///home/prinova/CodeProjects/agent-vibes/scripts/rotate-supabase-secrets.ts) uses Supabase Management API + Secrets Endpoint).
 - The ingestion slice provides `/api/start-apify-run` via `app/api/start-apify-run/route.ts` and delegates to `src/ApifyPipeline/Web/Application/Commands/StartApifyRun` + `Background/Jobs/TweetCollector`.
 - The Apify Actor under `src/ApifyPipeline/Background/Jobs/TweetCollector/TweetCollectorJob.ts` fetches keywords from Supabase, starts the Twitter scraper, writes `cron_runs`, `raw_tweets` and `normalized_tweets`, and marks duplicates.
