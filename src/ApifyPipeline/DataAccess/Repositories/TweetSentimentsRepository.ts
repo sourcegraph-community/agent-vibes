@@ -87,44 +87,16 @@ export class TweetSentimentsRepository {
   }
 
   async updateTweetStatus(tweetId: string, status: 'processed' | 'failed'): Promise<void> {
-    const { data: existing, error: fetchError } = await this.client
+    const { error } = await this.client
       .from('normalized_tweets')
-      .select('*')
-      .eq('id', tweetId)
-      .single();
-
-    if (fetchError) {
-      throw new Error(`Failed to fetch tweet for status update: ${fetchError.message}`);
-    }
-
-    if (!existing) {
-      throw new Error(`Tweet not found: ${tweetId}`);
-    }
-
-    const { error: insertError } = await this.client
-      .from('normalized_tweets')
-      .insert({
-        raw_tweet_id: existing.raw_tweet_id,
-        run_id: existing.run_id,
-        platform: existing.platform,
-        platform_id: existing.platform_id,
-        revision: existing.revision + 1,
-        author_handle: existing.author_handle,
-        author_name: existing.author_name,
-        posted_at: existing.posted_at,
-        collected_at: existing.collected_at,
-        language: existing.language,
-        content: existing.content,
-        url: existing.url,
-        engagement_likes: existing.engagement_likes,
-        engagement_retweets: existing.engagement_retweets,
-        keyword_snapshot: existing.keyword_snapshot,
+      .update({
         status,
-        model_context: existing.model_context,
-      });
+        status_changed_at: new Date().toISOString(),
+      })
+      .eq('id', tweetId);
 
-    if (insertError) {
-      throw new Error(`Failed to insert new revision with updated status: ${insertError.message}`);
+    if (error) {
+      throw new Error(`Failed to update tweet status: ${error.message}`);
     }
   }
 

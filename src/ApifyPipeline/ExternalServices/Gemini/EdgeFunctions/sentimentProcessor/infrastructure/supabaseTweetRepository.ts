@@ -72,29 +72,16 @@ export class SupabaseTweetRepository {
   }
 
   async updateTweetStatus(tweet: TweetRecord, status: 'processed' | 'failed'): Promise<void> {
-    const { error } = await this.client.from('normalized_tweets').insert({
-      raw_tweet_id: tweet.rawTweetId,
-      run_id: tweet.runId,
-      platform: tweet.platform,
-      platform_id: tweet.platformId,
-      revision: tweet.revision + 1,
-      author_handle: tweet.authorHandle,
-      author_name: tweet.authorName,
-      posted_at: tweet.postedAt,
-      collected_at: tweet.collectedAt,
-      language: tweet.language,
-      content: tweet.content,
-      url: tweet.url,
-      engagement_likes: tweet.engagementLikes,
-      engagement_retweets: tweet.engagementRetweets,
-      keyword_snapshot: tweet.keywordSnapshot,
-      status,
-      status_changed_at: new Date().toISOString(),
-      model_context: tweet.modelContext,
-    });
+    const { error } = await this.client
+      .from('normalized_tweets')
+      .update({
+        status,
+        status_changed_at: new Date().toISOString(),
+      })
+      .eq('id', tweet.id);
 
     if (error) {
-      throw new Error(`Failed to insert tweet revision: ${error.message}`);
+      throw new Error(`Failed to update tweet status: ${error.message}`);
     }
   }
 

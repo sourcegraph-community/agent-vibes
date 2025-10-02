@@ -133,6 +133,10 @@ async function main(): Promise<void> {
       name: '20251001_1630_AddCollectedAtIndex.sql',
       path: join(rootDir, 'src/ApifyPipeline/DataAccess/Migrations/20251001_1630_AddCollectedAtIndex.sql'),
     },
+    {
+      name: '20251002_1605_AllowMutableTables.sql',
+      path: join(rootDir, 'src/ApifyPipeline/DataAccess/Migrations/20251002_1605_AllowMutableTables.sql'),
+    },
   ];
 
   const seeds = [
