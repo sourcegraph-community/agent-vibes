@@ -10,9 +10,15 @@ async function main() {
   const supabase = createSupabaseServiceClient();
 
   const forceNewApifyRun = process.env.BACKFILL_FORCE_NEW_APIFY_RUN === 'true';
-  const command: ProcessBackfillCommand = forceNewApifyRun
-    ? { forceNewApifyRun: true }
-    : {};
+  const forceRenormalizeExisting = process.env.BACKFILL_FORCE_RENORMALIZE_EXISTING === 'true';
+  const command: ProcessBackfillCommand = {
+    ...(forceNewApifyRun ? { forceNewApifyRun: true } : {}),
+    ...(forceRenormalizeExisting ? { forceRenormalizeExisting: true } : {}),
+  };
+
+  if (forceRenormalizeExisting) {
+    console.log('[Backfill] force re-normalize existing is ENABLED');
+  }
 
   const result = await processBackfillCommandHandler(command, {
     createJob: () => new BackfillProcessorJob(supabase),

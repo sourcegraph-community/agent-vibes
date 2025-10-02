@@ -1,5 +1,6 @@
 export interface ProcessBackfillCommand {
   forceNewApifyRun?: boolean;
+  forceRenormalizeExisting?: boolean;
 }
 
 export interface ProcessBackfillCommandResult {

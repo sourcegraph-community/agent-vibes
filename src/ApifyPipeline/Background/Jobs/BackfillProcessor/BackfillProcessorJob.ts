@@ -32,6 +32,7 @@ export interface BackfillJobOptions {
   maxItems?: number;
   pauseMinutes?: number;
   forceNewApifyRun?: boolean;
+  forceRenormalizeExisting?: boolean; // dev flag: update duplicates in place
 }
 
 interface CandidateRecord {
@@ -217,6 +218,7 @@ export class BackfillProcessorJob {
         apifyStartDate: formattedStartDate,
         apifyEndDate: formattedEndDate,
         backfillBatchId: batchId,
+        forceRenormalizeExisting: options.forceRenormalizeExisting ?? false,
       });
 
       metadata['apifyDatasetId'] = runResult.datasetId;
@@ -424,6 +426,7 @@ export class BackfillProcessorJob {
     apifyStartDate: string;
     apifyEndDate: string;
     backfillBatchId: string;
+    forceRenormalizeExisting?: boolean;
   }): Promise<ApifyRunProcessingResult> {
     const runInfo = await this.waitForRunCompletion({
       apifyRunId: params.apifyRunId,
@@ -505,6 +508,74 @@ export class BackfillProcessorJob {
     const processedDuplicateCount = existingPlatformIds.size;
     const processedErrorCount = errors.length;
 
+    // Optionally re-normalize existing duplicates in place (dev-only)
+    if (params.forceRenormalizeExisting) {
+      const duplicateIds = allPlatformIds.filter((id) => existingPlatformIds.has(id));
+
+      console.log(`[Backfill] forceRenormalizeExisting: updating ${duplicateIds.length} duplicate(s) in place`);
+
+      for (const platformId of duplicateIds) {
+        const candidate = candidateMap.get(platformId);
+        if (!candidate) continue;
+
+        try {
+          const prototype = normalizeTweet(candidate.item, {
+            runId: internalRunId,
+            rawTweetId: null,
+            collectedAt: candidate.collectedAt,
+            keywords: candidate.keywords,
+          });
+
+          // Fetch latest normalized row id for this platform/platform_id
+          const { data: latest, error: latestErr } = await this.supabase
+            .from('normalized_tweets')
+            .select('id')
+            .eq('platform', 'twitter')
+            .eq('platform_id', platformId)
+            .order('revision', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (latestErr || !latest) {
+            // If not found, skip quietly
+            continue;
+          }
+
+          const { error: updateErr } = await this.supabase
+            .from('normalized_tweets')
+            .update({
+              author_handle: prototype.authorHandle,
+              author_name: prototype.authorName,
+              posted_at: prototype.postedAt,
+              collected_at: prototype.collectedAt,
+              language: prototype.language,
+              content: prototype.content,
+              url: prototype.url,
+              engagement_likes: prototype.engagementLikes,
+              engagement_retweets: prototype.engagementRetweets,
+              keyword_snapshot: prototype.keywordSnapshot,
+              model_context: prototype.modelContext,
+            })
+            .eq('id', latest.id);
+
+          if (updateErr) {
+            errors.push({
+              type: 'renormalize_update_failed',
+              platformId,
+              message: updateErr.message,
+            });
+          }
+        } catch (error) {
+          errors.push({
+            type: 'renormalize_failed',
+            platformId,
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
+
     const finishedAt = runInfo.finishedAt;
     const status = determineStatus(processedNewCount, errors);
 
@@ -529,6 +600,7 @@ export class BackfillProcessorJob {
         apifyEndDate: params.apifyEndDate,
         totalItemsReported: runInfo.itemsCount,
         candidateCount: candidateMap.size,
+        forceRenormalizeExisting: !!params.forceRenormalizeExisting,
       },
       errors,
     });

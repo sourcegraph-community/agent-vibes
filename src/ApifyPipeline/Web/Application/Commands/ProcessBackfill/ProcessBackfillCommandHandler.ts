@@ -23,6 +23,7 @@ export const processBackfillCommandHandler = async (
 
     await job.processBatch(nextBatch.id, {
       forceNewApifyRun: command.forceNewApifyRun ?? false,
+      forceRenormalizeExisting: command.forceRenormalizeExisting ?? false,
     });
 
     return {
