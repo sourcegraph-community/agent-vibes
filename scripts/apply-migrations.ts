@@ -137,6 +137,10 @@ async function main(): Promise<void> {
       name: '20251002_1605_AllowMutableTables.sql',
       path: join(rootDir, 'src/ApifyPipeline/DataAccess/Migrations/20251002_1605_AllowMutableTables.sql'),
     },
+    {
+      name: '20251002_1705_ResetRawTweets.sql',
+      path: join(rootDir, 'src/ApifyPipeline/DataAccess/Migrations/20251002_1705_ResetRawTweets.sql'),
+    },
   ];
 
   const seeds = [

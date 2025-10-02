@@ -314,6 +314,7 @@ export class BackfillProcessorJob {
       maxItems: params.maxItems,
       tweetLanguage: 'en',
       sort: 'Latest',
+      includeSearchTerms: true,
     };
 
     if (params.startDate) {

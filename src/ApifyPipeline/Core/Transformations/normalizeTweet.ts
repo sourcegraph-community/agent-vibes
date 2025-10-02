@@ -43,6 +43,7 @@ export interface ApifyTweetItem {
   matchedQueries?: string[];
   matchedKeywords?: string[];
   searchTerms?: string[];
+  searchTerm?: string; // singular form sometimes used by Apify datasets
 }
 
 export interface NormalizationContext {
@@ -165,39 +166,38 @@ const resolveLanguage = (item: ApifyTweetItem): string | null => {
 };
 
 const collectKeywords = (item: ApifyTweetItem, baseKeywords: string[]): string[] => {
-  const normalize = (keyword: string | null | undefined): string | null => {
-    if (!keyword) {
-      return null;
-    }
-
-    const trimmed = keyword.trim().toLowerCase();
+  const norm = (v: string | null | undefined): string | null => {
+    if (!v) return null;
+    const trimmed = v.trim().toLowerCase();
     return trimmed.length > 0 ? trimmed : null;
   };
 
-  const addKeywords = (keywords: string[] | null | undefined, target: Set<string>) => {
-    if (!keywords) {
-      return;
-    }
-
-    for (const keyword of keywords) {
-      const normalized = normalize(keyword);
-      if (normalized) {
-        target.add(normalized);
-      }
+  const addArray = (values: string[] | null | undefined, target: Set<string>) => {
+    if (!values) return;
+    for (const v of values) {
+      const n = norm(v);
+      if (n) target.add(n);
     }
   };
 
-  const keywordSet = new Set<string>();
+  const out = new Set<string>();
 
-  addKeywords(item.matchedKeywords, keywordSet);
-  addKeywords(item.matchedQueries, keywordSet);
-  addKeywords(item.searchTerms, keywordSet);
+  // Prefer explicit matches from Apify
+  addArray(item.matchedKeywords, out);
+  addArray(item.matchedQueries, out);
+  addArray(item.searchTerms, out);
 
-  if (keywordSet.size === 0) {
-    addKeywords(baseKeywords, keywordSet);
+  // Handle singular searchTerm by intersecting with configured keywords
+  const singular = norm(item.searchTerm);
+  if (singular) {
+    for (const k of baseKeywords) {
+      const nk = norm(k);
+      if (nk && singular.includes(nk)) out.add(nk);
+    }
   }
 
-  return Array.from(keywordSet);
+  // No more fallback to entire batch to avoid inflating counts
+  return Array.from(out);
 };
 
 export const normalizeTweet = (
