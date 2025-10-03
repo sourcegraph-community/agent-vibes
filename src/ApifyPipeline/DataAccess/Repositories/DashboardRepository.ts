@@ -44,9 +44,9 @@ export interface DashboardFilters {
 }
 
 const keywordVariants = (raw: string): string[] => {
-const base = raw.trim().toLowerCase();
-const stripped = base.length >= 2 && base.startsWith('"') && base.endsWith('"')
-  ? base.slice(1, -1).trim()
+  const base = raw.trim().toLowerCase();
+  const stripped = base.length >= 2 && base.startsWith('"') && base.endsWith('"')
+    ? base.slice(1, -1).trim()
     : base;
   const quoted = `"${stripped}"`;
   return Array.from(new Set([base, stripped, quoted]));
