@@ -7,8 +7,8 @@ import stylistic from '@stylistic/eslint-plugin';
 import globals from 'globals';
 
 export default [
-  // Ignore build artifacts, dependencies, and static mock prototypes
-  { ignores: ['.next/**', 'node_modules/**', 'app/mocks/**', 'mocks/**'] },
+  // Ignore build artifacts, dependencies, static mock prototypes, and Edge Functions
+  { ignores: ['.next/**', 'node_modules/**', 'app/mocks/**', 'mocks/**', 'supabase/functions/**', 'src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/**'] },
 
   // Base JS recommended
   js.configs.recommended,

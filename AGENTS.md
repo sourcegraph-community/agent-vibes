@@ -1,11 +1,14 @@
-- Stack: Next.js 15 (App Router), TypeScript, Tailwind v4 (@tailwindcss/postcss)
+- Stack: Next.js 15 (App Router), TypeScript, Tailwind v4 (@tailwindcss/postcss), Supabase (Postgres + Edge Functions), Apify (Twitter scraping), Gemini 2.5 (sentiment analysis)
 - Dev/build/start: `npm run dev` | `npm run build` | `npm run start` (Turbopack)
-- Typecheck/lint/tests: `npm run typecheck`; lint: `npm run lint`; fix: `npm run fix`; combined: `npm run check`; tests: N/A; single-test: N/A
+- Typecheck/lint/tests: `npm run typecheck`; lint: `npm run lint`; fix: `npm run fix`; combined: `npm run check`; tests: `npm test`; watch: `npm run test:watch`
+- Apify Pipeline scripts: `npm run apply-migrations` (apply DB migrations), `npm run build:edge-functions` (build Edge Functions), `npm run functions:serve` (serve Edge Functions locally), `npm run health-check` (validate env), `npm run enqueue:backfill` (queue historical data, configurable via BACKFILL_DAYS/BACKFILL_BATCH_SIZE), `npm run process:backfill` (process batch manually, repeat per batch), `npm run replay:sentiments` (retry failures), `npm run cleanup:raw-tweets` (cleanup old data), `npm run rotate:supabase` (rotate secrets)
 - App Router: [layout.tsx](app/layout.tsx), [page.tsx](app/page.tsx) (client), [globals.css](app/globals.css)
 - API routes (Knock): [subscribe/route.ts](app/api/notifications/subscribe/route.ts), [send/route.ts](app/api/notifications/send/route.ts) using `@knocklabs/node`
 - Service Worker: [public/sw.js](public/sw.js); registered via [useKnockNotifications.ts](app/hooks/useKnockNotifications.ts)
 - Env vars: `KNOCK_SECRET_API_KEY`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (client), `VAPID_PRIVATE_KEY` (server)
-- External services: No DB; notifications handled by Knock; persist externally
+- Apify Pipeline env vars: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `APIFY_TOKEN`, `APIFY_ACTOR_ID`, `GEMINI_API_KEY`, `CRON_SECRET` (production), `INTERNAL_API_KEY` (optional manual triggers)
+- External services: Supabase (Postgres + Edge Functions), Apify (Twitter scraping), Gemini API (sentiment), Knock (notifications)
+- API authentication: All `/api/*` endpoints require auth - Vercel cron uses `CRON_SECRET` (Authorization: Bearer header), manual triggers use `x-api-key: INTERNAL_API_KEY` or `x-vercel-cron` header
 - Tailwind: Config in [postcss.config.mjs](postcss.config.mjs); theme via CSS vars in [globals.css](app/globals.css)
 - Config: [next.config.ts](next.config.ts); [tsconfig.json](tsconfig.json) (`strict`, `noEmit`, `bundler`, `@/*`->`./*`, `jsx: preserve`)
 - Imports: ESM only; prefer `@/` alias; avoid deep relative paths
@@ -14,9 +17,16 @@
 - Types: Strict TS; explicit types for public APIs; rely on inference internally
 - Errors: try/catch around Knock calls; return `{ error }` with status; never log secrets
 - Formatting/Lint: ESLint v9 flat config; ESLint Stylistic for formatting; no Prettier; match current style; keep diffs minimal
-- ESLint config: [eslint.config.mjs](file:///home/prinova/CodeProjects/agent-vibes/eslint.config.mjs) (TS+React minimal + Stylistic rules; ignores `.next/**`, `node_modules/**`; disables `@typescript-eslint/triple-slash-reference` for `next-env.d.ts`; sets browser+node globals; CLI cache on)
+- ESLint config: [eslint.config.mjs](eslint.config.mjs) (TS+React minimal + Stylistic rules; ignores `.next/**`, `node_modules/**`, `supabase/functions/**`, Edge Functions; disables `@typescript-eslint/triple-slash-reference` for `next-env.d.ts`; sets browser+node globals; CLI cache on)
 - Local checks: `npm run check` (typecheck + lint), `npm run check:fix` (typecheck + lint:fix, formats code)
 - Mocks: See [mocks](mocks) for static dashboard prototypes and reference assets
 - Client/server: Use `"use client"` where needed (e.g., [page.tsx](app/page.tsx)); keep secrets server-side
 - SW updates: Editing [sw.js](public/sw.js) may require reload; verify registration flow
-- Agent rules: No `.cursor/`, `.cursorrules`, `.windsurfrules`, `.clinerules`, `.goosehints`, `.github/copilot-instructions.md`, or `CLAUDE.md` found
+- Architecture: Vertical Slice Architecture (VSA) - features in `src/ApifyPipeline` own end-to-end use cases (Web/Application/Commands, Background/Jobs, Core, DataAccess, ExternalServices)
+- Supabase Edge Functions: Source in `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor`, built to `supabase/functions/` via `npm run build:edge-functions` (git-ignored); Deno runtime requires `.ts` extensions in imports
+- VSA pattern: Request → Endpoint → Handler → Core Logic → Repository → Response; side-effects at boundaries; pure functions in Core
+- Apify Pipeline: Regular collection (every 2h via Vercel cron) + manual backfill → normalization → sentiment analysis (every 30min via cron, Gemini via Supabase Edge Function) → dashboard (Next.js); backfill is manual-only (no automated cron); see [docs/apify-pipeline/collection-strategy.md](docs/apify-pipeline/collection-strategy.md) for collection strategy
+- Apify Docs: `https://docs.apify.com/`
+- Vercel Docs: `https://vercel.com/docs`
+- Supabase Docs: `https://supabase.com/docs`
+- Internal Docs: `docs`

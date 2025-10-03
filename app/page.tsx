@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 
 export default function Home() {
@@ -110,6 +111,15 @@ export default function Home() {
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="mb-8">
+          <Link
+            href="/dashboard"
+            className="inline-block rounded-lg bg-blue-600 px-8 py-3 text-lg font-medium text-white transition hover:bg-blue-700"
+          >
+            View Dashboard →
+          </Link>
         </div>
 
         <div className="text-sm" style={{ color: '#5b5b5b' }}>
