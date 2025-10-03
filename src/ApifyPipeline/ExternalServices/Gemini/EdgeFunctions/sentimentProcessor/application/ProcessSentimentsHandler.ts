@@ -36,65 +36,62 @@ export const handleProcessSentiments = async (
     totalTokens: 0,
   };
 
-  const tweets = await dependencies.repository.fetchPendingTweets(batchSize);
-
-  if (tweets.length === 0) {
-    return {
-      success: true,
-      message: 'No pending tweets',
-      stats,
-    } satisfies ProcessSentimentsResult;
-  }
-
-  for (let index = 0; index < tweets.length; index++) {
-    const tweet = tweets[index];
-    const result = await dependencies.analyzer.analyze({
-      content: tweet.content,
-      authorHandle: tweet.authorHandle,
-      language: tweet.language,
-    });
-
-    stats.totalLatencyMs += result.latencyMs;
-
-    if (result.success) {
-      if (result.totalTokens) {
-        stats.totalTokens += result.totalTokens;
-      }
-
-      await dependencies.repository.insertSentiment({
-        tweetId: tweet.id,
-        modelVersion,
-        label: result.label,
-        score: result.score,
-        summary: result.summary,
-        latencyMs: result.latencyMs,
-      });
-
-      await dependencies.repository.updateTweetStatus(tweet, 'processed');
-      stats.processed += 1;
-    } else {
-      const retryCount = (await dependencies.repository.getRetryCount(tweet.id)) + 1;
-
-      await dependencies.repository.recordFailure({
-        tweetId: tweet.id,
-        modelVersion,
-        failureStage: 'gemini_api_call',
-        errorCode: result.code,
-        errorMessage: result.message,
-        retryCount,
-        payload: null,
-      });
-
-      if (!result.retryable || retryCount >= maxRetries) {
-        await dependencies.repository.updateTweetStatus(tweet, 'failed');
-        stats.failed += 1;
-      } else {
-        stats.skipped += 1;
-      }
+  while (true) {
+    const tweets = await dependencies.repository.fetchPendingTweets(batchSize);
+    if (tweets.length === 0) {
+      break;
     }
 
-    if (index < tweets.length - 1 && rateLimitDelayMs > 0) {
-      await delay(rateLimitDelayMs);
+    for (let index = 0; index < tweets.length; index++) {
+      const tweet = tweets[index];
+      const result = await dependencies.analyzer.analyze({
+        content: tweet.content,
+        authorHandle: tweet.authorHandle,
+        language: tweet.language,
+      });
+
+      stats.totalLatencyMs += result.latencyMs;
+
+      if (result.success) {
+        if (result.totalTokens) {
+          stats.totalTokens += result.totalTokens;
+        }
+
+        await dependencies.repository.insertSentiment({
+          tweetId: tweet.id,
+          modelVersion,
+          label: result.label,
+          score: result.score,
+          summary: result.summary,
+          latencyMs: result.latencyMs,
+        });
+
+        await dependencies.repository.updateTweetStatus(tweet, 'processed');
+        stats.processed += 1;
+      } else {
+        const retryCount = (await dependencies.repository.getRetryCount(tweet.id)) + 1;
+
+        await dependencies.repository.recordFailure({
+          tweetId: tweet.id,
+          modelVersion,
+          failureStage: 'gemini_api_call',
+          errorCode: result.code,
+          errorMessage: result.message,
+          retryCount,
+          payload: null,
+        });
+
+        if (!result.retryable || retryCount >= maxRetries) {
+          await dependencies.repository.updateTweetStatus(tweet, 'failed');
+          stats.failed += 1;
+        } else {
+          stats.skipped += 1;
+        }
+      }
+
+      if (index < tweets.length - 1 && rateLimitDelayMs > 0) {
+        await delay(rateLimitDelayMs);
+      }
     }
   }
 

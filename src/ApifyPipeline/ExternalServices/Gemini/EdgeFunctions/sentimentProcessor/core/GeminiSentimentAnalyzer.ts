@@ -45,12 +45,29 @@ export class GeminiSentimentAnalyzer {
           },
         ],
       },
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
+      ],
       generationConfig: {
         temperature: 0.2,
         topP: 0.95,
         topK: 40,
-        maxOutputTokens: 256,
+        maxOutputTokens: 512,
         responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            label: { type: 'STRING', enum: ['positive', 'neutral', 'negative'] },
+            score: { type: 'NUMBER', minimum: -1.0, maximum: 1.0 },
+            summary: { type: 'STRING', nullable: true },
+          },
+          required: ['label', 'score'],
+          propertyOrdering: ['label', 'score', 'summary'],
+        },
       },
     };
 
@@ -79,21 +96,67 @@ export class GeminiSentimentAnalyzer {
       };
     }
 
-    const payload = await response.json() as Record<string, unknown>;
-    const candidate = (payload.candidates?.[0]?.content?.parts?.[0]?.text ?? null) as string | null;
+    const payload = await response.json() as Record<string, any>;
 
-    if (!candidate) {
+    if (payload?.promptFeedback?.blockReason) {
+      console.error('Prompt blocked', payload.promptFeedback);
       return {
         success: false,
         retryable: false,
+        latencyMs,
+        code: 'PROMPT_BLOCKED',
+        message: String(payload.promptFeedback.blockReason),
+      };
+    }
+
+    const finish = payload?.candidates?.[0]?.finishReason as string | undefined;
+    if (finish && finish !== 'STOP') {
+      if (finish === 'SAFETY' || finish === 'RECITATION' || finish === 'BLOCKLIST') {
+        return {
+          success: false,
+          retryable: false,
+          latencyMs,
+          code: 'RESPONSE_BLOCKED',
+          message: `Response blocked: ${finish}`,
+        };
+      }
+      if (finish === 'MAX_TOKENS') {
+        return {
+          success: false,
+          retryable: true,
+          latencyMs,
+          code: 'MAX_TOKENS',
+          message: 'Response truncated at max tokens',
+        };
+      }
+      return {
+        success: false,
+        retryable: true,
+        latencyMs,
+        code: 'FINISH_OTHER',
+        message: `Non-STOP finish: ${finish}`,
+      };
+    }
+
+    const candidateText = payload?.candidates?.[0]?.content?.parts?.find((p: any) => typeof p?.text === 'string' && p.text.trim())?.text as string | null;
+
+    if (!candidateText) {
+      console.error('Empty parts[] in response', JSON.stringify(payload?.candidates?.[0]?.content?.parts ?? []).slice(0, 400));
+      return {
+        success: false,
+        retryable: true,
         latencyMs,
         code: 'EMPTY_RESPONSE',
         message: 'Gemini returned an empty response',
       };
     }
 
+    const cleaned = candidateText.startsWith('```')
+      ? candidateText.replace(/^```(?:json)?\n?/i, '').replace(/```\s*$/i, '').trim()
+      : candidateText;
+
     try {
-      const parsed = JSON.parse(candidate) as {
+      const parsed = JSON.parse(cleaned) as {
         label?: 'positive' | 'neutral' | 'negative';
         score?: number;
         summary?: string | null;
@@ -127,6 +190,7 @@ export class GeminiSentimentAnalyzer {
       };
     }
     catch (error) {
+      console.error('PARSE_ERROR preview:', cleaned.slice(0, 200));
       return {
         success: false,
         retryable: false,

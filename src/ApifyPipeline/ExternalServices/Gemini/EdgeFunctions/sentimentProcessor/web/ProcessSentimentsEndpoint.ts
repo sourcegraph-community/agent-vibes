@@ -49,9 +49,9 @@ export const sentimentProcessorEndpoint = async (request: Request): Promise<Resp
       repository,
       analyzer,
       defaults: {
-        batchSize: 10,
+        batchSize: 100,
         modelVersion: resolvedModelVersion,
-        maxRetries: 2,
+        maxRetries: 3,
         rateLimitDelayMs: 4000,
       },
     });

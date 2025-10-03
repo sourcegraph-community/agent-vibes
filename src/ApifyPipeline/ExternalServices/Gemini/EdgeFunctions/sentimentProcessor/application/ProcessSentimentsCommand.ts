@@ -3,7 +3,7 @@ import type { ProcessSentimentsCommandInput } from '../types.ts';
 
 const commandSchema = z
   .object({
-    batchSize: z.number().int().min(1).max(25).optional(),
+    batchSize: z.number().int().min(1).max(1000).optional(),
     modelVersion: z.string().min(1).optional(),
     maxRetries: z.number().int().min(0).max(5).optional(),
   })
