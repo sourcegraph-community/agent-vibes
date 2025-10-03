@@ -19,10 +19,15 @@ async function TweetList({ filters }: { filters: { language?: string, sentiment?
   const limit = 20;
   const offset = (page - 1) * limit;
 
+  const last7 = new Date();
+  last7.setDate(last7.getDate() - 7);
+  const startDate = last7.toISOString();
+
   const tweets = await repo.getTweetDetails({
     language: filters.language,
     sentiment: filters.sentiment,
     keyword: filters.keyword,
+    startDate,
     limit,
     offset,
   });

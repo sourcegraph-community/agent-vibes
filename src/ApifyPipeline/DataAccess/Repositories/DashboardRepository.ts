@@ -128,6 +128,7 @@ export class DashboardRepository {
   }
 
   async getTweetDetails(filters: DashboardFilters = {}): Promise<TweetDetail[]> {
+    const sentimentJoin = filters.sentiment ? '!inner' : '';
     let query = this.supabase
       .from('normalized_tweets')
       .select(`
@@ -141,9 +142,10 @@ export class DashboardRepository {
         engagement_likes,
         engagement_retweets,
         keyword_snapshot,
-        tweet_sentiments (
+        tweet_sentiments${sentimentJoin} (
           sentiment_label,
-          sentiment_score
+          sentiment_score,
+          processed_at
         )
       `);
 
@@ -167,16 +169,41 @@ export class DashboardRepository {
       }
     }
 
+    if (filters.sentiment) {
+      query = query.eq('tweet_sentiments.sentiment_label', filters.sentiment);
+    }
+
+    // Keep only the latest sentiment per tweet
+    query = query
+      .order('processed_at', { foreignTable: 'tweet_sentiments', ascending: false })
+      .limit(1, { foreignTable: 'tweet_sentiments' });
+
     const { data, error } = await query
       .order('posted_at', { ascending: false })
-      .limit(filters.limit ?? 20)
       .range(filters.offset ?? 0, (filters.offset ?? 0) + (filters.limit ?? 20) - 1);
 
     if (error) {
-      throw new Error(`Failed to fetch tweet details: ${error.message}`);
+      throw new Error(`Failed to fetch tweet details: ${error as Error}`);
     }
 
-    return (data ?? []).map(row => {
+    const rows = (data ?? []) as Array<{
+      id: string;
+      author_handle: string | null;
+      author_name: string | null;
+      posted_at: string;
+      language: string | null;
+      content: string;
+      url: string | null;
+      engagement_likes: number | null;
+      engagement_retweets: number | null;
+      keyword_snapshot: string[];
+      tweet_sentiments: Array<{
+        sentiment_label: string;
+        sentiment_score: number;
+        processed_at?: string;
+      }>;
+    }>;
+    return rows.map((row) => {
       const sentiment = Array.isArray(row.tweet_sentiments) && row.tweet_sentiments.length > 0
         ? row.tweet_sentiments[0]
         : null;
@@ -195,11 +222,6 @@ export class DashboardRepository {
         sentimentLabel: sentiment?.sentiment_label ?? null,
         sentimentScore: sentiment?.sentiment_score ?? null,
       };
-    }).filter((tweet) => {
-      if (filters.sentiment && tweet.sentimentLabel !== filters.sentiment) {
-        return false;
-      }
-      return true;
     });
   }
 
