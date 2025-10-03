@@ -154,11 +154,22 @@ Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
 
 3. **Process sentiments**
    ```bash
+   # Option A: API route
    curl -X POST http://localhost:3000/api/process-sentiments \
      -H "Content-Type: application/json" \
      -d '{"batchSize": 10}'
+
+   # Option B: Local script (no Edge dependency)
+   NUMBER_OF_PENDING_TWEETS=10 \
+   SENTIMENT_MAX_RETRIES=1 \
+   SENTIMENT_MODEL_VERSION=gemini-2.5-flash-lite \
+   SENTIMENT_CONCURRENCY=4 \
+   SENTIMENT_RPM_CAP=60 \
+   npm run process:sentiments
    ```
-   - Expect `200 OK` with a `processed` count
+   - Expect `200 OK` with a `processed` count (API), or script console output with per-item lines:
+     - `[Sentiment] OK [i/N] ...` on success
+     - `[Sentiment] FAIL [i/N] code=...` on failure
 
 4. **Spot-check the dashboard**
    - [http://localhost:3000/dashboard](http://localhost:3000/dashboard)

@@ -49,7 +49,7 @@ export const runSentimentProcessorJob = async (
     const envTokensEst = envInt(process.env.SENTIMENT_TOKENS_PER_REQUEST_ESTIMATE);
 
     const processor = new SentimentProcessor(geminiClient, repository, {
-      modelVersion: config.modelVersion ?? 'gemini-2.5-flash',
+      modelVersion: config.modelVersion ?? 'gemini-2.5-flash-lite',
       batchSize: config.batchSize ?? 10,
       maxRetries: config.maxRetries ?? 2,
       // Default to sequential + 15 RPM behavior unless env overrides

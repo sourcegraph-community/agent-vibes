@@ -7,7 +7,7 @@ const envSchema = z.object({
     .string()
     .min(1, { message: 'SUPABASE_SERVICE_ROLE_KEY must be set for Edge Function.' }),
   GEMINI_API_KEY: z.string().min(1, { message: 'GEMINI_API_KEY is required for sentiment processing.' }),
-  GEMINI_MODEL: z.string().min(1).default('gemini-2.5-flash'),
+  GEMINI_MODEL: z.string().min(1).default('gemini-2.5-flash-lite'),
 });
 
 export const loadEnvironment = (): EnvironmentConfig => {
@@ -15,7 +15,7 @@ export const loadEnvironment = (): EnvironmentConfig => {
     SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
     SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
     GEMINI_API_KEY: Deno.env.get('GEMINI_API_KEY'),
-    GEMINI_MODEL: Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash',
+    GEMINI_MODEL: Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash-lite',
   });
 
   return {

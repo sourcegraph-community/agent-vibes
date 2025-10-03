@@ -35,7 +35,7 @@ async function replayFailedSentiments(options: ReplayOptions = {}) {
     ? clamp(Number.parseInt(process.env.SENTIMENT_MAX_RETRIES, 10), 0, 5)
     : 2;
 
-  const modelVersion = process.env.SENTIMENT_MODEL_VERSION || 'gemini-2.5-flash';
+  const modelVersion = process.env.SENTIMENT_MODEL_VERSION || 'gemini-2.5-flash-lite';
 
   console.log('🔄 Replaying Failed Sentiments');
   console.log('================================');

@@ -11,7 +11,7 @@ export class GeminiClient {
 
   constructor(config: GeminiClientConfig) {
     this.apiKey = config.apiKey;
-    this.model = config.model ?? 'gemini-2.5-flash';
+    this.model = config.model ?? 'gemini-2.5-flash-lite';
     this.maxRetries = config.maxRetries ?? 3;
     this.timeoutMs = config.timeoutMs ?? 30000;
   }

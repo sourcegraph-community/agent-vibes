@@ -99,6 +99,20 @@ npm run replay:sentiments -- --dry-run
 npm run replay:sentiments -- --limit 20
 ```
 
+## Recent Updates (2025-10-03)
+
+- Added standalone script `npm run process:sentiments` for local/manual runs; uses `NUMBER_OF_PENDING_TWEETS` as default batch size (clamped 1..25). Optional: `SENTIMENT_MAX_RETRIES`, `SENTIMENT_MODEL_VERSION`.
+- Node job supports concurrency and rate capping via env:
+  - `SENTIMENT_CONCURRENCY` (default 1), `SENTIMENT_RPM_CAP` (default 15), `SENTIMENT_TPM_CAP` (optional), `SENTIMENT_TOKENS_PER_REQUEST_ESTIMATE` (default 600).
+- Gemini client improvements:
+  - Enforces structured JSON via `responseSchema` and `responseMimeType`.
+  - Sets `safetySettings` with `BLOCK_NONE` for all categories to avoid safety blocking in this classification use case.
+  - Increases `maxOutputTokens` to 512; retries on transient `EMPTY_RESPONSE`; handles `promptFeedback.blockReason` and candidate `finishReason` (`MAX_TOKENS` retryable; `SAFETY`/`BLOCKLIST` non-retryable).
+  - Adds concise debug logs for HTTP errors, empty parts, and parse previews.
+- Processor logs per item (non-verbose):
+  - Success: `[Sentiment] OK [i/N] id=… label=… score=… latencyMs=… tokens=…`
+  - Failure: `[Sentiment] FAIL [i/N] id=… code=… msg=…`
+
 ## Configuration
 
 ### Environment Variables
@@ -124,14 +138,10 @@ Default settings in `SentimentProcessorJob.ts`:
 
 ### Model Selection
 
-**Recommended**: `gemini-2.0-flash-exp`
+**Recommended**: `gemini-2.0-flash-lite`
 - Fast responses (~1-2s per tweet)
 - Cost-effective for high volume
 - Structured JSON output support
-
-**Alternative**: `gemini-2.5-flash` (stable)
-- Production-ready variant
-- Similar performance to 2.0-flash-exp
 
 ### Prompt Engineering
 
