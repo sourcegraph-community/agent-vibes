@@ -29,6 +29,8 @@
 
 This guide provides step-by-step instructions for testing the Apify Pipeline locally. The pipeline consists of multiple integrated components working together to collect, process, and display social media mentions.
 
+Note: Vercel cron jobs are currently disabled (see vercel.json). Use the manual API examples in this guide until cron is re-enabled after testing.
+
 ### Architecture Summary
 
 ```

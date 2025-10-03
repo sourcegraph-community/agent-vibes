@@ -1,669 +1,208 @@
 # Apify Pipeline Feature
 
-**Automated Social Intelligence System**
+Automated social intelligence slice that collects tweets via Apify, normalizes them, runs Gemini sentiment, and exposes data for a small dashboard. The slice follows Vertical Slice Architecture (VSA) and owns the end-to-end flow.
 
-The Apify Pipeline is a self-contained feature slice that automates the collection, normalization, sentiment analysis, and visualization of social media mentions about AI coding agents. It follows Vertical Slice Architecture (VSA) principles, owning its entire use case from API endpoints to database access.
+Note: Vercel cron jobs are currently disabled (see vercel.json). Manual triggers only until re-enabled after testing.
 
-> **📚 Documentation:** All comprehensive documentation can be found at `../../docs/apify-pipeline` and their sub-folders.
+—
 
----
+## Where Things Live
 
-## Feature Overview
+- API routes (Next.js App Router): app/api/*/route.ts
+- Slice endpoints/handlers: src/ApifyPipeline/Web/Application/Commands/*/
+- Background jobs (Apify Actor, Backfill, Sentiments): src/ApifyPipeline/Background/Jobs/
+- Core logic (pure): src/ApifyPipeline/Core/
+- Data access (Supabase repos): src/ApifyPipeline/DataAccess/
+- External services (Apify, Supabase, Gemini): src/ApifyPipeline/ExternalServices/
+- Dashboard (server components): app/dashboard/*
+- Slice docs: src/ApifyPipeline/Docs/* and docs/apify-pipeline/*
 
-### Purpose
-Monitor and analyze social sentiment about AI coding agents (Cursor, Windsurf, Bolt, Copilot, etc.) by:
-1. Collecting tweets via Apify's Twitter scraper
-2. Normalizing and deduplicating data
-3. Classifying sentiment using Google Gemini
-4. Presenting insights through dashboards
-
-### Key Capabilities
-- ✅ **Automated Collection** - Scheduled tweet scraping based on configurable keywords
-- ✅ **Sentiment Analysis** - AI-powered classification (positive/neutral/negative)
-- ✅ **Historical Backfill** - Batch processing for historical data
-- ✅ **Duplicate Detection** - Platform ID-based deduplication
-- ✅ **Failure Resilience** - Automatic retry logic and failure tracking
-- ✅ **Dashboard Visualization** - Real-time metrics and trends
-
----
-
-## Architecture (VSA Pattern)
-
-This feature follows **Vertical Slice Architecture**, organizing code by use case rather than technical layer.
+Current directories in this slice:
 
 ```
 src/ApifyPipeline/
-├── Web/                              # User-initiated HTTP requests
-│   ├── Application/                  # Request handlers & orchestration
-│   │   ├── Commands/                 # Mutations (write operations)
-│   │   │   ├── StartApifyRun/        # Trigger tweet collection
-│   │   │   ├── ProcessBackfill/      # Process historical batches
-│   │   │   └── ProcessSentiments/    # Analyze tweet sentiment
-│   │   ├── Queries/                  # Reads (fetch data)
-│   │   │   ├── GetKeywords/          # Fetch tracked keywords
-│   │   │   ├── GetTweets/            # Fetch processed tweets
-│   │   │   └── GetDashboardStats/    # Aggregate metrics
-│   │   ├── Authorization/            # Access control (Vercel cron auth)
-│   │   └── Middleware/               # Cross-cutting concerns
-│   ├── Core/                         # Pure business logic
-│   │   ├── Models/                   # Domain entities
-│   │   ├── Services/                 # Business operations
-│   │   └── Transformations/          # Data normalization
-│   ├── DataAccess/                   # Database operations (Supabase)
-│   │   ├── Repositories/             # Data persistence layer
-│   │   ├── Migrations/               # Schema definitions
-│   │   └── Seeds/                    # Initial data
-│   └── ExternalServices/             # Third-party integrations
-│       ├── Apify/                    # Tweet collection client
-│       ├── Gemini/                   # Sentiment analysis client
-│       │   └── EdgeFunctions/        # Supabase Edge Function source
-│       │       └── sentimentProcessor/  # Built to supabase/functions/
-│       └── Supabase/                 # Database client
-├── Background/                       # Time-triggered scheduled jobs
-│   ├── Jobs/                         # Job definitions (Vercel cron)
-│   │   ├── TweetCollectorJob/        # Automated collection
-│   │   └── SentimentProcessorJob/    # Automated sentiment analysis
-│   ├── Application/                  # Same structure as Web/Application
-│   ├── Core/                         # Shared business logic
-│   ├── DataAccess/                   # Shared data access
-│   └── ExternalServices/             # Shared external services
-├── Tests/                            # Unit & integration tests
-│   ├── Unit/                         # Pure function tests
-│   └── Integration/                  # End-to-end tests (future)
-├── Docs/                             # Feature documentation
-│   ├── ApifyPipeline-start-apify-run-runbook.md
-│   ├── incident-response-runbook.md
-│   └── README.md
-└── Infrastructure/                   # Cross-cutting infrastructure
-    └── Config/                       # Environment validation
+├── Web/
+│   └── Application/
+│       └── Commands/
+│           ├── StartApifyRun/
+│           ├── ProcessBackfill/
+│           └── ProcessSentiments/
+├── Background/
+│   └── Jobs/
+│       ├── TweetCollector/
+│       ├── BackfillProcessor/
+│       └── SentimentProcessor/
+├── Core/
+│   ├── Models/
+│   ├── Services/
+│   └── Transformations/
+├── DataAccess/
+│   ├── Migrations/
+│   ├── Repositories/
+│   └── Seeds/
+├── ExternalServices/
+│   ├── Apify/
+│   ├── Gemini/ (EdgeFunctions source → built to supabase/functions)
+│   └── Supabase/
+├── Docs/
+└── README.md
 ```
 
-### Flow Model
+—
 
-**User-initiated (Web/):**
-```
-HTTP Request → API Endpoint → Command Handler → Core Logic → DataAccess/ExternalServices → Response
-```
+## API Endpoints (current behavior)
 
-**Time-triggered (Background/):**
-```
-Vercel Cron → Job → Command Handler → Core Logic → DataAccess/ExternalServices
-```
+All return JSON. Auth differs per route (see below).
 
----
+- POST /api/start-apify-run
+  - Purpose: Starts an Apify Actor run (does not normalize locally).
+  - Auth: Authorization: Bearer `${CRON_SECRET}` OR x-vercel-cron OR x-api-key: `${INTERNAL_API_KEY}`
+  - Response: 202 Accepted with `{ data: { runId, actorId, status, url, startedAt } }`
+  - Code: app/api/start-apify-run/route.ts → src/ApifyPipeline/Web/Application/Commands/StartApifyRun/StartApifyRunEndpoint.ts
 
-## Core Components
+- POST /api/process-sentiments
+  - Purpose: Invokes Supabase Edge Function sentiment-processor. Fallback job may run if enabled via env.
+  - Auth: x-vercel-cron OR x-api-key: ${INTERNAL_API_KEY}
+  - Response: 200 on success with `{ success, message, stats }` or 500
+  - Code: app/api/process-sentiments/route.ts → src/ApifyPipeline/Web/Application/Commands/ProcessSentiments/ProcessSentimentsEndpoint.ts
 
-### 1. API Endpoints (Web Entry Points)
+- POST /api/process-backfill
+  - Purpose: Processes a queued backfill batch (manual only).
+  - Auth: x-vercel-cron OR x-api-key: ${INTERNAL_API_KEY}
+  - Response: 200 with result, or 500
+  - Code: app/api/process-backfill/route.ts → src/ApifyPipeline/Web/Application/Commands/ProcessBackfill/ProcessBackfillEndpoint.ts
 
-| Endpoint | Method | Purpose | Trigger |
-|----------|--------|---------|---------|
-| `/api/start-apify-run` | POST | Initiate tweet collection | Vercel cron / Manual |
-| `/api/process-sentiments` | POST | Analyze pending tweets | Vercel cron / Manual |
-| `/api/process-backfill` | POST | Process historical batches | Manual |
+—
 
-**Location:** `app/api/*/route.ts`
+## Execution Model
 
-### 2. Command Handlers (Application Layer)
+- Collection
+  - /api/start-apify-run triggers Apify Actor remotely. The Actor code is under src/ApifyPipeline/Background/Jobs/TweetCollector and runs on Apify.
+  - The Actor fetches enabled keywords from Supabase, runs the Twitter scraper, deduplicates by platform_id, inserts raw_tweets and normalized_tweets, then records a cron_runs row with processed counts.
 
-**StartApifyRunCommandHandler**
-- Validates request
-- Fetches enabled keywords from database
-- Initiates Apify actor run
-- Records cron run metadata
-- Polls for completion and normalizes results
+- Sentiment
+  - /api/process-sentiments calls the Supabase Edge Function (source in src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor, built to supabase/functions/sentiment-processor via npm run build:edge-functions).
+  - Default Gemini model (code): gemini-2.5-flash-lite.
+  - Optional fallback job (server) processes a batch if the Edge Function fails and SENTIMENT_EDGE_FALLBACK=true.
 
-**ProcessSentimentsCommandHandler**
-- Fetches pending tweets (batch size configurable)
-- Calls Gemini API for sentiment classification
-- Updates tweet status and stores sentiment results
-- Tracks failures for retry
+- Backfill
+  - Manual-only. Batches live in backfill_batches. The processor can reuse an existing Apify run (metadata.apifyRunId) or create a new one if BACKFILL_FORCE_NEW_APIFY_RUN=true.
 
-**ProcessBackfillCommandHandler**
-- Retrieves oldest pending backfill batch
-- Triggers Apify run with date range filters
-- Marks batch as processing/completed
+—
 
-**Location:** `src/ApifyPipeline/Web/Application/Commands/*/`
+## Database (as used by current code)
 
-### 3. Core Transformations (Pure Logic)
+Tables (selected columns only):
 
-**normalizeTweet()**
-- Converts Apify payload to standardized format
-- Extracts platform ID, author, text, engagement
-- Validates required fields
-- Returns typed `NormalizedTweet` model
+- cron_runs
+  - id (uuid), trigger_source (text), keyword_batch (text[]),
+  - started_at (timestamptz), finished_at (timestamptz), status (text),
+  - processed_new_count (int), processed_duplicate_count (int), processed_error_count (int),
+  - metadata (jsonb), errors (jsonb)
 
-**extractEngagement()**
-- Parses likes, retweets, replies, views
-- Handles missing or malformed data
-- Returns structured engagement metrics
+- raw_tweets
+  - id (uuid), run_id (uuid), platform (text), platform_id (text),
+  - collected_at (timestamptz), payload (jsonb), ingestion_reason (text)
 
-**Location:** `src/ApifyPipeline/Core/Transformations/`
+- normalized_tweets
+  - id (uuid), raw_tweet_id (uuid|null), run_id (uuid), platform (text), platform_id (text),
+  - revision (int), author_handle (text|null), author_name (text|null),
+  - posted_at (timestamptz), collected_at (timestamptz), language (text|null),
+  - content (text), url (text|null),
+  - engagement_likes (int|null), engagement_retweets (int|null),
+  - keyword_snapshot (text[]), status (text), status_changed_at (timestamptz),
+  - model_context (jsonb)
 
-### 4. External Service Clients
+- tweet_sentiments
+  - id (uuid), normalized_tweet_id (uuid),
+  - sentiment_label (text), sentiment_score (numeric), summary (text|null),
+  - model_version (text), processed_at (timestamptz),
+  - tokens_used (int|null), latency_ms (int|null)
 
-**ApifyClient**
-- Starts actor runs with input configuration
-- Polls run status until completion
-- Fetches dataset items (tweets)
-- Implements retry logic with exponential backoff
+- backfill_batches
+  - id (uuid), keywords (text[]), start_date (date), end_date (date),
+  - status (text), priority (int), metadata (jsonb), created_at/updated_at
 
-**GeminiClient**
-- Sends tweet text for sentiment classification
-- Parses AI response (label + score + summary)
-- Tracks token usage and latency
-- Handles rate limiting and errors
+Views consumed by the dashboard:
+- vw_daily_sentiment
+- vw_keyword_trends
 
-**SupabaseClient**
-- Provides typed database access
-- Used by repositories for data persistence
-- Server-side client (service role key)
+—
 
-**Location:** `src/ApifyPipeline/ExternalServices/*/`
+## Environment
 
-### 5. Data Access Repositories
+Validated in src/ApifyPipeline/Infrastructure/Config/env.ts. Required/used keys in this slice:
 
-**KeywordRepository**
-- `getEnabledKeywords()` - Fetch active search terms
-- `updateKeywordStatus()` - Enable/disable keywords
+- SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+- NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY (dashboard)
+- SUPABASE_FUNCTIONS_URL (optional override for edge function base)
+- APIFY_TOKEN, APIFY_ACTOR_ID, (optional) APIFY_ACTOR_BUILD
+- GEMINI_API_KEY
+- CRON_SECRET (used by /api/start-apify-run)
+- INTERNAL_API_KEY (manual triggers)
+- SENTIMENT_EDGE_FALLBACK (optional)
 
-**CronRunRepository**
-- `createCronRun()` - Start execution tracking
-- `updateCronRun()` - Record completion metrics
-- `getRecentRuns()` - Fetch execution history
+—
 
-**TweetRepository**
-- `insertRawTweet()` - Store original Apify payload
-- `upsertNormalizedTweet()` - Insert/update standardized tweet
-- `getPendingSentimentTweets()` - Fetch unanalyzed tweets
-- `updateTweetStatus()` - Mark processing stages
+## Ops & Notes
 
-**SentimentRepository**
-- `insertSentiment()` - Store Gemini analysis
-- `getRecentSentiments()` - Fetch analyzed data
-- `logFailure()` - Track processing errors
+- Cron disabled: vercel.json contains no crons. Re-enable later when testing completes.
+- Health endpoint: GET /api/health-check checks DB connectivity, backlog, failures, and recent cron stats.
+- Data retention: raw_tweets cleanup script available. See scripts/* and src/ApifyPipeline/Docs/*.
 
-**Location:** `src/ApifyPipeline/DataAccess/Repositories/`
+—
 
----
+## Quick Commands
 
-## Database Schema
-
-### Tables
-
-**keywords**
-- Tracked search terms
-- Fields: `id`, `keyword`, `enabled`, `created_at`, `updated_at`
-- Seeded with 4 Amp-related keywords
-
-**cron_runs**
-- Execution history and metrics
-- Fields: `id`, `trigger_source`, `status`, `started_at`, `finished_at`, `processed_new_count`, `processed_duplicate_count`, `processed_error_count`, `apify_run_id`, `metadata`
-- Tracks every collection attempt
-
-**raw_tweets**
-- Original Apify payloads (JSONB)
-- Fields: `id`, `platform`, `platform_id`, `payload`, `collected_at`, `ingestion_reason`, `keywords`
-- Retention: 30 days (cleanup script)
-
-**normalized_tweets**
-- Standardized tweet data
-- Fields: `id`, `raw_tweet_id`, `platform`, `platform_id`, `author_handle`, `text`, `status`, `engagement_*`, `keywords`, `posted_at`, `collected_at`
-- Unique constraint: `(platform, platform_id)`
-
-**tweet_sentiments**
-- Gemini sentiment analysis results
-- Fields: `id`, `normalized_tweet_id`, `sentiment_label`, `sentiment_score`, `summary`, `model_version`, `processed_at`, `tokens_used`, `latency_ms`
-- One-to-one with normalized_tweets
-
-**backfill_batches**
-- Historical data processing queue
-- Fields: `id`, `start_date`, `end_date`, `status`, `keywords`, `created_at`, `processed_at`, `metadata`
-
-**sentiment_failures**
-- Failed sentiment processing attempts
-- Fields: `id`, `normalized_tweet_id`, `error_message`, `retry_count`, `last_attempted_at`
-
-### Views
-
-**vw_daily_sentiment**
-- Aggregated daily sentiment trends
-- Used for dashboard time-series charts
-
-**vw_keyword_trends**
-- Keyword-level analytics
-- Tweet counts, avg sentiment, engagement metrics
-
-**Migration:** [DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql](DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql)  
-**Seed Data:** [DataAccess/Seeds/20250929_1230_KeywordsSeed.sql](DataAccess/Seeds/20250929_1230_KeywordsSeed.sql)
-
----
-
-## Data Flow
-
-### End-to-End Processing Pipeline
-
-```mermaid
-graph TD
-    A[Vercel Cron Trigger] --> B["API: /api/start-apify-run"]
-    B --> C[StartApifyRunCommandHandler]
-    C --> D[Fetch Keywords from DB]
-    D --> E[Start Apify Actor Run]
-    E --> F[Poll for Completion]
-    F --> G[Fetch Dataset Items]
-    G --> H[Store Raw Tweets]
-    H --> I[Normalize & Deduplicate]
-    I --> J[Store Normalized Tweets]
-    
-    K[Vercel Cron Trigger] --> L["API: /api/process-sentiments"]
-    L --> M[ProcessSentimentsCommandHandler]
-    M --> N[Fetch Pending Tweets]
-    N --> O[Gemini Sentiment Analysis]
-    O --> P[Store Sentiments]
-    P --> Q[Update Tweet Status]
-    
-    J --> N
-    Q --> R[Dashboard Queries]
-    R --> S[Supabase Views]
-    S --> T[Frontend Visualization]
-```
-
----
-
-## Configuration
-
-### Environment Variables
-
-Required in `.env.local` or Vercel environment:
-
-```bash
-# Supabase Configuration
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-
-# Apify Configuration
-APIFY_TOKEN=your-apify-token
-APIFY_ACTOR_ID=apidojo/tweet-scraper
-# APIFY_ACTOR_BUILD=latest  # Optional
-
-# Google Gemini Configuration
-GEMINI_API_KEY=your-gemini-api-key
-
-# Optional: Manual API Authentication
-INTERNAL_API_KEY=your-random-secret-key
-```
-
-**Environment Loading:** All Apify Pipeline scripts automatically load `.env.local` via `dotenv` (imported in each script). Variables are validated at runtime via `Infrastructure/Config/env.ts`.
-
-**Troubleshooting:** If scripts report "Missing required environment variables":
-1. Verify `.env.local` exists in project root
-2. Check variable names match exactly (case-sensitive)
-3. Ensure no syntax errors in `.env.local`
-
-### Request Configuration
-
-**StartApifyRun (Tweet Collection):**
-```typescript
-{
-  triggerSource: "vercel-cron" | "manual-test" | "manual",
-  requestedBy?: string,
-  ingestion: {
-    tweetLanguage?: "en",
-    sort?: "Top" | "Latest",
-    maxItemsPerKeyword?: number,      // Default: 200
-    keywordBatchSize?: number,        // Default: 5
-    cooldownSeconds?: number,         // Default: 0
-    minimumEngagement?: {
-      retweets?: number,
-      favorites?: number
-    }
-  },
-  metadata?: Record<string, unknown>
-}
-```
-
-**ProcessSentiments:**
-```typescript
-{
-  batchSize?: number  // Default: 10, Max: 50
-}
-```
-
----
-
-## Operational Workflows
-
-### 1. Scheduled Collection (Automated)
-
-**Frequency:** Every 2 hours (Vercel cron)
-
-**Flow:**
-1. Cron triggers `/api/start-apify-run`
-2. Handler fetches enabled keywords
-3. Apify scrapes tweets (Top sort, 50-100 per keyword)
-4. Results normalized and stored
-5. Duplicate tweets skipped
-6. Metrics recorded in `cron_runs`
-
-**Monitoring:**
-- Check `cron_runs` table for status
-- Alert on `status = 'failed'` or low `processed_new_count`
-
-**Note:** See [Collection Strategy Guide](../../docs/apify-pipeline/collection-strategy.md) for details on regular vs backfill collection.
-
-### 2. Scheduled Sentiment Processing (Automated)
-
-**Frequency:** Every 30 minutes (Vercel cron)
-
-**Flow:**
-1. Cron triggers `/api/process-sentiments`
-2. Handler fetches 10 tweets with `status = 'pending_sentiment'`
-3. Gemini analyzes each tweet
-4. Sentiments stored, tweet status updated to `processed`
-5. Failures logged to `sentiment_failures`
-
-**Monitoring:**
-- Check sentiment processing rate
-- Alert on high failure count
-- Monitor Gemini API quota usage
-
-### 3. Historical Backfill (One-Time Setup)
-
-**Use Case:** Collect historical data when first setting up the pipeline
-
-**Flow:**
-```bash
-# 1. Enqueue batches (configurable) - RUN ONCE
-npm run enqueue:backfill  # Default: 30 days = 6 batches
-# OR for testing:
-BACKFILL_DAYS=5 npm run enqueue:backfill  # Just 5 days = 1 batch
-
-# 2. Process each batch manually (repeat until queue is empty)
-npm run process:backfill
-
-# 3. Check queue status between batches
-# SQL: SELECT * FROM backfill_batches ORDER BY created_at DESC;
-
-# 4. Deploy to Vercel
-# Regular collection starts automatically (every 2h)
-# Backfill is manual-only (no automated cron)
-```
-
-**Configuration:**
-- `BACKFILL_DAYS` - Total days to backfill (default: 30)
-- `BACKFILL_BATCH_SIZE` - Days per batch (default: 5)
-- Default: 6 batches × 5 days = 30 days total
-
-**Timeline:** 
-- Manually process each batch (5-20 minutes per batch)
-- Process all before or after deployment as needed
-
-**Important:** Backfill is manual-only. Regular collection (every 2h) is automated and runs indefinitely.
-
-**See:** [Collection Strategy Guide](../../docs/apify-pipeline/collection-strategy.md) for detailed explanation.
-
-### 4. Failed Sentiment Retry (Manual)
-
-**Use Case:** Replay tweets that failed sentiment processing
-
-**Flow:**
-```bash
-npm run replay:sentiments
-
-# Fetches tweets from sentiment_failures table
-# Retries with exponential backoff
-# Removes from failures table on success
-```
-
-### 5. Data Cleanup (Periodic)
-
-**Raw Tweet Cleanup** (keeps last 30 days):
-```bash
-npm run cleanup:raw-tweets -- --dry-run  # Preview
-npm run cleanup:raw-tweets               # Execute
-```
-
-**Sentiment Failure Cleanup** (removes stale records):
-```bash
-npm run cleanup:sentiment-failures -- --max-age-days=90
-```
-
----
-
-## Testing
-
-### Local Testing
-
-**Quick Start:**
-```bash
-# Validate environment
-npm run health-check
-
-# Manual collection test
-curl -X POST http://localhost:3000/api/start-apify-run \
-  -H "Content-Type: application/json" \
-  -d '{
-    "triggerSource": "manual-test",
-    "ingestion": {"maxItemsPerKeyword": 20}
-  }'
-
-# Manual sentiment test
-curl -X POST http://localhost:3000/api/process-sentiments \
-  -d '{"batchSize": 5}'
-```
-
-**Comprehensive Guide:** [../../docs/apify-pipeline/local-testing-guide.md](../../docs/apify-pipeline/local-testing-guide.md)
-
-### Unit Tests
-
-**Run tests:**
-```bash
-npm test                                    # All tests
-npm test -- normalizeTweet                  # Specific test
-npm run test:watch                          # Watch mode
-```
-
-**Coverage:**
-- ✅ Core transformations (`normalizeTweet`, `extractEngagement`)
-- ✅ Validators (Zod schemas)
-- ✅ Business rules
-
-**Future:** Integration tests for end-to-end workflows
-
----
-
-## Monitoring & Observability
-
-### Key Metrics
-
-**Collection Health:**
-- Cron run success rate (`cron_runs.status = 'succeeded'`)
-- New tweets per run (`cron_runs.processed_new_count`)
-- Duplicate rate (`processed_duplicate_count / total_processed`)
-
-**Sentiment Processing:**
-- Processing latency (`tweet_sentiments.latency_ms`)
-- Token usage per batch (`tweet_sentiments.tokens_used`)
-- Failure rate (`COUNT(sentiment_failures)`)
-
-**Dashboard Queries:**
-```sql
--- Collection success rate (last 24 hours)
-SELECT 
-  COUNT(*) as total_runs,
-  COUNT(CASE WHEN status = 'succeeded' THEN 1 END) as successful,
-  ROUND(100.0 * COUNT(CASE WHEN status = 'succeeded' THEN 1 END) / COUNT(*), 2) as success_rate
-FROM cron_runs
-WHERE started_at > now() - interval '24 hours';
-
--- Sentiment processing throughput
-SELECT 
-  DATE_TRUNC('hour', processed_at) as hour,
-  COUNT(*) as tweets_processed,
-  ROUND(AVG(latency_ms)::numeric, 0) as avg_latency_ms,
-  SUM(tokens_used) as total_tokens
-FROM tweet_sentiments
-WHERE processed_at > now() - interval '24 hours'
-GROUP BY hour
-ORDER BY hour DESC;
-```
-
-### Alerts (Recommended)
-
-- ❗ Cron run failure (immediate)
-- ⚠️ Low tweet collection count (<50 per run)
-- ⚠️ High sentiment failure rate (>10%)
-- ⚠️ Gemini API quota approaching limit
-
----
-
-## Security
-
-### Access Control
-
-**API Authentication:**
-- Vercel cron jobs authenticated via `x-vercel-cron: 1` header
-- Manual API calls (backfill) require `x-api-key: $INTERNAL_API_KEY`
-- Unauthorized requests return 401
-
-**Secret Management:**
-- Development: `.env.local` (git-ignored)
-- Production: Vercel environment variables (encrypted)
-- Rotation: Quarterly via `npm run rotate:supabase`
-
-**Database:**
-- Server-side client uses service role key (full access)
-- Client-side dashboard uses anon key (RLS policies if needed)
-- No secrets exposed to frontend
-
-### Known Considerations
-
-**Apify Token in URL:**
-- Standard Apify authentication method (token in query param)
-- Transmitted over HTTPS (encrypted in transit)
-- May appear in server logs
-- **Mitigation:** Quarterly rotation, monitor Apify usage
-
----
-
-## Ownership & Responsibilities
-
-| Area | Owner | Contact |
-|------|-------|---------|
-| **Feature Development** | Engineering Team | `#agent-vibes-dev` |
-| **Keyword Management** | Analytics Guild | `#analytics-insights` |
-| **Operations & Monitoring** | Platform Ops | `#ops-oncall` |
-| **Incident Response** | On-call Engineer | `#backend-support` |
-| **Secret Rotation** | DevOps Team | `#ops-oncall` |
-
-### Keyword Updates
-
-**Process:**
-1. Analytics Guild proposes keyword changes in weekly sync
-2. Update seed file: [DataAccess/Seeds/20250929_1230_KeywordsSeed.sql](DataAccess/Seeds/20250929_1230_KeywordsSeed.sql)
-3. Apply via Supabase Studio SQL Editor or CLI
-4. Verify: `SELECT * FROM keywords WHERE enabled = true;`
-
----
-
-## Documentation
-
-### Internal Documentation
-
-**This Directory:**
-- [ApifyPipeline-start-apify-run-runbook.md](Docs/ApifyPipeline-start-apify-run-runbook.md) - Operational procedures
-- [incident-response-runbook.md](Docs/incident-response-runbook.md) - Troubleshooting guide
-- [Docs/README.md](Docs/README.md) - Slice documentation index
-
-**Project Root:**
-- [../../docs/apify-pipeline/collection-strategy.md](../../docs/apify-pipeline/collection-strategy.md) - **Collection strategy (backfill vs regular)**
-- [../../docs/apify-pipeline/local-testing-guide.md](../../docs/apify-pipeline/local-testing-guide.md) - Comprehensive testing
-- [../../docs/apify-pipeline/internal-testing-quickstart.md](../../docs/apify-pipeline/internal-testing-quickstart.md) - Quick reference
-- [../../docs/apify-pipeline/specification.md](../../docs/apify-pipeline/specification.md) - Technical requirements
-- [../../docs/apify-pipeline/overview.md](../../docs/apify-pipeline/overview.md) - Architecture diagrams
-
-### External Documentation
-
-- **Apify API:** https://docs.apify.com/api/v2
-- **Supabase:** https://supabase.com/docs
-- **Gemini API:** https://ai.google.dev/docs
-- **Next.js 15:** https://nextjs.org/docs
-
----
-
-## Future Enhancements
-
-### Planned
-- [ ] Integration tests for end-to-end workflows
-- [ ] Real-time streaming dashboard (WebSocket)
-- [ ] Advanced filtering (date ranges, sentiment, keywords)
-- [ ] Export functionality (CSV, JSON)
-- [ ] Historical trend comparison
-
-### Considered
-- [ ] Multi-platform support (Reddit, Hacker News)
-- [ ] Advanced NLP (topic modeling, entity extraction)
-- [ ] Alerting on sentiment shifts
-- [ ] Keyword recommendation engine
-- [ ] A/B testing for sentiment prompts
-
----
-
-## VSA Compliance Checklist
-
-This feature adheres to Vertical Slice Architecture principles:
-
-- [x] **Feature Ownership** - Slice owns entire use case (collection → visualization)
-- [x] **REPR Flow** - Request → Endpoint → Processing → Response
-- [x] **CQRS** - Commands (StartApifyRun, ProcessSentiments) separated from Queries (GetTweets, GetDashboardStats)
-- [x] **Explicit Boundaries** - No cross-slice dependencies; uses contracts for external data
-- [x] **Pure Core Logic** - Transformations in `Core/` are side-effect-free
-- [x] **Clear Input/Output** - API contracts defined with Zod schemas
-- [x] **Self-Contained Tests** - Tests reside within feature slice
-- [x] **Documentation** - Feature-specific docs in `Docs/`
-
----
-
-## Quick Reference
-
-### Commands
 ```bash
 npm run health-check              # Validate environment
-npm run build:edge-functions      # Build Edge Functions for deployment
+npm run build:edge-functions      # Build Supabase Edge Functions
 npm run functions:serve           # Serve Edge Functions locally
-npm run enqueue:backfill          # Queue historical data
-npm run replay:sentiments         # Retry failures
-npm run cleanup:raw-tweets        # Archive old data
-npm run rotate:supabase           # Rotate secrets (ops)
+npm run enqueue:backfill          # Queue historical data (manual)
+npm run process:backfill          # Process a backfill batch (manual)
+npm run replay:sentiments         # Retry failed sentiments
+npm run cleanup:raw-tweets        # Prune raw tweets (retention)
 ```
 
-**Note:** All scripts automatically load `.env.local` via `dotenv`. Ensure environment variables are configured in `.env.local` before running.
+Curl examples (manual):
 
-### API Endpoints
 ```bash
-POST /api/start-apify-run         # Trigger collection
-POST /api/process-sentiments      # Analyze tweets
-POST /api/process-backfill        # Process historical
+# Start Apify run (manual)
+curl -X POST http://localhost:3000/api/start-apify-run \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $INTERNAL_API_KEY" \
+  -d '{ "triggerSource": "manual-test", "ingestion": { "maxItemsPerKeyword": 20 } }'
+
+# Process sentiments
+curl -X POST http://localhost:3000/api/process-sentiments \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $INTERNAL_API_KEY" \
+  -d '{ "batchSize": 10 }'
+
+# Process backfill
+curl -X POST http://localhost:3000/api/process-backfill \
+  -H "x-api-key: $INTERNAL_API_KEY"
 ```
 
-### Database Tables
-- `keywords` - Search terms
-- `cron_runs` - Execution history
-- `normalized_tweets` - Processed tweets
-- `tweet_sentiments` - Sentiment analysis
+—
 
-### Key Files
-- Entry: `app/api/*/route.ts`
-- Handlers: `Web/Application/Commands/*/`
-- Logic: `Core/Transformations/`
-- Data: `DataAccess/Repositories/`
-- Services: `ExternalServices/*/client.ts`
+## Security (current routes)
 
----
+- /api/start-apify-run: Authorization: Bearer ${CRON_SECRET} OR x-vercel-cron OR x-api-key
+- /api/process-sentiments: x-vercel-cron OR x-api-key
+- /api/process-backfill: x-vercel-cron OR x-api-key
 
-**Feature Status:** ✅ Production-ready  
-**Last Updated:** September 30, 2025  
-**Maintainer:** Engineering Team
+Secrets never logged; server-only keys are not exposed to the client.
+
+—
+
+## Dashboard
+
+Server components in app/dashboard fetch from Supabase views:
+- Overview: app/dashboard/page.tsx
+- Keywords: app/dashboard/keywords/page.tsx
+- Tweets: app/dashboard/tweets/page.tsx
+
+—
+
+Last updated: 2025-10-03

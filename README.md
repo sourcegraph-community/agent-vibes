@@ -128,7 +128,7 @@ Automated social intelligence system that collects tweets about AI coding agents
 - Dashboard: `/dashboard` (overview, keywords, tweets)
 - API Endpoints: `/api/start-apify-run`, `/api/process-sentiments`, `/api/process-backfill`
 - Documentation: [src/ApifyPipeline/README.md](src/ApifyPipeline/README.md)
-- Collection Strategy: [docs/apify-pipeline/collection-strategy.md](docs/apify-pipeline/collection-strategy.md) - **Backfill vs Regular Collection**
+- Collection Strategy: [docs/apify-pipeline/date-based-collection-strategy.md](docs/apify-pipeline/date-based-collection-strategy.md) - **Backfill vs Regular Collection**
 - Testing Guide: [docs/apify-pipeline/local-testing-guide.md](docs/apify-pipeline/local-testing-guide.md)
 - Operational Runbook: [src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md](src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md)
 
@@ -213,11 +213,7 @@ See [VSA Architecture Guide](~/CodeProjects/agent-docs/vsa-architecture.md) for 
 - Branch: `main` (auto-deploys)
 - Domain: Internal Vercel URL (not public domain yet)
 
-**Cron Jobs (Vercel):**
-- Tweet Collection: Every 2 hours (`/api/start-apify-run`)
-- Sentiment Processing: Every 30 minutes (`/api/process-sentiments`)
-- Backfill Processing: Manual only (no automated cron)
-- Requires: Vercel Pro plan for <24h intervals
+**Cron Jobs (Vercel):** Currently disabled in this repo (vercel.json has no crons). Use manual triggers from the testing guide. Re-enable later by adding cron definitions to vercel.json.
 
 **Configuration:**
 1. Environment variables set in Vercel project settings

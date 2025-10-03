@@ -59,10 +59,10 @@ Architecture note: The pipeline is organized as a Vertical Slice `src/ApifyPipel
 - **Compliance:** Adherence to Apify scraper guidelines; data deletion on request.
 
 ## 5. Architecture & Components
-- **Apify Actor:** Node.js/TypeScript scripts using Apify Twitter Search Scraper with anti-monitoring pacing. (Slice: `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`)
+- **Apify Actor:** Node.js/TypeScript scripts using Apify Twitter Search Scraper with anti-monitoring pacing. (Slice: `src/ApifyPipeline/Background/Jobs/TweetCollector`)
 - **Supabase:** Postgres + Edge Functions, auth via `sb_secret_*` keys; PG17-compatible extensions (e.g., alternatives to TimescaleDB) are considered. (Slice: `src/ApifyPipeline/DataAccess`)
 - **Sentiment Worker:** Supabase Edge Function with Gemini 2.5 Structured Output, optional Vercel Serverless fallback for bulk re-runs. (Slice: `src/ApifyPipeline/ExternalServices/Gemini`)
-- **Frontend:** Next.js 15 App Router on Vercel (Node.js 20, async Request APIs, `@supabase/ssr` integration). (Slice: `src/ApifyPipeline/Web/Components/Dashboard`)
+- **Frontend:** Next.js 15 App Router on Vercel (Node.js 20, async Request APIs, `@supabase/ssr` integration). (Location: `app/dashboard/*`)
 - **Monitoring:** Supabase Logs/Realtime Limits, Apify Actor Run Logs, Vercel Cron Status & plan usage. (Slice Docs: `src/ApifyPipeline/Docs`)
 
 ## 6. Data Model (Draft)
@@ -83,11 +83,11 @@ normalized_tweets
 - posted_at (timestamptz)
 - collected_at (timestamptz)
 - language (text)
-- text (text)
+- content (text)
 - url (text)
 - engagement_likes (int)
 - engagement_retweets (int)
-- keywords (text[])
+- keyword_snapshot (text[])
 - status (text) -- "pending_sentiment" | "processed" | "failed"
 
 tweet_sentiments
@@ -108,7 +108,7 @@ sentiment_failures
 
 keywords
 - keyword (text) PRIMARY KEY
-- enabled (boolean)
+- is_enabled (boolean)
 - last_used_at (timestamptz)
 
 cron_runs
@@ -116,7 +116,9 @@ cron_runs
 - started_at (timestamptz)
 - finished_at (timestamptz)
 - status (text)
-- processed_count (int)
+- processed_new_count (int)
+- processed_duplicate_count (int)
+- processed_error_count (int)
 - errors (jsonb)
 ```
 

@@ -17,7 +17,7 @@ Architecture note: The repository follows a Vertical Slice Architecture. The com
 - **Apify Actor:** Data collection, normalization, delivery to Supabase using Apify Twitter Search Scraper with anti-monitoring throttling. (Slice: `src/ApifyPipeline/Background/Jobs/TweetCollector`)
 - **Supabase:** Persistence layer (tables for raw data, normalized tweets, sentiment results) with `sb_secret_*` keys and PG17-compliant extensions. (Slice: `src/ApifyPipeline/DataAccess`)
 - **Google Gemini:** Structured-output classification executed by Supabase Edge Function `sentiment-processor` (source: `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor`).
-- **Next.js Frontend:** Display of statistics, filtering, trend detection; build target Node.js 20+ on Vercel. (Slice: `src/ApifyPipeline/Web/Components/Dashboard`)
+- **Next.js Frontend:** Display of statistics, filtering, trend detection; build target Node.js 20+ on Vercel. (Location: `app/dashboard/*`)
 - **Vercel Cron:** Time-triggered execution of the internal `/api/start-apify-run` proxy. (Slice: `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`)
 
 > Note: Supabase rotates secrets as `sb_secret_*`; deployments must regularly renew service role keys and choose PG17-compatible extensions.
@@ -97,6 +97,7 @@ graph TB
 ```
 
 ## Current Status
+- Vercel crons are currently disabled (vercel.json); use manual triggers until re-enabled after testing.
 - The Supabase base schema including append-only triggers and RLS policies exists as a migration under `src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql`.
 - Views `vw_daily_sentiment` and `vw_keyword_trends` are created but remain empty until you ingest tweets; the seed file (`src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql`) now only loads default keywords.
 - Supabase secret rotation runs via `npm run rotate:supabase` (TypeScript script [`scripts/rotate-supabase-secrets.ts`](file:///home/prinova/CodeProjects/agent-vibes/scripts/rotate-supabase-secrets.ts) uses Supabase Management API + Secrets Endpoint).
