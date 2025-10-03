@@ -8,6 +8,10 @@ import { SentimentProcessor } from '../src/ApifyPipeline/Core/Services/Sentiment
 // Load .env.local
 config({ path: '.env.local' });
 
+function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, n));
+}
+
 interface ReplayOptions {
   minRetryCount?: number;
   limit?: number;
@@ -15,16 +19,30 @@ interface ReplayOptions {
 }
 
 async function replayFailedSentiments(options: ReplayOptions = {}) {
+  const rawBatch = process.env.NUMBER_OF_PENDING_TWEETS;
+  const parsedBatch = rawBatch ? Number.parseInt(rawBatch, 10) : NaN;
+  const defaultLimit = clamp(Number.isFinite(parsedBatch) ? parsedBatch : 10, 1, 25);
+
   const {
     minRetryCount = 0,
-    limit = 50,
+    limit = defaultLimit,
     dryRun = false,
   } = options;
+
+  const effectiveLimit = clamp(limit, 1, 25);
+
+  const envMaxRetries = process.env.SENTIMENT_MAX_RETRIES
+    ? clamp(Number.parseInt(process.env.SENTIMENT_MAX_RETRIES, 10), 0, 5)
+    : 2;
+
+  const modelVersion = process.env.SENTIMENT_MODEL_VERSION || 'gemini-2.5-flash';
 
   console.log('🔄 Replaying Failed Sentiments');
   console.log('================================');
   console.log(`Min Retry Count: ${minRetryCount}`);
-  console.log(`Limit: ${limit}`);
+  console.log(`Limit: ${effectiveLimit}`);
+  console.log(`Model Version: ${modelVersion}`);
+  console.log(`Max Retries: ${envMaxRetries}`);
   console.log(`Dry Run: ${dryRun ? 'Yes' : 'No'}`);
   console.log('');
 
@@ -43,12 +61,12 @@ async function replayFailedSentiments(options: ReplayOptions = {}) {
     const repository = new TweetSentimentsRepository(supabase);
 
     const processor = new SentimentProcessor(geminiClient, repository, {
-      modelVersion: 'gemini-2.0-flash-exp',
-      batchSize: limit,
-      maxRetries: 2,
+      modelVersion,
+      batchSize: effectiveLimit,
+      maxRetries: envMaxRetries,
     });
 
-    const failedSentiments = await repository.getFailedSentiments(minRetryCount, limit);
+    const failedSentiments = await repository.getFailedSentiments(minRetryCount, effectiveLimit);
 
     console.log(`Found ${failedSentiments.length} failed sentiments to replay\n`);
 
@@ -122,11 +140,20 @@ for (let i = 0; i < args.length; i++) {
       console.log('');
       console.log('Options:');
       console.log('  --min-retry-count <n>  Minimum retry count (default: 0)');
-      console.log('  --limit <n>            Maximum number to replay (default: 50)');
+      console.log('  --limit <n>            Maximum number to replay (default: NUMBER_OF_PENDING_TWEETS or 10)');
       console.log('  --dry-run              Show what would be replayed without executing');
       console.log('  --help                 Show this help message');
       process.exit(0);
   }
+}
+
+// If no limit provided via CLI, fall back to env default (NUMBER_OF_PENDING_TWEETS clamped 1..25)
+if (options.limit == null || Number.isNaN(options.limit)) {
+  const rawBatch = process.env.NUMBER_OF_PENDING_TWEETS;
+  const parsedBatch = rawBatch ? Number.parseInt(rawBatch, 10) : NaN;
+  options.limit = clamp(Number.isFinite(parsedBatch) ? parsedBatch : 10, 1, 25);
+} else {
+  options.limit = clamp(options.limit, 1, 25);
 }
 
 replayFailedSentiments(options);
