@@ -22,10 +22,16 @@ export interface GeminiClientConfig {
 }
 
 export interface GeminiApiResponse {
+  promptFeedback?: {
+    blockReason?: string;
+    safetyRatings?: Array<Record<string, unknown>>;
+  };
   candidates?: Array<{
+    finishReason?: string;
+    safetyRatings?: Array<Record<string, unknown>>;
     content: {
       parts: Array<{
-        text: string;
+        text?: string;
       }>;
     };
   }>;

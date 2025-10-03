@@ -39,11 +39,25 @@ export const runSentimentProcessorJob = async (
 
     const repository = new TweetSentimentsRepository(supabase);
 
+    // Concurrency & rate limits (env-driven)
+    const envInt = (v: string | undefined) => (v ? Number.parseInt(v, 10) : NaN);
+    const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+
+    const envConcurrency = envInt(process.env.SENTIMENT_CONCURRENCY);
+    const envRpmCap = envInt(process.env.SENTIMENT_RPM_CAP);
+    const envTpmCap = envInt(process.env.SENTIMENT_TPM_CAP);
+    const envTokensEst = envInt(process.env.SENTIMENT_TOKENS_PER_REQUEST_ESTIMATE);
+
     const processor = new SentimentProcessor(geminiClient, repository, {
-      modelVersion: config.modelVersion ?? 'gemini-2.5-flash-lite',
+      modelVersion: config.modelVersion ?? 'gemini-2.5-flash',
       batchSize: config.batchSize ?? 10,
       maxRetries: config.maxRetries ?? 2,
-      rateLimitDelayMs: 4000, // 15 RPM = 1 request per 4 seconds
+      // Default to sequential + 15 RPM behavior unless env overrides
+      rateLimitDelayMs: 4000,
+      concurrency: Number.isFinite(envConcurrency) ? clamp(envConcurrency, 1, 1000) : 1,
+      rpmCap: Number.isFinite(envRpmCap) ? clamp(envRpmCap, 1, 100000) : 15,
+      tpmCap: Number.isFinite(envTpmCap) ? clamp(envTpmCap, 1, 100000000) : undefined,
+      tokensPerRequestEstimate: Number.isFinite(envTokensEst) ? clamp(envTokensEst, 1, 100000) : 600,
     });
 
     const stats = await processor.processPendingTweets();

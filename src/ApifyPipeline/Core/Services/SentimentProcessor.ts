@@ -14,6 +14,10 @@ export interface SentimentProcessorConfig {
   batchSize: number;
   maxRetries: number;
   rateLimitDelayMs?: number;
+  concurrency?: number;
+  rpmCap?: number;
+  tpmCap?: number;
+  tokensPerRequestEstimate?: number;
 }
 
 export class SentimentProcessor {
@@ -38,84 +42,128 @@ export class SentimentProcessor {
       return stats;
     }
 
-    for (let i = 0; i < pendingTweets.length; i++) {
-      const tweet = pendingTweets[i];
+    // Concurrency + rolling-window RPM limiter
+    const concurrency = Math.max(1, Math.min(1000, this.config.concurrency ?? 1));
+    const rpmCap = Math.max(1, this.config.rpmCap ?? 15);
+    const tpmCap = this.config.tpmCap && this.config.tpmCap > 0 ? this.config.tpmCap : undefined;
+    const tokensPerReqEst = Math.max(1, this.config.tokensPerRequestEstimate ?? 600);
 
-      try {
-        const result = await this.geminiClient.analyzeSentiment({
-          tweetId: tweet.id,
-          content: tweet.content,
-          authorHandle: tweet.authorHandle,
-          language: tweet.language,
-        });
+    let nextIndex = 0;
+    const requestTimestamps: number[] = [];
+    let usedTokensThisWindow = 0;
+    let windowStart = Date.now();
 
-        stats.totalLatencyMs += result.latencyMs;
-
-        if (result.tokenUsage) {
-          stats.totalTokens += result.tokenUsage.total;
+    const acquirePermit = async (): Promise<void> => {
+      while (true) {
+        const now = Date.now();
+        // Reset window every 60s
+        if (now - windowStart >= 60000) {
+          windowStart = now;
+          usedTokensThisWindow = 0;
+          // prune timestamps
+          while (requestTimestamps.length && now - requestTimestamps[0] >= 60000) {
+            requestTimestamps.shift();
+          }
         }
 
-        if (result.success && result.sentiment) {
-          await this.repository.insertSentiment({
-            normalizedTweetId: tweet.id,
-            modelVersion: this.config.modelVersion,
-            sentimentLabel: result.sentiment.label,
-            sentimentScore: result.sentiment.score,
-            reasoning: result.sentiment.summary
-              ? { summary: result.sentiment.summary }
-              : null,
-            latencyMs: result.latencyMs,
+        // Prune old timestamps for rolling-minute check
+        while (requestTimestamps.length && now - requestTimestamps[0] >= 60000) {
+          requestTimestamps.shift();
+        }
+
+        const rpmAvailable = requestTimestamps.length < rpmCap;
+        const tpmAvailable = tpmCap ? (usedTokensThisWindow + tokensPerReqEst) <= tpmCap : true;
+
+        if (rpmAvailable && tpmAvailable) {
+          requestTimestamps.push(now);
+          usedTokensThisWindow += tokensPerReqEst;
+          return;
+        }
+
+        const waitMs = requestTimestamps.length
+          ? Math.max(50, 60000 - (now - requestTimestamps[0]))
+          : 1000;
+        await new Promise((r) => setTimeout(r, waitMs));
+      }
+    };
+
+    const worker = async (): Promise<void> => {
+      while (true) {
+        const index = nextIndex;
+        if (index >= pendingTweets.length) return;
+        nextIndex += 1;
+
+        const tweet = pendingTweets[index];
+
+        try {
+          await acquirePermit();
+
+          const result = await this.geminiClient.analyzeSentiment({
+            tweetId: tweet.id,
+            content: tweet.content,
+            authorHandle: tweet.authorHandle,
+            language: tweet.language,
           });
 
-          await this.repository.updateTweetStatus(tweet.id, 'processed');
-          stats.processed++;
-        }
-        else if (result.error) {
-          // Get current retry count for this specific tweet
+          stats.totalLatencyMs += result.latencyMs;
+          if (result.tokenUsage && typeof result.tokenUsage.total === 'number') {
+            stats.totalTokens += result.tokenUsage.total;
+          }
+
+          if (result.success && result.sentiment) {
+            await this.repository.insertSentiment({
+              normalizedTweetId: tweet.id,
+              modelVersion: this.config.modelVersion,
+              sentimentLabel: result.sentiment.label,
+              sentimentScore: result.sentiment.score,
+              reasoning: result.sentiment.summary ? { summary: result.sentiment.summary } : null,
+              latencyMs: result.latencyMs,
+            });
+            await this.repository.updateTweetStatus(tweet.id, 'processed');
+            stats.processed += 1;
+            console.log(
+              `[Sentiment] OK [${index + 1}/${pendingTweets.length}] id=${tweet.id} label=${result.sentiment.label} score=${result.sentiment.score.toFixed(2)} latencyMs=${result.latencyMs} tokens=${result.tokenUsage?.total ?? '-'} `,
+            );
+          } else if (result.error) {
+            const currentRetryCount = await this.repository.getRetryCountForTweet(tweet.id);
+            const newRetryCount = currentRetryCount + 1;
+            await this.repository.recordFailure({
+              normalizedTweetId: tweet.id,
+              modelVersion: this.config.modelVersion,
+              failureStage: 'gemini_api_call',
+              errorCode: result.error.code,
+              errorMessage: result.error.message,
+              retryCount: newRetryCount,
+              payload: { content: tweet.content.substring(0, 500) },
+            });
+            if (!result.error.retryable || newRetryCount >= this.config.maxRetries) {
+              await this.repository.updateTweetStatus(tweet.id, 'failed');
+            }
+            stats.failed += 1;
+            console.warn(
+              `[Sentiment] FAIL [${index + 1}/${pendingTweets.length}] id=${tweet.id} code=${result.error.code} msg=${result.error.message.slice(0, 120)}`,
+            );
+          }
+        } catch (error) {
           const currentRetryCount = await this.repository.getRetryCountForTweet(tweet.id);
           const newRetryCount = currentRetryCount + 1;
-
           await this.repository.recordFailure({
             normalizedTweetId: tweet.id,
             modelVersion: this.config.modelVersion,
-            failureStage: 'gemini_api_call',
-            errorCode: result.error.code,
-            errorMessage: result.error.message,
+            failureStage: 'unexpected_error',
+            errorCode: 'PROCESSOR_ERROR',
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
             retryCount: newRetryCount,
-            payload: { content: tweet.content.substring(0, 500) },
+            payload: null,
           });
-
-          // Mark as failed if not retryable or exceeded max retries for this tweet
-          if (!result.error.retryable || newRetryCount >= this.config.maxRetries) {
-            await this.repository.updateTweetStatus(tweet.id, 'failed');
-          }
-
-          stats.failed++;
+          await this.repository.updateTweetStatus(tweet.id, 'failed');
+          stats.failed += 1;
         }
       }
-      catch (error) {
-        const currentRetryCount = await this.repository.getRetryCountForTweet(tweet.id);
-        const newRetryCount = currentRetryCount + 1;
+    };
 
-        await this.repository.recordFailure({
-          normalizedTweetId: tweet.id,
-          modelVersion: this.config.modelVersion,
-          failureStage: 'unexpected_error',
-          errorCode: 'PROCESSOR_ERROR',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          retryCount: newRetryCount,
-          payload: null,
-        });
-
-        await this.repository.updateTweetStatus(tweet.id, 'failed');
-        stats.failed++;
-      }
-
-      // Rate limit delay between requests (except after last tweet)
-      if (i < pendingTweets.length - 1 && this.config.rateLimitDelayMs) {
-        await new Promise(resolve => setTimeout(resolve, this.config.rateLimitDelayMs));
-      }
-    }
+    const pool = Array.from({ length: concurrency }, () => worker());
+    await Promise.all(pool);
 
     return stats;
   }
