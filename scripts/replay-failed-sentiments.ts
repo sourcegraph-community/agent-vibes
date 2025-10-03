@@ -21,7 +21,7 @@ interface ReplayOptions {
 async function replayFailedSentiments(options: ReplayOptions = {}) {
   const rawBatch = process.env.NUMBER_OF_PENDING_TWEETS;
   const parsedBatch = rawBatch ? Number.parseInt(rawBatch, 10) : NaN;
-  const defaultLimit = clamp(Number.isFinite(parsedBatch) ? parsedBatch : 10, 1, 25);
+  const defaultLimit = clamp(Number.isFinite(parsedBatch) ? parsedBatch : 10, 1, 200);
 
   const {
     minRetryCount = 0,
@@ -153,7 +153,7 @@ if (options.limit == null || Number.isNaN(options.limit)) {
   const parsedBatch = rawBatch ? Number.parseInt(rawBatch, 10) : NaN;
   options.limit = clamp(Number.isFinite(parsedBatch) ? parsedBatch : 10, 1, 25);
 } else {
-  options.limit = clamp(options.limit, 1, 25);
+  options.limit = clamp(options.limit, 1, 200);
 }
 
 replayFailedSentiments(options);

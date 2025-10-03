@@ -11,7 +11,7 @@ function clamp(n: number, min: number, max: number): number {
 async function main() {
   const raw = process.env.NUMBER_OF_PENDING_TWEETS;
   const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-  const batchSize = clamp(Number.isFinite(parsed) ? parsed : 10, 1, 25);
+  const batchSize = clamp(Number.isFinite(parsed) ? parsed : 10, 1, 200);
 
   const maxRetries = process.env.SENTIMENT_MAX_RETRIES
     ? clamp(Number.parseInt(process.env.SENTIMENT_MAX_RETRIES, 10), 0, 5)
