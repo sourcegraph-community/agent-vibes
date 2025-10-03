@@ -55,7 +55,7 @@ export const runSentimentProcessorJob = async (
       // Default to sequential + 15 RPM behavior unless env overrides
       rateLimitDelayMs: 4000,
       concurrency: Number.isFinite(envConcurrency) ? clamp(envConcurrency, 1, 1000) : 1,
-      rpmCap: Number.isFinite(envRpmCap) ? clamp(envRpmCap, 1, 100000) : 15,
+      rpmCap: Number.isFinite(envRpmCap) ? clamp(envRpmCap, 1, 100000) : 4000,
       tpmCap: Number.isFinite(envTpmCap) ? clamp(envTpmCap, 1, 100000000) : undefined,
       tokensPerRequestEstimate: Number.isFinite(envTokensEst) ? clamp(envTokensEst, 1, 100000) : 600,
     });
