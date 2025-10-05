@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from 'react';
 import { createSupabaseServerClient } from '@/src/ApifyPipeline/Infrastructure/Config/supabase';
 import { DashboardRepository } from '@/src/ApifyPipeline/DataAccess/Repositories/DashboardRepository';
