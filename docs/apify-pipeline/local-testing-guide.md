@@ -289,7 +289,7 @@ INTERNAL_API_KEY=your-random-secret-key
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Client DB access | Same as `SUPABASE_URL` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Client DB access | Supabase Dashboard → API |
 | `DATABASE_URL` | ✅ | Script migrations via pooler | Supabase Dashboard → Database | 
-| `APIFY_TOKEN` | ✅ | Tweet collection | Apify Dashboard → Integrations |
+| `APIFY_TOKEN` | ✅ | Tweet collection | AgentVibes Dashboard → Integrations |
 | `APIFY_ACTOR_ID` | ✅ | Actor to run | Use `apidojo/tweet-scraper` or custom |
 | `GEMINI_API_KEY` | ✅ | Sentiment analysis | Google AI Studio |
 | `CRON_SECRET` | ⚠️ | Production cron auth | Generate `openssl rand -hex 32` |

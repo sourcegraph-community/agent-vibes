@@ -17,7 +17,7 @@ export default function DashboardLayout({
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-8">
-              <h1 className="text-xl font-semibold tracking-tight">Apify Dashboard</h1>
+              <h1 className="text-xl font-semibold tracking-tight">AgentVibes Dashboard</h1>
               <div className="flex space-x-6">
                 <Link
                   href="/dashboard"

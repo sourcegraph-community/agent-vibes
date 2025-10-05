@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense } from 'react';
+import Loading from './loading';
 import { createSupabaseServerClient } from '@/src/ApifyPipeline/Infrastructure/Config/supabase';
 import { DashboardRepository } from '@/src/ApifyPipeline/DataAccess/Repositories/DashboardRepository';
 
@@ -125,14 +126,6 @@ async function DailySentimentTable() {
   );
 }
 
-function LoadingState() {
-  return (
-    <div className="flex items-center justify-center py-12">
-      <div className="text-[var(--muted)]">Loading...</div>
-    </div>
-  );
-}
-
 export default function DashboardOverviewPage() {
   return (
     <div className="space-y-8">
@@ -143,11 +136,11 @@ export default function DashboardOverviewPage() {
         </p>
       </div>
 
-      <Suspense fallback={<LoadingState />}>
+      <Suspense fallback={<Loading />}>
         <DashboardStats />
       </Suspense>
 
-      <Suspense fallback={<LoadingState />}>
+      <Suspense fallback={<Loading />}>
         <DailySentimentTable />
       </Suspense>
     </div>
