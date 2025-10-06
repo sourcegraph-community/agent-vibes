@@ -7,7 +7,7 @@ export interface TwitterScraperConfig {
   keywords: string[];
   tweetLanguage?: string | null;
   sort?: 'Top' | 'Latest';
-  maxItemsPerKeyword?: number;
+  maxItems?: number; // total cap across all search terms
   sinceDate?: string | null;
   untilDate?: string | null;
   minimumEngagement?: {
@@ -33,7 +33,7 @@ export const runTwitterScraper = async (
         searchTerms: config.keywords,
         tweetLanguage: config.tweetLanguage ?? undefined,
         sort: config.sort ?? 'Top',
-        maxItems: config.maxItemsPerKeyword,
+        maxItems: config.maxItems,
         includeSearchTerms: true,
         sinceDate: config.sinceDate ?? undefined,
         untilDate: config.untilDate ?? undefined,
@@ -52,9 +52,7 @@ export const runTwitterScraper = async (
   const datasetClient = await Actor.openDataset(run.defaultDatasetId);
   const { items } = await datasetClient.getData({
     clean: true,
-    limit: config.maxItemsPerKeyword
-      ? config.maxItemsPerKeyword * config.keywords.length
-      : undefined,
+    limit: config.maxItems ?? undefined,
   });
 
   return (items ?? []) as ApifyTweetItem[];
