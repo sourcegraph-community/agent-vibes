@@ -8,7 +8,7 @@
 
 ## Overview
 
-The Apify Pipeline uses a **date-based collection strategy** to efficiently fetch tweets incrementally from Twitter. Instead of collecting all tweets every time, the system tracks the last collected date for each keyword and only fetches tweets posted after that date.
+The Apify Pipeline supports a **date-based collection strategy** to efficiently fetch tweets incrementally from Twitter. Instead of collecting all tweets every time, the system can track the last collected date across tweets and only fetch those posted after that date. The regular collector defaults to a single-batch capped run (`maxItems`, no date filter); enable date filtering when you want incremental behavior.
 
 ## How It Works
 
@@ -52,20 +52,20 @@ The calculated `sinceDate` is passed to the Apify Twitter Search Scraper for all
 
 ## Configuration
 
-### Default Settings
+### Default Settings (when using date filtering)
 
 ```typescript
 {
   useDateFiltering: true,        // Enable/disable date-based filtering
-  defaultLookbackDays: 7,        // Days to look back for new keywords
-  maxItemsPerKeyword: 200,       // Max tweets per keyword
-  keywordBatchSize: 5            // Keywords processed per batch
+  defaultLookbackDays: 7,        // Days to look back when no data exists
+  maxItems: 100,                 // Total cap across all search terms
+  sort: 'Latest'                 // Prefer recent tweets for incremental
 }
 ```
 
 ### Disable Date Filtering
 
-To collect all tweets regardless of date (not recommended for production):
+To collect without date filtering (current default):
 
 ```bash
 curl -X POST http://localhost:3000/api/start-apify-run \
@@ -74,7 +74,7 @@ curl -X POST http://localhost:3000/api/start-apify-run \
     "triggerSource": "manual",
     "ingestion": {
       "useDateFiltering": false,
-      "maxItemsPerKeyword": 100
+      "maxItems": 100
     }
   }'
 ```
@@ -115,15 +115,24 @@ curl -X POST http://localhost:3000/api/start-apify-run \
 
 ## Collection Strategies by Use Case
 
-### Regular Collection (Every 2 Hours)
+### Regular Collection (Every 6 Hours)
 
-**Recommended Settings:**
+**Current Default:**
+```json
+{
+  "useDateFiltering": false,
+  "maxItems": 100,
+  "sort": "Latest"
+}
+```
+
+**When incremental behavior is desired:**
 ```json
 {
   "useDateFiltering": true,
   "defaultLookbackDays": 7,
-  "maxItemsPerKeyword": 200,
-  "sort": "Top"
+  "maxItems": 100,
+  "sort": "Latest"
 }
 ```
 

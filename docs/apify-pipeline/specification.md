@@ -17,7 +17,7 @@ Architecture note: The pipeline is organized as a Vertical Slice `src/ApifyPipel
 ### 3.1 Data Collection
 - Vercel Cron calls the internal endpoint `/api/start-apify-run`, which proxies the Apify Run API call; intervals under 24h require at least the Vercel Pro plan. The route `app/api/start-apify-run/route.ts` imports the handler `src/ApifyPipeline/Web/Application/Commands/StartApifyRun` (REPR entry point).
 - Manual triggers via Apify UI or REST endpoint remain unchanged.
-- Data collection uses the Apify Twitter Search Scraper; scraper runs must respect anti-monitoring requirements (pauses, max five queries). The actor defaults to a five-minute cooldown between keyword batches and limits each batch to five queries to comply.
+- Data collection uses the Apify Twitter Search Scraper; scraper runs must respect anti-monitoring requirements. The collector performs a single call across all configured search terms with a total `maxItems` cap (default 100); optional pauses are supported but disabled by default.
 - Actor uses a predefined keyword list (configurable via Supabase table `keywords`).
 - On API limit errors or network errors, retry occurs (exponential up to 3 attempts).
 - Monitoring of duplicate rate: Stores tweet IDs in Supabase, runs document ratio `new vs. duplicated` (via `cron_runs`).

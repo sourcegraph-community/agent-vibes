@@ -1,7 +1,7 @@
 # Apify Pipeline - Local Testing Guide
 
 **Document Owner:** Engineering Team  
-**Last Updated:** October 2, 2025  
+**Last Updated:** October 6, 2025  
 **Related Documents:** [Specification](specification.md), [Overview](overview.md), [Date-Based Collection Strategy](date-based-collection-strategy.md), [Operational Runbook](../../src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md)
 
 ---
@@ -128,19 +128,23 @@ Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
 
 1. **Tweet collection**
    ```bash
+   # Option A: API
    curl -X POST http://localhost:3000/api/start-apify-run \
      -H "Content-Type: application/json" \
      -H "x-api-key: $INTERNAL_API_KEY" \
      -d '{
        "triggerSource": "manual-test",
        "ingestion": {
-         "maxItemsPerKeyword": 20,
-         "keywordBatchSize": 2,
-         "sort": "Top"
+         "maxItems": 100,
+         "sort": "Latest",
+         "useDateFiltering": false
        }
      }'
+   
+   # Option B: Script (env-driven)
+   COLLECTOR_MAX_ITEMS=100 npm run start:collector
    ```
-   - Expect `202 Accepted` with a `runId`
+   - Expect `202 Accepted` with a `runId` (API) or script console output
    - Monitor the run in Apify Console
 
 2. **Verify data landed**
@@ -192,7 +196,7 @@ Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
 |---------|-----------|
 | "Environment variable not found" | Ensure `.env.local` exists, confirm names, rerun `npm run dev` |
 | "No keywords available" | Re-run `src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql` |
-| Apify run fails | Reduce `maxItemsPerKeyword` or `keywordBatchSize`; verify compute units |
+| Apify run fails | Lower `maxItems` (e.g. 50); verify compute units |
 | Gemini quota exceeded | Lower sentiment `batchSize` (e.g. 3) to stay under free-tier limits |
 
 ---
@@ -893,6 +897,7 @@ npm run process:backfill    # Process a backfill batch
 npm run replay:sentiments   # Retry failed sentiments
 npm run cleanup:raw-tweets  # Prune raw tweets (30-day retention)
 npm run cleanup:sentiment-failures -- --max-age-days=90 # Prune sentiment failures
+npm run start:collector      # Start single-run collection (env-driven)
 ```
 
 ---
@@ -908,15 +913,15 @@ curl -X POST http://localhost:3000/api/start-apify-run \
   -d '{
     "triggerSource": "manual",
     "ingestion": {
-      "tweetLanguage": "en",
-      "sort": "Top",
-      "maxItemsPerKeyword": 50,
-      "keywordBatchSize": 3,
-      "cooldownSeconds": 5,
-      "minimumEngagement": {
-        "retweets": 5,
-        "favorites": 10
-      }
+    "tweetLanguage": "en",
+    "sort": "Latest",
+    "maxItems": 100,
+    "useDateFiltering": false,
+    "cooldownSeconds": 0,
+    "minimumEngagement": {
+    "retweets": 5,
+    "favorites": 10
+    }
     }
   }'
 ```
