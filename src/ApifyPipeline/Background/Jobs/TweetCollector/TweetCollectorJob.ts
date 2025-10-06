@@ -19,16 +19,17 @@ import {
   extractPlatformId,
   type ApifyTweetItem,
 } from '@/src/ApifyPipeline/Core/Transformations/normalizeTweet';
-import { chunkArray } from '@/src/ApifyPipeline/Infrastructure/Utilities/chunk';
+import { invokeSentimentProcessorFunction } from '@/src/ApifyPipeline/ExternalServices/Supabase/edgeFunctions';
 
 const ingestionSchema = z
   .object({
     tweetLanguage: z.string().trim().min(2).max(5).optional(),
-    sort: z.enum(['Top', 'Latest']).default('Top'),
-    maxItemsPerKeyword: z.number().int().min(1).max(500).default(200),
-    keywordBatchSize: z.number().int().min(1).max(5).default(5),
-    cooldownSeconds: z.number().int().min(0).max(900).default(300),
-    useDateFiltering: z.boolean().default(true),
+    sort: z.enum(['Top', 'Latest']).default('Latest'),
+    // Total max items across all keywords
+    maxItems: z.number().int().min(1).max(1000).default(100),
+    cooldownSeconds: z.number().int().min(0).max(900).default(0),
+    // Disabled by default to align with one-shot collection behavior
+    useDateFiltering: z.boolean().default(false),
     defaultLookbackDays: z.number().int().min(1).max(30).default(7),
     minimumEngagement: z
       .object({
@@ -41,11 +42,10 @@ const ingestionSchema = z
       .default({}),
   })
   .default({
-    sort: 'Top',
-    maxItemsPerKeyword: 200,
-    keywordBatchSize: 5,
-    cooldownSeconds: 300,
-    useDateFiltering: true,
+    sort: 'Latest',
+    maxItems: 100,
+    cooldownSeconds: 0,
+    useDateFiltering: false,
     defaultLookbackDays: 7,
     minimumEngagement: {},
   });
@@ -109,18 +109,15 @@ Actor.main(async () => {
     }
 
     const ingestionConfig = input.ingestion;
-    const keywordBatches = chunkArray(keywords, ingestionConfig.keywordBatchSize);
 
-    // Calculate sinceDate once for all keywords if date filtering is enabled
+    // Calculate sinceDate only when enabled
     let sinceDate: string | null = null;
     if (ingestionConfig.useDateFiltering) {
       const lastCollectedAt = await getLastCollectedDate(supabase);
 
       if (lastCollectedAt) {
-        // Use last collected date (YYYY-MM-DD format)
         sinceDate = new Date(lastCollectedAt).toISOString().split('T')[0];
       } else {
-        // No previous data - use default lookback
         const lookbackDate = new Date();
         lookbackDate.setDate(lookbackDate.getDate() - ingestionConfig.defaultLookbackDays);
         sinceDate = lookbackDate.toISOString().split('T')[0];
@@ -136,50 +133,33 @@ Actor.main(async () => {
     const candidateMap = new Map<string, CandidateRecord>();
     const errors: unknown[] = [];
 
-    for (const batch of keywordBatches) {
+    // Single call across all keywords with total cap
+    const items = await runTwitterScraper({
+      keywords,
+      tweetLanguage: ingestionConfig.tweetLanguage,
+      sort: ingestionConfig.sort,
+      maxItems: ingestionConfig.maxItems,
+      sinceDate,
+      minimumEngagement: ingestionConfig.minimumEngagement,
+    });
+
+    for (const item of items) {
       try {
-        const items = await runTwitterScraper({
-          keywords: batch,
-          tweetLanguage: ingestionConfig.tweetLanguage,
-          sort: ingestionConfig.sort,
-          maxItemsPerKeyword: ingestionConfig.maxItemsPerKeyword,
-          sinceDate,
-          minimumEngagement: ingestionConfig.minimumEngagement,
-        });
-
-        for (const item of items) {
-          try {
-            const platformId = extractPlatformId(item);
-
-            if (candidateMap.has(platformId)) {
-              continue;
-            }
-
-            candidateMap.set(platformId, {
-              item,
-              keywords: batch,
-              collectedAt: new Date().toISOString(),
-            });
-          } catch (error) {
-            errors.push({
-              type: 'normalization_precheck_failed',
-              message: error instanceof Error ? error.message : String(error),
-              item,
-            });
-          }
+        const platformId = extractPlatformId(item);
+        if (candidateMap.has(platformId)) {
+          continue;
         }
+        candidateMap.set(platformId, {
+          item,
+          keywords,
+          collectedAt: new Date().toISOString(),
+        });
       } catch (error) {
         errors.push({
-          type: 'scraper_batch_failed',
-          keywords: batch,
+          type: 'normalization_precheck_failed',
           message: error instanceof Error ? error.message : String(error),
+          item,
         });
-      }
-
-      if (ingestionConfig.cooldownSeconds > 0) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, ingestionConfig.cooldownSeconds * 1000),
-        );
       }
     }
 
@@ -199,9 +179,7 @@ Actor.main(async () => {
 
     for (const platformId of newPlatformIds) {
       const candidate = candidateMap.get(platformId);
-      if (!candidate) {
-        continue;
-      }
+      if (!candidate) continue;
 
       try {
         const prototype = normalizeTweet(candidate.item, {
@@ -210,7 +188,6 @@ Actor.main(async () => {
           collectedAt: candidate.collectedAt,
           keywords: candidate.keywords,
         });
-
         normalizedPrototypes.set(platformId, prototype);
       } catch (error) {
         errors.push({
@@ -234,7 +211,7 @@ Actor.main(async () => {
 
       return {
         runId,
-        platform: 'twitter',
+        platform: 'twitter' as const,
         platformId,
         collectedAt: candidate.collectedAt,
         payload: {
@@ -242,13 +219,12 @@ Actor.main(async () => {
           keywords: candidate.keywords,
           fetchedAt: candidate.collectedAt,
         },
-        ingestionReason: 'initial',
+        ingestionReason: 'initial' as const,
       };
     });
 
     const rawRecords = await insertRawTweets(supabase, rawRows);
     const rawIdByPlatform = new Map<string, string | null>();
-
     for (const record of rawRecords) {
       rawIdByPlatform.set(record.platformId, record.id);
     }
@@ -262,6 +238,12 @@ Actor.main(async () => {
 
     if (normalizedRows.length > 0) {
       await insertNormalizedTweets(supabase, normalizedRows);
+      // Immediately trigger sentiment processing for up to the number inserted
+      try {
+        await invokeSentimentProcessorFunction({ batchSize: normalizedRows.length });
+      } catch (e) {
+        log.warning('Sentiment processor function invocation failed', { error: String(e) });
+      }
     }
 
     // Insert cron run AFTER successful data persistence
@@ -278,8 +260,8 @@ Actor.main(async () => {
       processedDuplicateCount,
       processedErrorCount,
       metadata: {
-        batchesAttempted: keywordBatches.length,
-        requestedMaxItems: ingestionConfig.maxItemsPerKeyword,
+        batchesAttempted: 1,
+        requestedMaxItems: ingestionConfig.maxItems,
         sort: ingestionConfig.sort,
         tweetLanguage: ingestionConfig.tweetLanguage,
         useDateFiltering: ingestionConfig.useDateFiltering,

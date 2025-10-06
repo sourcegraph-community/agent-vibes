@@ -45,7 +45,7 @@ interface ApifyRunResponse {
     details?: {
       startedAt?: string;
     };
-    urls: {
+    urls?: {
       webUrl?: string;
     };
   };
@@ -99,7 +99,7 @@ export const startApifyActorRun = async (
     actorBuild: env.actorBuild,
     status: data.status,
     startedAt: data.details?.startedAt ?? data.startedAt,
-    url: data.urls.webUrl ?? `${APIFY_API_BASE_URL}/acts/${data.actId}/runs/${data.id}`,
+    url: data.urls?.webUrl ?? `${APIFY_API_BASE_URL}/acts/${data.actId}/runs/${data.id}`,
   } satisfies StartApifyRunResult;
 };
 

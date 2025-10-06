@@ -26,7 +26,7 @@ Key components:
 ### Trigger Mechanisms
 
 - Vercel Cron (production, disabled currently)
-  - Schedule (typical): Every 2 hours: `0 */2 * * *`
+  - Schedule (typical): Every 6 hours: `0 */6 * * *`
   - Route: POST https://<domain>/api/start-apify-run
   - Auth header: Authorization: Bearer ${CRON_SECRET} (preferred) or x-vercel-cron
 
@@ -37,7 +37,7 @@ curl -X POST https://<domain-or-localhost>/api/start-apify-run \
   -H "x-api-key: $INTERNAL_API_KEY" \
   -d '{
     "triggerSource": "manual-test",
-    "ingestion": {"maxItemsPerKeyword": 100, "keywordBatchSize": 3}
+    "ingestion": {"maxItems": 100, "useDateFiltering": false}
   }'
 ```
 
@@ -69,7 +69,7 @@ POST /api/start-apify-run (auth checked)
    ↓
 StartApifyRunEndpoint → Apify Run API
    ↓
-Apify Actor (TweetCollector): scraping, normalization, dedup
+Apify Actor (TweetCollector): single-batch scrape (max 100), normalization, dedup, trigger sentiment
    ↓
 Supabase (raw_tweets, normalized_tweets, cron_runs)
 ```

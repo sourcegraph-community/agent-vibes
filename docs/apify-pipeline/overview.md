@@ -7,7 +7,7 @@ Architecture note: The repository follows a Vertical Slice Architecture. The com
 
 ## High-Level Flow
 1. **Trigger:** A Vercel Cron Job (Pro plan) calls the internal endpoint `/api/start-apify-run`, which then invokes the Apify Run API. The App Router file `app/api/start-apify-run/route.ts` re-exports the slice endpoint `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`. Manual runs can also be triggered.
-2. **Data Collection (Apify Actor):** The Actor uses the Apify Twitter Search Scraper, which is subject to anti-monitoring restrictions, so intervals must be carefully throttled.
+2. **Data Collection (Apify Actor):** The Actor uses the Apify Twitter Search Scraper. It performs a single call across all configured search terms with a total `maxItems` cap (default 100) and respects anti-monitoring restrictions.
 3. **Preprocessing:** Raw tweets are cleaned, enriched (e.g., source, timestamp, platform), and transformed into a uniform format.
 4. **Persistence (Supabase):** Normalized records are stored in Supabase. Historical values are preserved and form the foundation for analysis.
 5. **Sentiment Analysis (Gemini):** Supabase Edge Function `sentiment-processor` invokes Gemini 2.5 via Structured Output (no dedicated sentiment API) and stores results back in Supabase; costs/TPS are monitored depending on model variant (Flash, Flash Lite, Pro).

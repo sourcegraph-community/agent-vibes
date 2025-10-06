@@ -8,11 +8,13 @@ const ingestionSchema = z
       .min(2, 'tweetLanguage must be at least 2 characters long')
       .max(5)
       .optional(),
-    sort: z.enum(['Top', 'Latest']).default('Top'),
-    maxItemsPerKeyword: z.number().int().min(1).max(1000).default(200),
-    keywordBatchSize: z.number().int().min(1).max(5).default(5),
+    sort: z.enum(['Top', 'Latest']).default('Latest'),
+    // Max total items to fetch in a single Apify run
+    maxItems: z.number().int().min(1).max(1000).default(100),
+
     cooldownSeconds: z.number().int().min(0).max(3600).default(0),
-    useDateFiltering: z.boolean().default(true),
+    // Disabled by default to align with one-shot collection behavior
+    useDateFiltering: z.boolean().default(false),
     defaultLookbackDays: z.number().int().min(1).max(30).default(7),
     minimumEngagement: z
       .object({
@@ -25,11 +27,10 @@ const ingestionSchema = z
       .default({}),
   })
   .default({
-    sort: 'Top',
-    maxItemsPerKeyword: 200,
-    keywordBatchSize: 5,
+    sort: 'Latest',
+    maxItems: 100,
     cooldownSeconds: 0,
-    useDateFiltering: true,
+    useDateFiltering: false,
     defaultLookbackDays: 7,
     minimumEngagement: {},
   });
