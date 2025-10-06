@@ -14,7 +14,8 @@ async function DashboardStats() {
 
   const sentimentData = await repo.getDailySentiment({
     startDate: last7Days.toISOString().split('T')[0],
-    limit: 7,
+    // Fetch enough rows to cover all languages for the last 7 days
+    limit: 1000,
   });
 
   const totalTweets = sentimentData.reduce((sum, day) => sum + day.totalCount, 0);
