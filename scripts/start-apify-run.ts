@@ -1,5 +1,8 @@
 import { config } from 'dotenv';
 import { startApifyRunCommandHandler } from '@/src/ApifyPipeline/Web/Application/Commands/StartApifyRun';
+import { getApifyEnv } from '@/src/ApifyPipeline/Infrastructure/Config/env';
+import { createSupabaseServiceClient } from '@/src/ApifyPipeline/ExternalServices/Supabase/client';
+import { fetchEnabledKeywords } from '@/src/ApifyPipeline/DataAccess/Repositories/KeywordsRepository';
 
 // Load .env.local for local testing
 config({ path: '.env.local' });
@@ -12,6 +15,89 @@ function bool(val: string | undefined, def = false): boolean {
   if (val == null) return def;
   const v = val.trim().toLowerCase();
   return v === '1' || v === 'true' || v === 'yes';
+}
+
+async function resolveKeywords(): Promise<string[]> {
+  const override = process.env.COLLECTOR_KEYWORDS;
+  if (override && override.trim().length > 0) {
+    return override.split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  try {
+    const supabase = createSupabaseServiceClient();
+    const kws = await fetchEnabledKeywords(supabase);
+    if (kws.length > 0) return kws;
+  } catch (_) {
+    // fall through to defaults
+  }
+
+  return [
+    'ampcode.com',
+    '"ampcode"',
+    '"sourcegraph amp"',
+    '(to:ampcode)',
+  ];
+}
+
+async function startTweetScraper(params: {
+  maxItems: number;
+  sort: 'Top' | 'Latest';
+  tweetLanguage?: string;
+  minRetweets?: number;
+  minFavorites?: number;
+  minReplies?: number;
+}): Promise<{ runId: string; actorId: string; status: string; url: string; startedAt: string }>
+{
+  const env = getApifyEnv();
+  const actorPath = env.actorId.replace(/\//g, '~');
+  const requestUrl = new URL(`https://api.apify.com/v2/acts/${actorPath}/runs`);
+
+  const keywords = await resolveKeywords();
+
+  const requestBody = {
+    searchTerms: keywords,
+    maxItems: params.maxItems,
+    tweetLanguage: params.tweetLanguage,
+    sort: params.sort,
+    includeSearchTerms: true,
+    minimumRetweets: params.minRetweets,
+    minimumFavorites: params.minFavorites,
+    minimumReplies: params.minReplies,
+  };
+
+  const response = await fetch(requestUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.token}`,
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '');
+    throw new Error(`Apify run failed with status ${response.status}: ${errText}`);
+  }
+
+  const payload = (await response.json()) as {
+    data: {
+      id: string;
+      actId: string;
+      status: string;
+      startedAt: string;
+      details?: { startedAt?: string };
+      urls?: { webUrl?: string };
+    };
+  };
+
+  const data = payload.data;
+  return {
+    runId: data.id,
+    actorId: data.actId,
+    status: data.status,
+    startedAt: data.details?.startedAt ?? data.startedAt,
+    url: data.urls?.webUrl ?? `https://api.apify.com/v2/acts/${data.actId}/runs/${data.id}`,
+  };
 }
 
 async function main() {
@@ -38,9 +124,13 @@ async function main() {
   const triggerSource = process.env.COLLECTOR_TRIGGER_SOURCE || 'manual-script';
   const dryRun = bool(process.env.COLLECTOR_DRY_RUN, false);
 
+  const actorId = process.env.APIFY_ACTOR_ID ?? '';
+  const isTweetScraper = /tweet-scraper/i.test(actorId);
+
   console.log('🚀 Starting Apify tweet collection');
   console.log('=================================');
   console.log(`Trigger: ${triggerSource}${dryRun ? ' (dry run)' : ''}`);
+  console.log(`Actor: ${actorId}`);
   console.log(`Max Items: ${maxItems}`);
   console.log(`Sort: ${sort}`);
   if (tweetLanguage) console.log(`Language: ${tweetLanguage}`);
@@ -53,10 +143,43 @@ async function main() {
   console.log('');
 
   try {
+    if (dryRun) {
+      const now = new Date().toISOString();
+      console.log('✅ Run started');
+      console.log('---------------------------------');
+      console.log(`Run ID: dryrun_${now}`);
+      console.log(`Actor ID: ${actorId}`);
+      console.log(`Status: DRY_RUN`);
+      console.log(`URL: https://console.apify.com/`);
+      console.log(`Started At: ${now}`);
+      console.log('\nℹ️ Dry run: no Apify request was made.');
+      return;
+    }
+
+    if (isTweetScraper) {
+      const result = await startTweetScraper({
+        maxItems,
+        sort,
+        tweetLanguage,
+        minRetweets,
+        minFavorites,
+        minReplies,
+      });
+
+      console.log('✅ Run started');
+      console.log('---------------------------------');
+      console.log(`Run ID: ${result.runId}`);
+      console.log(`Actor ID: ${result.actorId}`);
+      console.log(`Status: ${result.status}`);
+      console.log(`URL: ${result.url}`);
+      console.log(`Started At: ${result.startedAt}`);
+      return;
+    }
+
     const result = await startApifyRunCommandHandler({
       triggerSource,
       requestedBy,
-      dryRun,
+      dryRun: false,
       ingestion: {
         maxItems,
         sort,
@@ -79,10 +202,6 @@ async function main() {
     console.log(`Status: ${result.status}`);
     console.log(`URL: ${result.url}`);
     console.log(`Started At: ${result.startedAt}`);
-
-    if (dryRun) {
-      console.log('\nℹ️ Dry run: no Apify request was made.');
-    }
   } catch (error) {
     console.error('❌ Failed to start Apify run:', error instanceof Error ? error.message : String(error));
     process.exit(1);
