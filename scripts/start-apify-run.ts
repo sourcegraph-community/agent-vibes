@@ -1,4 +1,5 @@
 import { config } from 'dotenv';
+import { randomUUID } from 'node:crypto';
 import { startApifyRunCommandHandler } from '@/src/ApifyPipeline/Web/Application/Commands/StartApifyRun';
 import { getApifyEnv } from '@/src/ApifyPipeline/Infrastructure/Config/env';
 import { createSupabaseServiceClient } from '@/src/ApifyPipeline/ExternalServices/Supabase/client';
@@ -108,6 +109,79 @@ async function fetchDatasetItems(datasetId: string, token: string, maxItems: num
   }
 
   return items as ApifyTweetItem[];
+}
+
+async function findLastApifyRunId(triggerSource: string): Promise<{ runId: string; startedAt: string } | null> {
+  try {
+    const supabase = createSupabaseServiceClient();
+    const { data, error } = await supabase
+      .from('cron_runs')
+      .select('metadata, started_at, status')
+      .eq('trigger_source', triggerSource)
+      .in('status', ['failed', 'running', 'partial_success'])
+      .order('started_at', { ascending: false })
+      .limit(10);
+
+    if (error) return null;
+
+    for (const row of (data ?? []) as Array<{ metadata?: Record<string, unknown>; started_at?: string; status?: string }>) {
+      const meta = (row.metadata ?? {}) as Record<string, unknown>;
+      const runId = typeof meta['apifyRunId'] === 'string' ? (meta['apifyRunId'] as string) : null;
+      if (runId) {
+        return { runId, startedAt: row.started_at ?? new Date().toISOString() };
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function recordRunStart(params: { id: string; triggerSource: string; keywords: string[]; apifyRunId: string; startedAt: string }): Promise<void> {
+  try {
+    const supabase = createSupabaseServiceClient();
+    await supabase.from('cron_runs').insert({
+      id: params.id,
+      trigger_source: params.triggerSource,
+      keyword_batch: params.keywords,
+      started_at: params.startedAt,
+      status: 'running',
+      processed_new_count: 0,
+      processed_duplicate_count: 0,
+      processed_error_count: 0,
+      metadata: { apifyRunId: params.apifyRunId },
+    });
+  } catch {
+    // best effort
+  }
+}
+
+function toErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  try { return JSON.stringify(err); } catch { return String(err); }
+}
+
+async function recordFailureRun(params: { triggerSource: string; keywords: string[]; startedAt: string; apifyRunId?: string; error: unknown }): Promise<void> {
+  try {
+    const supabase = createSupabaseServiceClient();
+    const message = toErrorMessage(params.error);
+    await insertCronRun(supabase, {
+      id: randomUUID(),
+      triggerSource: params.triggerSource,
+      keywordBatch: params.keywords,
+      startedAt: params.startedAt,
+      finishedAt: new Date().toISOString(),
+      status: 'failed',
+      processedNewCount: 0,
+      processedDuplicateCount: 0,
+      processedErrorCount: 1,
+      metadata: params.apifyRunId ? { apifyRunId: params.apifyRunId } : {},
+      errors: [{ type: 'pipeline_failed', message }],
+    });
+  } catch {
+    // best effort
+  }
 }
 
 async function startTweetScraper(params: {
@@ -228,14 +302,37 @@ async function main() {
     }
 
     if (isTweetScraper) {
-      const start = await startTweetScraper({
-        maxItems,
-        sort,
-        tweetLanguage,
-        minRetweets,
-        minFavorites,
-        minReplies,
-      });
+      const env = getApifyEnv();
+      const actorPath = env.actorId.replace(/\//g, '~');
+      const keywords = await resolveKeywords();
+
+      // Try to reuse a recent Apify run to avoid duplicate cost
+      let start: { runId: string; actorId: string; status: string; url: string; startedAt: string } | null = null;
+      const reuseExisting = process.env.COLLECTOR_REUSE_EXISTING !== 'false';
+      if (reuseExisting) {
+        const last = await findLastApifyRunId(triggerSource);
+        if (last) {
+          start = {
+            runId: last.runId,
+            actorId: env.actorId,
+            status: 'REUSED',
+            startedAt: last.startedAt,
+            url: `https://api.apify.com/v2/acts/${actorPath}/runs/${last.runId}`,
+          };
+        }
+      }
+
+      if (!start) {
+        start = await startTweetScraper({
+          maxItems,
+          sort,
+          tweetLanguage,
+          minRetweets,
+          minFavorites,
+          minReplies,
+        });
+        // Note: we'll record the ingestion run ID (internalRunId) once created, not here
+      }
 
       console.log('✅ Run started');
       console.log('---------------------------------');
@@ -245,116 +342,120 @@ async function main() {
       console.log(`URL: ${start.url}`);
       console.log(`Started At: ${start.startedAt}`);
 
-      // Wait for completion
-      const env = getApifyEnv();
-      const runInfo = await waitForRunCompletion(start.runId, env.token);
+      try {
+        // Wait for completion
+        const runInfo = await waitForRunCompletion(start.runId, env.token);
 
-      // Fetch dataset
-      const items = await fetchDatasetItems(runInfo.datasetId, env.token, maxItems);
+        // Fetch dataset
+        const items = await fetchDatasetItems(runInfo.datasetId, env.token, maxItems);
 
-      // Normalize + persist, then trigger sentiment
-      const supabase = createSupabaseServiceClient();
-      const keywords = await resolveKeywords();
+        // Normalize + persist, then trigger sentiment
+        const supabase = createSupabaseServiceClient();
 
-      const candidateMap = new Map<string, { item: ApifyTweetItem; keywords: string[]; collectedAt: string }>();
-      const errors: unknown[] = [];
-      const nowIso = runInfo.finishedAt;
+        const candidateMap = new Map<string, { item: ApifyTweetItem; keywords: string[]; collectedAt: string }>();
+        const errors: unknown[] = [];
+        const nowIso = runInfo.finishedAt;
 
-      for (const raw of items) {
-        const item = raw as ApifyTweetItem;
-        const collectedAt = (item as { collectedAt?: string }).collectedAt ?? nowIso;
-        try {
-          const platformId = extractPlatformId(item);
-          if (candidateMap.has(platformId)) continue;
-          candidateMap.set(platformId, { item, keywords, collectedAt });
-        } catch (e) {
-          errors.push({ type: 'normalization_precheck_failed', message: e instanceof Error ? e.message : String(e), item });
+        for (const raw of items) {
+          const item = raw as ApifyTweetItem;
+          const collectedAt = (item as { collectedAt?: string }).collectedAt ?? nowIso;
+          try {
+            const platformId = extractPlatformId(item);
+            if (candidateMap.has(platformId)) continue;
+            candidateMap.set(platformId, { item, keywords, collectedAt });
+          } catch (e) {
+            errors.push({ type: 'normalization_precheck_failed', message: e instanceof Error ? e.message : String(e), item });
+          }
         }
-      }
 
-      const allPlatformIds = Array.from(candidateMap.keys());
-      const existingPlatformIds = allPlatformIds.length > 0 ? await fetchExistingNormalizedIds(supabase, 'twitter', allPlatformIds) : new Set<string>();
-      const newPlatformIds = allPlatformIds.filter(id => !existingPlatformIds.has(id));
+        const allPlatformIds = Array.from(candidateMap.keys());
+        const existingPlatformIds = allPlatformIds.length > 0 ? await fetchExistingNormalizedIds(supabase, 'twitter', allPlatformIds) : new Set<string>();
+        const newPlatformIds = allPlatformIds.filter(id => !existingPlatformIds.has(id));
 
-      const normalizedPrototypes = new Map<string, NormalizedTweetInsert>();
-      const internalRunId = crypto.randomUUID();
+        const normalizedPrototypes = new Map<string, NormalizedTweetInsert>();
+        const internalRunId = randomUUID();
+        // Ensure FK: record a running cron_run row with this internalRunId before inserting raw/normalized
+        await recordRunStart({ id: internalRunId, triggerSource, keywords, apifyRunId: start.runId, startedAt: start.startedAt });
 
-      for (const platformId of newPlatformIds) {
-        const candidate = candidateMap.get(platformId);
-        if (!candidate) continue;
-        try {
-          const proto = normalizeTweet(candidate.item, {
+        for (const platformId of newPlatformIds) {
+          const candidate = candidateMap.get(platformId);
+          if (!candidate) continue;
+          try {
+            const proto = normalizeTweet(candidate.item, {
+              runId: internalRunId,
+              rawTweetId: null,
+              collectedAt: candidate.collectedAt,
+              keywords: candidate.keywords,
+            });
+            normalizedPrototypes.set(platformId, proto);
+          } catch (e) {
+            errors.push({ type: 'normalization_failed', platformId, message: e instanceof Error ? e.message : String(e) });
+          }
+        }
+
+        const processedNewCount = normalizedPrototypes.size;
+        const processedDuplicateCount = existingPlatformIds.size;
+        const processedErrorCount = errors.length;
+        const status = processedErrorCount === 0 ? 'succeeded' : (processedNewCount > 0 ? 'partial_success' : 'failed');
+
+        const rawRows = Array.from(normalizedPrototypes.keys()).map((platformId) => {
+          const c = candidateMap.get(platformId)!;
+          return {
             runId: internalRunId,
-            rawTweetId: null,
-            collectedAt: candidate.collectedAt,
-            keywords: candidate.keywords,
-          });
-          normalizedPrototypes.set(platformId, proto);
-        } catch (e) {
-          errors.push({ type: 'normalization_failed', platformId, message: e instanceof Error ? e.message : String(e) });
+            platform: 'twitter' as const,
+            platformId,
+            collectedAt: c.collectedAt,
+            payload: { item: c.item, keywords: c.keywords, fetchedAt: c.collectedAt },
+            ingestionReason: 'initial' as const,
+          };
+        });
+
+        const rawRecords = rawRows.length > 0 ? await insertRawTweets(supabase, rawRows) : [];
+        const rawIdByPlatform = new Map<string, string | null>();
+        for (const r of rawRecords) rawIdByPlatform.set(r.platformId, r.id);
+
+        const normalizedRows: NormalizedTweetInsert[] = Array.from(normalizedPrototypes.entries()).map(([platformId, proto]) => ({
+          ...proto,
+          rawTweetId: rawIdByPlatform.get(platformId) ?? null,
+        }));
+
+        if (normalizedRows.length > 0) {
+          await insertNormalizedTweets(supabase, normalizedRows);
+          try {
+            await invokeSentimentProcessorFunction({ batchSize: normalizedRows.length });
+          } catch (e) {
+            console.warn('Sentiment processor invocation failed:', String(e));
+          }
         }
+
+        await insertCronRun(supabase, {
+          triggerSource,
+          keywordBatch: keywords,
+          startedAt: start.startedAt,
+          finishedAt: runInfo.finishedAt,
+          status,
+          processedNewCount,
+          processedDuplicateCount,
+          processedErrorCount,
+          metadata: {
+            apifyRunId: start.runId,
+            datasetId: runInfo.datasetId,
+            maxItemsRequested: maxItems,
+            candidateCount: candidateMap.size,
+            requestedAt: start.startedAt,
+          },
+          errors,
+        });
+
+        console.log('✅ Completed');
+        console.log('---------------------------------');
+        console.log(`New: ${processedNewCount}`);
+        console.log(`Duplicates: ${processedDuplicateCount}`);
+        console.log(`Errors: ${processedErrorCount}`);
+      } catch (e) {
+        await recordFailureRun({ triggerSource, keywords, startedAt: start.startedAt, apifyRunId: start.runId, error: e });
+        throw e;
       }
-
-      const processedNewCount = normalizedPrototypes.size;
-      const processedDuplicateCount = existingPlatformIds.size;
-      const processedErrorCount = errors.length;
-      const status = processedErrorCount === 0 ? 'succeeded' : (processedNewCount > 0 ? 'partial_success' : 'failed');
-
-      const rawRows = Array.from(normalizedPrototypes.keys()).map((platformId) => {
-        const c = candidateMap.get(platformId)!;
-        return {
-          runId: internalRunId,
-          platform: 'twitter' as const,
-          platformId,
-          collectedAt: c.collectedAt,
-          payload: { item: c.item, keywords: c.keywords, fetchedAt: c.collectedAt },
-          ingestionReason: 'initial' as const,
-        };
-      });
-
-      const rawRecords = rawRows.length > 0 ? await insertRawTweets(supabase, rawRows) : [];
-      const rawIdByPlatform = new Map<string, string | null>();
-      for (const r of rawRecords) rawIdByPlatform.set(r.platformId, r.id);
-
-      const normalizedRows: NormalizedTweetInsert[] = Array.from(normalizedPrototypes.entries()).map(([platformId, proto]) => ({
-        ...proto,
-        rawTweetId: rawIdByPlatform.get(platformId) ?? null,
-      }));
-
-      if (normalizedRows.length > 0) {
-        await insertNormalizedTweets(supabase, normalizedRows);
-        try {
-          await invokeSentimentProcessorFunction({ batchSize: normalizedRows.length });
-        } catch (e) {
-          console.warn('Sentiment processor invocation failed:', String(e));
-        }
-      }
-
-      await insertCronRun(supabase, {
-        id: internalRunId,
-        triggerSource,
-        keywordBatch: keywords,
-        startedAt: start.startedAt,
-        finishedAt: runInfo.finishedAt,
-        status,
-        processedNewCount,
-        processedDuplicateCount,
-        processedErrorCount,
-        metadata: {
-          apifyRunId: start.runId,
-          datasetId: runInfo.datasetId,
-          maxItemsRequested: maxItems,
-          candidateCount: candidateMap.size,
-          requestedAt: start.startedAt,
-        },
-        errors,
-      });
-
-      console.log('✅ Completed');
-      console.log('---------------------------------');
-      console.log(`New: ${processedNewCount}`);
-      console.log(`Duplicates: ${processedDuplicateCount}`);
-      console.log(`Errors: ${processedErrorCount}`);
       return;
     }
 
@@ -385,7 +486,8 @@ async function main() {
     console.log(`URL: ${result.url}`);
     console.log(`Started At: ${result.startedAt}`);
   } catch (error) {
-    console.error('❌ Failed to start Apify run:', error instanceof Error ? error.message : String(error));
+    const msg = error instanceof Error ? error.message : JSON.stringify(error);
+    console.error('❌ Failed to start Apify run:', msg);
     process.exit(1);
   }
 }
