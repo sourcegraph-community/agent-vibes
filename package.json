@@ -28,7 +28,7 @@
     "functions:serve": "npm run build:edge-functions && supabase functions serve sentiment-processor --env-file supabase/.env.local",
     "test:date-filtering": "tsx scripts/test-date-filtering.ts",
     "process:sentiments": "tsx scripts/process-sentiments.ts",
-    "start:collector": "tsx scripts/start-apify-run.ts"
+    "start:collector": "tsx scripts/start-apify-run.ts && tsx scripts/process-sentiments.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
