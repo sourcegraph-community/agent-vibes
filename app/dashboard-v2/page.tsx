@@ -271,7 +271,7 @@ export default function DashboardV2Page() {
           <RssSection
             id="updates"
             title="Product Updates"
-            category="product"
+            category="product_updates"
             limit={6}
             showLoadMore
           />
@@ -280,7 +280,7 @@ export default function DashboardV2Page() {
           <RssSection
             id="research"
             title="Research Papers"
-            category="research"
+            category="industry_research"
             limit={6}
             showLoadMore
           />
@@ -289,7 +289,7 @@ export default function DashboardV2Page() {
           <RssSection
             id="perspectives"
             title="Perspective Pieces"
-            category="perspective"
+            category="perspectives"
             limit={6}
             showLoadMore
           />

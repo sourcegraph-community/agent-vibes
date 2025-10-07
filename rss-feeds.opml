@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Agent Vibes RSS Feed Collection</title>
+    <dateCreated>Tue, 07 Oct 2025 12:00:00 GMT</dateCreated>
+    <docs>http://opml.org/spec2.opml</docs>
+  </head>
+  <body>
+    <!-- Product Updates Category -->
+    <outline text="Product Updates" title="Product Updates">
+      <!-- AI Coding Tools -->
+      <outline type="rss" text="Cursor Changelog" title="Cursor Changelog" xmlUrl="https://changelog.cursor.sh/rss.xml" htmlUrl="https://changelog.cursor.sh/"/>
+      <outline type="rss" text="GitHub Copilot Changelog" title="GitHub Copilot Changelog" xmlUrl="https://github.blog/changelog/label/copilot/feed/" htmlUrl="https://github.blog/changelog/label/copilot/"/>
+      <outline type="rss" text="Cody (Sourcegraph)" title="Cody (Sourcegraph)" xmlUrl="https://sourcegraph.com/blog/rss.xml" htmlUrl="https://sourcegraph.com/blog"/>
+      <outline type="rss" text="Amp Blog" title="Amp Blog" xmlUrl="https://ampcode.com/blog/rss.xml" htmlUrl="https://ampcode.com/blog"/>
+      <outline type="rss" text="Continue.dev Blog" title="Continue.dev Blog" xmlUrl="https://blog.continue.dev/rss.xml" htmlUrl="https://blog.continue.dev"/>
+      <outline type="rss" text="Windsurf (Codeium)" title="Windsurf (Codeium)" xmlUrl="https://codeium.com/blog/rss.xml" htmlUrl="https://codeium.com/blog"/>
+      <outline type="rss" text="Replit Blog" title="Replit Blog" xmlUrl="https://blog.replit.com/feed.xml" htmlUrl="https://blog.replit.com"/>
+      <outline type="rss" text="Tabnine Blog" title="Tabnine Blog" xmlUrl="https://www.tabnine.com/blog/feed/" htmlUrl="https://www.tabnine.com/blog"/>
+      <outline type="rss" text="Amazon CodeWhisperer" title="Amazon CodeWhisperer" xmlUrl="https://aws.amazon.com/blogs/devops/tag/amazon-codewhisperer/feed/" htmlUrl="https://aws.amazon.com/blogs/devops/tag/amazon-codewhisperer/"/>
+      <!-- AI Platforms & APIs -->
+      <outline type="rss" text="OpenAI Blog" title="OpenAI Blog" xmlUrl="https://openai.com/blog/rss.xml" htmlUrl="https://openai.com/blog"/>
+      <outline type="rss" text="Anthropic News" title="Anthropic News" xmlUrl="https://www.anthropic.com/news/rss.xml" htmlUrl="https://www.anthropic.com/news"/>
+      <outline type="rss" text="Google AI/DeepMind" title="Google AI/DeepMind" xmlUrl="https://blog.google/technology/ai/rss/" htmlUrl="https://blog.google/technology/ai/"/>
+      <outline type="rss" text="Hugging Face Blog" title="Hugging Face Blog" xmlUrl="https://huggingface.co/blog/feed.xml" htmlUrl="https://huggingface.co/blog"/>
+      <outline type="rss" text="LangChain Blog" title="LangChain Blog" xmlUrl="https://blog.langchain.dev/rss/" htmlUrl="https://blog.langchain.dev"/>
+      <!-- Developer Tools -->
+      <outline type="rss" text="Vercel Blog" title="Vercel Blog" xmlUrl="https://vercel.com/blog/rss.xml" htmlUrl="https://vercel.com/blog"/>
+      <outline type="rss" text="Supabase Blog" title="Supabase Blog" xmlUrl="https://supabase.com/blog/rss.xml" htmlUrl="https://supabase.com/blog"/>
+      <outline type="rss" text="Linear Changelog" title="Linear Changelog" xmlUrl="https://linear.app/changelog/rss" htmlUrl="https://linear.app/changelog"/>
+    </outline>
+
+    <!-- Research Papers Category -->
+    <outline text="Research Papers" title="Research Papers">
+      <!-- arXiv Categories -->
+      <outline type="rss" text="arXiv - Artificial Intelligence" title="arXiv - Artificial Intelligence" xmlUrl="https://export.arxiv.org/rss/cs.AI" htmlUrl="https://arxiv.org/list/cs.AI/recent"/>
+      <outline type="rss" text="arXiv - Computation & Language" title="arXiv - Computation & Language" xmlUrl="https://export.arxiv.org/rss/cs.CL" htmlUrl="https://arxiv.org/list/cs.CL/recent"/>
+      <outline type="rss" text="arXiv - Machine Learning" title="arXiv - Machine Learning" xmlUrl="https://export.arxiv.org/rss/cs.LG" htmlUrl="https://arxiv.org/list/cs.LG/recent"/>
+      <outline type="rss" text="arXiv - Software Engineering" title="arXiv - Software Engineering" xmlUrl="https://export.arxiv.org/rss/cs.SE" htmlUrl="https://arxiv.org/list/cs.SE/recent"/>
+      <outline type="rss" text="arXiv - Programming Languages" title="arXiv - Programming Languages" xmlUrl="https://export.arxiv.org/rss/cs.PL" htmlUrl="https://arxiv.org/list/cs.PL/recent"/>
+      <!-- Research Aggregators -->
+      <outline type="rss" text="Papers with Code - Latest" title="Papers with Code - Latest" xmlUrl="https://paperswithcode.com/feeds/latest/" htmlUrl="https://paperswithcode.com"/>
+      <outline type="rss" text="ACL Anthology" title="ACL Anthology" xmlUrl="https://aclanthology.org/feed.xml" htmlUrl="https://aclanthology.org"/>
+      <outline type="rss" text="JMLR" title="JMLR" xmlUrl="https://www.jmlr.org/jmlr.xml" htmlUrl="https://www.jmlr.org"/>
+      <outline type="rss" text="Distill.pub" title="Distill.pub" xmlUrl="https://distill.pub/rss.xml" htmlUrl="https://distill.pub"/>
+      <!-- Research Labs -->
+      <outline type="rss" text="OpenAI Research" title="OpenAI Research" xmlUrl="https://openai.com/research/rss.xml" htmlUrl="https://openai.com/research"/>
+      <outline type="rss" text="DeepMind Research" title="DeepMind Research" xmlUrl="https://deepmind.google/discover/blog/rss.xml" htmlUrl="https://deepmind.google/discover/blog"/>
+      <outline type="rss" text="Meta AI Research" title="Meta AI Research" xmlUrl="https://ai.meta.com/blog/rss/" htmlUrl="https://ai.meta.com/blog"/>
+      <outline type="rss" text="Microsoft Research" title="Microsoft Research" xmlUrl="https://www.microsoft.com/en-us/research/feed/" htmlUrl="https://www.microsoft.com/en-us/research"/>
+    </outline>
+
+    <!-- Perspective Pieces Category -->
+    <outline text="Perspective Pieces" title="Perspective Pieces">
+      <!-- VC & Industry Analysis -->
+      <outline type="rss" text="a16z" title="a16z" xmlUrl="https://a16z.com/feed/" htmlUrl="https://a16z.com"/>
+      <outline type="rss" text="a16z - AI/ML" title="a16z - AI/ML" xmlUrl="https://a16z.com/category/ai-ml/feed/" htmlUrl="https://a16z.com/category/ai-ml/"/>
+      <outline type="rss" text="Stratechery by Ben Thompson" title="Stratechery by Ben Thompson" xmlUrl="https://stratechery.com/feed/" htmlUrl="https://stratechery.com"/>
+      <outline type="rss" text="Benedict Evans" title="Benedict Evans" xmlUrl="https://www.ben-evans.com/benedictevans?format=rss" htmlUrl="https://www.ben-evans.com/benedictevans"/>
+      <outline type="rss" text="Sequoia Capital" title="Sequoia Capital" xmlUrl="https://www.sequoiacap.com/feed/" htmlUrl="https://www.sequoiacap.com"/>
+      <!-- Developer Advocates & Thought Leaders -->
+      <outline type="rss" text="Simon Willison" title="Simon Willison" xmlUrl="https://simonwillison.net/atom/everything/" htmlUrl="https://simonwillison.net"/>
+      <outline type="rss" text="Swyx (Shawn Wang)" title="Swyx (Shawn Wang)" xmlUrl="https://www.swyx.io/rss.xml" htmlUrl="https://www.swyx.io"/>
+      <outline type="rss" text="Andrej Karpathy" title="Andrej Karpathy" xmlUrl="https://karpathy.github.io/feed.xml" htmlUrl="https://karpathy.github.io"/>
+      <outline type="rss" text="Eugene Yan" title="Eugene Yan" xmlUrl="https://eugeneyan.com/feed.xml" htmlUrl="https://eugeneyan.com"/>
+      <outline type="rss" text="Chip Huyen" title="Chip Huyen" xmlUrl="https://huyenchip.com/feed.xml" htmlUrl="https://huyenchip.com"/>
+      <outline type="rss" text="Lilian Weng (OpenAI)" title="Lilian Weng (OpenAI)" xmlUrl="https://lilianweng.github.io/index.xml" htmlUrl="https://lilianweng.github.io"/>
+      <!-- Developer Communities -->
+      <outline type="rss" text="Hacker News - Frontpage" title="Hacker News - Frontpage" xmlUrl="https://hnrss.org/frontpage" htmlUrl="https://news.ycombinator.com"/>
+      <outline type="rss" text="Hacker News - AI Coding" title="Hacker News - AI Coding" xmlUrl="https://hnrss.org/newest?q=AI+coding" htmlUrl="https://news.ycombinator.com"/>
+      <outline type="rss" text="Dev.to - AI" title="Dev.to - AI" xmlUrl="https://dev.to/feed/tag/ai" htmlUrl="https://dev.to/t/ai"/>
+      <outline type="rss" text="The Pragmatic Engineer" title="The Pragmatic Engineer" xmlUrl="https://newsletter.pragmaticengineer.com/feed" htmlUrl="https://newsletter.pragmaticengineer.com"/>
+      <outline type="rss" text="InfoQ - AI/ML" title="InfoQ - AI/ML" xmlUrl="https://feed.infoq.com/ai-ml-data-eng/" htmlUrl="https://www.infoq.com/ai-ml-data-eng/"/>
+      <!-- Publications -->
+      <outline type="rss" text="The New Stack" title="The New Stack" xmlUrl="https://thenewstack.io/feed/" htmlUrl="https://thenewstack.io"/>
+      <outline type="rss" text="The Overflow (Stack Overflow)" title="The Overflow (Stack Overflow)" xmlUrl="https://stackoverflow.blog/feed/" htmlUrl="https://stackoverflow.blog"/>
+      <outline type="rss" text="ACM Queue" title="ACM Queue" xmlUrl="https://queue.acm.org/rss/feeds/queuecontent.xml" htmlUrl="https://queue.acm.org"/>
+    </outline>
+  </body>
+</opml>

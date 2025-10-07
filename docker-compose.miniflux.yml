@@ -1,0 +1,40 @@
+version: '3'
+services:
+  miniflux:
+    image: miniflux/miniflux:latest
+    platform: linux/arm64
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://miniflux:miniflux_secret@db/miniflux?sslmode=disable
+      - CREATE_ADMIN=1
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=ChangeMe123!
+      - RUN_MIGRATIONS=1
+      - BASE_URL=http://localhost:8080
+      - POLLING_FREQUENCY=15
+      - BATCH_SIZE=100
+      - API_BASE_URL=http://localhost:8080/v1/
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    platform: linux/arm64
+    environment:
+      - POSTGRES_USER=miniflux
+      - POSTGRES_PASSWORD=miniflux_secret
+      - POSTGRES_DB=miniflux
+    volumes:
+      - miniflux-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U miniflux"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  miniflux-db:

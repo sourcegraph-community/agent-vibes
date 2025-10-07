@@ -2,11 +2,11 @@ interface RssEntryCardProps {
   id: number;
   title: string;
   url: string;
-  summary: string;
+  summary: string | null;
   author?: string;
   publishedAt: string;
-  source: string;
-  category: 'product' | 'research' | 'perspective';
+  feedTitle: string;
+  category: 'product_updates' | 'industry_research' | 'perspectives' | 'uncategorized';
   starred?: boolean;
   readingTime?: number;
 }
@@ -17,7 +17,7 @@ export default function RssEntryCard({
   summary,
   author,
   publishedAt,
-  source,
+  feedTitle,
   category,
   starred,
   readingTime,
@@ -38,9 +38,9 @@ export default function RssEntryCard({
 
   const getBadgeText = () => {
     switch (category) {
-      case 'product': return 'Product Update';
-      case 'research': return 'Research';
-      case 'perspective': return 'Perspective';
+      case 'product_updates': return 'Product Update';
+      case 'industry_research': return 'Research';
+      case 'perspectives': return 'Perspective';
       default: return 'Article';
     }
   };
@@ -61,7 +61,7 @@ export default function RssEntryCard({
 
       <div className="flex items-center justify-between text-xs text-gray-500">
         <span>
-          {source}
+          {feedTitle}
           {author && ` • ${author}`}
           {readingTime && ` • ${readingTime} min read`}
         </span>

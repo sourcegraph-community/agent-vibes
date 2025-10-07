@@ -36,6 +36,13 @@ async function main() {
     console.log(`Synced: ${result.entriesSynced}`);
     console.log(`Skipped: ${result.entriesSkipped}`);
     console.log(`Errors: ${result.errors.length}`);
+    
+    if (result.errors.length > 0) {
+      console.log('\n❌ Error details (first 5):');
+      result.errors.slice(0, 5).forEach((err, i) => {
+        console.log(`${i + 1}. ${err}`);
+      });
+    }
 
     if (!result.success) {
       console.error(`

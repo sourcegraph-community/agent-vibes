@@ -82,7 +82,9 @@ export const syncEntriesCommandHandler = async (
         entriesSynced++;
       } catch (error) {
         entriesSkipped++;
-        errors.push(`Failed to sync entry ${entry.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        const errorMsg = error instanceof Error ? error.message : JSON.stringify(error);
+        console.error(`[SyncEntries] Error syncing entry ${entry.id}:`, error);
+        errors.push(`Failed to sync entry ${entry.id}: ${errorMsg}`);
       }
     }
 

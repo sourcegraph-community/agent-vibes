@@ -7,11 +7,11 @@ interface RssEntry {
   id: number;
   title: string;
   url: string;
-  summary: string;
+  summary: string | null;
   author?: string;
   publishedAt: string;
-  source: string;
-  category: 'product' | 'research' | 'perspective';
+  feedTitle: string;
+  category: 'product_updates' | 'industry_research' | 'perspectives' | 'uncategorized';
   starred?: boolean;
   readingTime?: number;
 }
@@ -19,7 +19,7 @@ interface RssEntry {
 interface RssSectionProps {
   id: string;
   title: string;
-  category: 'product' | 'research' | 'perspective';
+  category: 'product_updates' | 'industry_research' | 'perspectives' | 'uncategorized';
   limit?: number;
   showLoadMore?: boolean;
 }
@@ -46,7 +46,7 @@ export default function RssSection({
         }
 
         const data = await response.json();
-        setEntries(data.entries || []);
+        setEntries(data.data || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
