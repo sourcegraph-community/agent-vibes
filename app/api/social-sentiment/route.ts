@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     if (days < 1 || days > 365) {
       return NextResponse.json(
         { error: 'Days must be between 1 and 365' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         neutral: acc.neutral + day.neutralCount,
         negative: acc.negative + day.negativeCount,
       }),
-      { totalTweets: 0, positive: 0, neutral: 0, negative: 0 }
+      { totalTweets: 0, positive: 0, neutral: 0, negative: 0 },
     );
 
     const avgScore = sentimentData.length > 0
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching social sentiment data:', error);
     return NextResponse.json(
       { error: 'Failed to fetch social sentiment data' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

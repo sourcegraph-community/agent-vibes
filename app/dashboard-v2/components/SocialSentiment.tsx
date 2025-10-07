@@ -21,7 +21,7 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 
 interface SentimentData {
@@ -96,7 +96,7 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
   }
 
   // Aggregate daily data for chart
-  const dailyData = data.data.reduce((acc: Record<string, any>, row) => {
+  const dailyData = data.data.reduce((acc: Record<string, { positive: number; neutral: number; negative: number; total: number }>, row) => {
     const date = new Date(row.sentimentDay).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -239,13 +239,13 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
                 </p>
                 <div className="flex gap-4 mt-2 text-sm">
                   <span className="text-green-400">
-                    👍 {row.positiveCount}
+                    Positive: {row.positiveCount}
                   </span>
                   <span className="text-gray-400">
-                    😐 {row.neutralCount}
+                    Neutral: {row.neutralCount}
                   </span>
                   <span className="text-red-400">
-                    👎 {row.negativeCount}
+                    Negative: {row.negativeCount}
                   </span>
                 </div>
               </div>
