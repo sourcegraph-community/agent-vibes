@@ -1,4 +1,4 @@
-- Stack: Next.js 15 (App Router), TypeScript, Tailwind v4 (@tailwindcss/postcss), Supabase (Postgres + Edge Functions), Apify (Twitter scraping), Gemini 2.5 (sentiment analysis)
+- Stack: Next.js 15 (App Router), TypeScript, Tailwind v4 (@tailwindcss/postcss), Supabase (Postgres + Edge Functions), Apify (Twitter scraping), Gemini 2.5 (sentiment analysis), Chart.js (visualizations), Miniflux (RSS integration - optional)
 - Dev/build/start: `npm run dev` | `npm run build` | `npm run start` (Turbopack)
 - Typecheck/lint/tests: `npm run typecheck`; lint: `npm run lint`; fix: `npm run fix`; combined: `npm run check`; tests: `npm test`; watch: `npm run test:watch`
 - Apify Pipeline scripts: `npm run apply-migrations` (apply DB migrations), `npm run build:edge-functions` (build Edge Functions), `npm run functions:serve` (serve Edge Functions locally), `npm run health-check` (validate env), `npm run enqueue:backfill` (queue historical data, configurable via BACKFILL_DAYS/BACKFILL_BATCH_SIZE), `npm run process:backfill` (process batch manually, repeat per batch), `npm run replay:sentiments` (retry failures), `npm run cleanup:raw-tweets` (cleanup old data), `npm run rotate:supabase` (rotate secrets)
@@ -26,6 +26,8 @@
 - Supabase Edge Functions: Source in `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor`, built to `supabase/functions/` via `npm run build:edge-functions` (git-ignored); Deno runtime requires `.ts` extensions in imports
 - VSA pattern: Request → Endpoint → Handler → Core Logic → Repository → Response; side-effects at boundaries; pure functions in Core
 - Apify Pipeline: Regular collection (every 2h via Vercel cron) + manual backfill → normalization → sentiment analysis (every 30min via cron, Gemini via Supabase Edge Function) → dashboard (Next.js); backfill is manual-only (no automated cron); see [docs/apify-pipeline/collection-strategy.md](docs/apify-pipeline/collection-strategy.md) for collection strategy
+- Dashboards: Two parallel dashboards - `/dashboard` (simple, direct Supabase) and `/dashboard-v2` (comprehensive, API-based with Chart.js visualizations); both share backend data via `/api/social-sentiment` endpoint; dashboard-v2 ready for Miniflux RSS integration
+- RSS Integration (Future): Miniflux for product updates/research/perspectives → `/api/rss/entries` → dashboard components; AI summaries via miniflux-summary-agent (Ollama + llama3.1:8b); see [docs/miniflux-integration.md](docs/miniflux-integration.md)
 - Apify Docs: `https://docs.apify.com/`
 - Vercel Docs: `https://vercel.com/docs`
 - Supabase Docs: `https://supabase.com/docs`
