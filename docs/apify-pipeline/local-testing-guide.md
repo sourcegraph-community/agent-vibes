@@ -146,6 +146,7 @@ Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
    ```
    - Expect `202 Accepted` with a `runId` (API) or script console output
    - Monitor the run in Apify Console
+    - Tip: Set `COLLECTOR_REUSE_EXISTING=false` to force a new Apify run.
 
 2. **Verify data landed**
    ```sql
