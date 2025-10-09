@@ -141,6 +141,35 @@ async function main(): Promise<void> {
       name: '20251002_1705_ResetRawTweets.sql',
       path: join(rootDir, 'src/ApifyPipeline/DataAccess/Migrations/20251002_1705_ResetRawTweets.sql'),
     },
+    // RSS Pipeline migrations
+    {
+      name: '20251007_1000_InitRssPipeline.sql',
+      path: join(rootDir, 'src/RssPipeline/DataAccess/Migrations/20251007_1000_InitRssPipeline.sql'),
+    },
+    {
+      name: '20251007_1100_CreateRssSummaries.sql',
+      path: join(rootDir, 'src/RssPipeline/DataAccess/Migrations/20251007_1100_CreateRssSummaries.sql'),
+    },
+    {
+      name: '20251007_1400_AddCollectedAt.sql',
+      path: join(rootDir, 'src/RssPipeline/DataAccess/Migrations/20251007_1400_AddCollectedAt.sql'),
+    },
+    {
+      name: '20251007_1500_FixSchema.sql',
+      path: join(rootDir, 'src/RssPipeline/DataAccess/Migrations/20251007_1500_FixSchema.sql'),
+    },
+    {
+      name: '20251007_1600_MakeMinifluxIdNullable.sql',
+      path: join(rootDir, 'src/RssPipeline/DataAccess/Migrations/20251007_1600_MakeMinifluxIdNullable.sql'),
+    },
+    {
+      name: '20251007_1700_AddStatusColumn.sql',
+      path: join(rootDir, 'src/RssPipeline/DataAccess/Migrations/20251007_1700_AddStatusColumn.sql'),
+    },
+    {
+      name: '002_create_claim_pending_summaries_function.sql',
+      path: join(rootDir, 'supabase/migrations/002_create_claim_pending_summaries_function.sql'),
+    },
   ];
 
   const seeds = [
