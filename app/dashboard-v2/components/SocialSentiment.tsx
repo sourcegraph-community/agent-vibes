@@ -73,7 +73,8 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
     fetchData();
   }, [fetchData]);
 
-  if (loading) {
+  // Only show the loading placeholder when there's no data yet (initial load)
+  if (loading && !data) {
     return (
       <section id="social" className="section">
         <h2 className="section-title">Social Sentiment</h2>

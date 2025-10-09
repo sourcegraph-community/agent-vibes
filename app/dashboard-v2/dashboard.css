@@ -123,6 +123,10 @@ body {
 }
 
 .main-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: hsl(var(--background));
     padding: 1.5rem;
     border-bottom: 1px solid hsl(var(--border));
     display: flex;
