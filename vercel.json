@@ -1,6 +1,5 @@
 {
   "crons": [
-    { "path": "/api/rss/sync", "schedule": "*/15 * * * *" },
-    { "path": "/api/rss/summarize", "schedule": "*/30 * * * *" }
+    
   ]
 }
