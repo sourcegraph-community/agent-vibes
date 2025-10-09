@@ -6,7 +6,7 @@ import SocialSentiment from './components/SocialSentiment';
 import RssSection from './components/RssSection';
 
 export default function DashboardV2Page() {
-  const [timeframe, setTimeframe] = useState(30);
+  const [timeframe, setTimeframe] = useState(7);
   const [highlightFilter, setHighlightFilter] = useState('all');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
