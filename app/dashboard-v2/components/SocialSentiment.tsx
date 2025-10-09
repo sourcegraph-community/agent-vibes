@@ -95,29 +95,46 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
     );
   }
 
-  // Aggregate daily data for chart
-  const dailyData = data.data.reduce((acc: Record<string, { positive: number; neutral: number; negative: number; total: number }>, row) => {
-    const date = new Date(row.sentimentDay).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-    if (!acc[date]) {
-      acc[date] = { positive: 0, neutral: 0, negative: 0, total: 0 };
+  // Aggregate daily data keyed by ISO date (YYYY-MM-DD)
+  const aggregatedByDay = data.data.reduce((acc: Record<string, { positive: number; neutral: number; negative: number; total: number }>, row) => {
+    const dateKey = row.sentimentDay.split('T')[0]; // expect YYYY-MM-DD or YYYY-MM-DDTHH:mm
+    if (!acc[dateKey]) {
+      acc[dateKey] = { positive: 0, neutral: 0, negative: 0, total: 0 };
     }
-    acc[date].positive += row.positiveCount;
-    acc[date].neutral += row.neutralCount;
-    acc[date].negative += row.negativeCount;
-    acc[date].total += row.totalCount;
+    acc[dateKey].positive += row.positiveCount;
+    acc[dateKey].neutral += row.neutralCount;
+    acc[dateKey].negative += row.negativeCount;
+    acc[dateKey].total += row.totalCount;
     return acc;
   }, {});
 
-  const labels = Object.keys(dailyData).slice(-14); // Last 14 days
-  const positivePercentages = labels.map((date) => {
-    const day = dailyData[date];
+  // Build continuous last 14 days range (oldest -> newest, include today)
+  const formatDateKey = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  };
+
+  const dateKeysAsc = Array.from({ length: timeframe }, (_, i) => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - ((timeframe - 1) - i)); // oldest..today
+    return formatDateKey(d);
+  });
+
+  const labels = dateKeysAsc.map((key) => {
+    const [y, m, d] = key.split('-').map(Number);
+    const date = new Date(y, (m ?? 1) - 1, d ?? 1);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+
+  const positivePercentages = dateKeysAsc.map((key) => {
+    const day = aggregatedByDay[key] ?? { positive: 0, neutral: 0, negative: 0, total: 0 };
     return day.total > 0 ? (day.positive / day.total) * 100 : 0;
   });
-  const negativePercentages = labels.map((date) => {
-    const day = dailyData[date];
+  const negativePercentages = dateKeysAsc.map((key) => {
+    const day = aggregatedByDay[key] ?? { positive: 0, neutral: 0, negative: 0, total: 0 };
     return day.total > 0 ? (day.negative / day.total) * 100 : 0;
   });
 
@@ -218,7 +235,7 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
 
       {/* Chart */}
       <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Sentiment Trends (Last 14 Days)</h3>
+        <h3 className="text-lg font-semibold mb-4">Sentiment Trends (Last {timeframe} Days)</h3>
         <div className="chart-container" style={{ height: '400px' }}>
           <Line data={chartData} options={chartOptions} />
         </div>

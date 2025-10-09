@@ -91,6 +91,7 @@ export default function DashboardV2Page() {
               onChange={(e) => setTimeframe(Number(e.target.value))}
             >
               <option value={7}>Last 7 days</option>
+              <option value={14}>Last 14 days</option>
               <option value={30}>Last 30 days</option>
               <option value={90}>Last 90 days</option>
             </select>
