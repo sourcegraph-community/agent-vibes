@@ -259,7 +259,7 @@ async function main() {
   const useDateFiltering = bool(process.env.COLLECTOR_USE_DATE_FILTERING, false);
   const cooldownSeconds = clamp(Number.parseInt(process.env.COLLECTOR_COOLDOWN_SECONDS || '0', 10), 0, 3600);
   const sort = (process.env.COLLECTOR_SORT === 'Top' ? 'Top' : 'Latest') as 'Top' | 'Latest';
-  const tweetLanguage = process.env.COLLECTOR_LANGUAGE || undefined;
+  const tweetLanguage = process.env.COLLECTOR_LANGUAGE || 'en';
 
   const minRetweets = process.env.COLLECTOR_MIN_RETWEETS ? clamp(Number.parseInt(process.env.COLLECTOR_MIN_RETWEETS, 10), 0, 1_000_000) : undefined;
   const minFavorites = process.env.COLLECTOR_MIN_FAVORITES ? clamp(Number.parseInt(process.env.COLLECTOR_MIN_FAVORITES, 10), 0, 1_000_000) : undefined;
@@ -308,7 +308,7 @@ async function main() {
 
       // Try to reuse a recent Apify run to avoid duplicate cost
       let start: { runId: string; actorId: string; status: string; url: string; startedAt: string } | null = null;
-      const reuseExisting = process.env.COLLECTOR_REUSE_EXISTING !== 'false';
+      const reuseExisting = bool(process.env.COLLECTOR_REUSE_EXISTING, false);
       if (reuseExisting) {
         const last = await findLastApifyRunId(triggerSource);
         if (last) {
