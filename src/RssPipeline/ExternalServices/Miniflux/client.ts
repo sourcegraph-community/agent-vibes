@@ -1,3 +1,5 @@
+import * as inhouse from './inhouse';
+
 export interface MinifluxConfig {
   baseUrl: string;
   apiKey: string;
@@ -73,6 +75,23 @@ export class MinifluxClient {
   }
 
   async getEntries(params?: GetEntriesParams): Promise<MinifluxResult<MinifluxEntriesResponse>> {
+    const mode = process.env.MINIFLUX_MODE ?? 'external';
+    if (mode === 'inhouse') {
+      try {
+        const data = await inhouse.getEntries(params);
+        return { success: true, data };
+      } catch (e) {
+        return {
+          success: false,
+          error: {
+            code: 'API_ERROR',
+            message: e instanceof Error ? e.message : String(e),
+            retryable: false,
+          },
+        };
+      }
+    }
+
     const queryParams = new URLSearchParams();
 
     if (params?.limit) queryParams.set('limit', params.limit.toString());
@@ -107,6 +126,11 @@ export class MinifluxClient {
   }
 
   async markEntryAsRead(entryId: number): Promise<MinifluxResult<void>> {
+    const mode = process.env.MINIFLUX_MODE ?? 'external';
+    if (mode === 'inhouse') {
+      return { success: true };
+    }
+
     const url = `${this.baseUrl}/v1/entries`;
 
     return this.makeRequest<void>(url, {
@@ -206,6 +230,11 @@ export class MinifluxClient {
 }
 
 export const createMinifluxClient = (): MinifluxClient => {
+  const mode = process.env.MINIFLUX_MODE ?? 'external';
+  if (mode === 'inhouse') {
+    return new MinifluxClient({ baseUrl: 'inhouse://', apiKey: 'inhouse' });
+  }
+
   const baseUrl = process.env.MINIFLUX_URL;
   const apiKey = process.env.MINIFLUX_API_KEY;
 

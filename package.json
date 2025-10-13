@@ -32,7 +32,8 @@
     "sync-rss-entries": "tsx scripts/sync-rss-entries.ts",
     "summarize-rss-entries": "tsx scripts/summarize-rss-entries.ts",
     "cleanup-rss-failures": "tsx scripts/cleanup-rss-failures.ts",
-    "reset-sync-rss": "tsx scripts/reset-and-sync-rss.ts"
+    "reset-sync-rss": "tsx scripts/reset-and-sync-rss.ts",
+    "dry-run:inhouse": "tsx scripts/dry-run-inhouse-rss.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
@@ -44,6 +45,7 @@
     "react": "19.1.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "19.1.0",
+    "rss-parser": "^3.13.0",
     "zod": "^4.1.11"
   },
   "devDependencies": {

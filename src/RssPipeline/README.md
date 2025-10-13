@@ -1,6 +1,6 @@
 # RSS Pipeline
 
-Vertical Slice Architecture (VSA) implementation for RSS feed integration with Miniflux and AI summarization.
+Vertical Slice Architecture (VSA) implementation for RSS feed integration with Miniflux (external) or an in-house aggregator, and AI summarization.
 
 ## Structure
 
@@ -19,7 +19,8 @@ src/RssPipeline/
 │       └── RssRepository.ts # Database operations
 ├── ExternalServices/
 │   ├── Miniflux/            # Miniflux RSS reader client
-│   │   └── client.ts
+│   │   ├── client.ts
+│   │   └── inhouse.ts
 │   └── Summarizer/          # Ollama summarization client
 │       └── client.ts
 └── Web/
@@ -30,7 +31,7 @@ src/RssPipeline/
 
 ## Features
 
-- **RSS Collection**: Fetch entries from Miniflux
+- **RSS Collection**: Fetch entries via Miniflux (external) or in-house aggregator
 - **Auto-categorization**: Classify entries into product updates, research, or perspectives
 - **AI Summarization**: Generate summaries via Ollama (llama3.1:8b)
 - **Sentiment Analysis**: Extract sentiment and topics from content
@@ -38,15 +39,28 @@ src/RssPipeline/
 
 ## API Endpoints
 
-- `POST /api/rss/sync` - Sync entries from Miniflux
+- `POST /api/rss/sync` - Sync entries (external Miniflux or in-house)
 - `POST /api/rss/summarize` - Generate summaries for pending entries
 - `GET /api/rss/entries` - Retrieve entries with summaries
 
 ## Environment Variables
 
 ```bash
-MINIFLUX_BASE_URL=http://localhost:8080
+# Mode: 'external' | 'inhouse' (default: external)
+MINIFLUX_MODE=external
+
+# External Miniflux (used when MINIFLUX_MODE=external)
+MINIFLUX_URL=http://localhost:8080
 MINIFLUX_API_KEY=your-api-key
+
+# In-house aggregator (used when MINIFLUX_MODE=inhouse)
+# Single-line JSON array
+# INHOUSE_RSS_FEEDS=[{"url":"https://hnrss.org/frontpage","title":"Hacker News","category":"industry_research"}]
+INHOUSE_RSS_FEEDS=
+INHOUSE_RSS_TIMEOUT_MS=20000
+INHOUSE_RSS_MAX_CONCURRENCY=5
+
+# Summarization
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3.1:8b
 ```

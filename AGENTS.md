@@ -1,3 +1,5 @@
+For running reliable agent workflows, refer to: @docs/subagents/subagent-workflow.md
+
 - Stack: Next.js 15 (App Router), TypeScript, Tailwind v4 (@tailwindcss/postcss), Supabase (Postgres + Edge Functions), Apify (Twitter scraping), Gemini 2.5 (sentiment analysis)
 - Dev/build/start: `npm run dev` | `npm run build` | `npm run start` (Turbopack)
 - Typecheck/lint/tests: `npm run typecheck`; lint: `npm run lint`; fix: `npm run fix`; combined: `npm run check`; tests: `npm test`; watch: `npm run test:watch`
