@@ -159,6 +159,8 @@ Update JSON fixtures to adjust stats, copy, or chart data - routes reload on eve
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client DB access | ✅ Yes | Team 1Password vault |
 | `APIFY_TOKEN` | Tweet collection | ✅ Yes | Ask #ops-oncall |
 | `APIFY_ACTOR_ID` | Actor to run | ✅ Yes | `apidojo/tweet-scraper` |
+| `COLLECTOR_LANGUAGE` | Tweet language filter (default `'en'`) | ⚠️ Optional | n/a |
+| `COLLECTOR_REUSE_EXISTING` | Reuse recent Apify run (default `false`) | ⚠️ Optional | n/a |
 | `GEMINI_API_KEY` | Sentiment analysis | ✅ Yes | Ask #ops-oncall |
 | `INTERNAL_API_KEY` | Manual API auth | ⚠️ Optional | Generate: `openssl rand -hex 32` |
 

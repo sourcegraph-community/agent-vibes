@@ -137,6 +137,8 @@ Validated in src/ApifyPipeline/Infrastructure/Config/env.ts. Required/used keys 
 - NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY (dashboard)
 - SUPABASE_FUNCTIONS_URL (optional override for edge function base)
 - APIFY_TOKEN, APIFY_ACTOR_ID, (optional) APIFY_ACTOR_BUILD
+- COLLECTOR_LANGUAGE (optional; default 'en')
+- COLLECTOR_REUSE_EXISTING (optional; default false)
 - GEMINI_API_KEY
 - CRON_SECRET (used by /api/start-apify-run)
 - INTERNAL_API_KEY (manual triggers)
