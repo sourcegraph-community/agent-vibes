@@ -51,8 +51,10 @@ interface ApifyRunResponse {
   };
 }
 
-export const startApifyActorRun = async (
-  input: StartApifyRunInput,
+// Starts an Apify Actor run with RAW input (no wrapper). Useful when caller already
+// provides the exact input expected by the target actor (e.g., tweet-scraper).
+export const startApifyActorRunRaw = async (
+  rawInput: Record<string, unknown>,
   options: StartApifyRunOptions = {},
 ): Promise<StartApifyRunResult> => {
   if (options.dryRun) {
@@ -67,20 +69,17 @@ export const startApifyActorRun = async (
   }
 
   const env = getApifyEnv();
-
   const actorPath = env.actorId.replace(/\//g, '~');
   const requestUrl = new URL(`${APIFY_API_BASE_URL}/acts/${actorPath}/runs`);
   requestUrl.searchParams.set('token', env.token);
+  if (env.actorBuild) requestUrl.searchParams.set('build', env.actorBuild);
 
   const response = await fetch(requestUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      input,
-      build: env.actorBuild,
-    }),
+    body: JSON.stringify(rawInput),
   });
 
   if (!response.ok) {
@@ -101,6 +100,15 @@ export const startApifyActorRun = async (
     startedAt: data.details?.startedAt ?? data.startedAt,
     url: data.urls?.webUrl ?? `${APIFY_API_BASE_URL}/acts/${data.actId}/runs/${data.id}`,
   } satisfies StartApifyRunResult;
+};
+
+// Starts an Apify Actor run with our internal command shape. The payload is sent as raw
+// JSON (no "input" wrapper) because Actors expect the input object at the root.
+export const startApifyActorRun = async (
+  input: StartApifyRunInput,
+  options: StartApifyRunOptions = {},
+): Promise<StartApifyRunResult> => {
+  return startApifyActorRunRaw(input as unknown as Record<string, unknown>, options);
 };
 
 const safeReadJson = async (response: Response): Promise<unknown> => {

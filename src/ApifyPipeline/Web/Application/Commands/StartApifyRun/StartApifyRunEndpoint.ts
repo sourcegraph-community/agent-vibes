@@ -4,6 +4,7 @@ import {
   startApifyRunCommandHandler,
   type StartApifyRunCommandInput,
 } from './index';
+import { startApifyActorRunRaw } from '@/src/ApifyPipeline/ExternalServices/Apify/client';
 
 const isJsonRequest = (request: Request): boolean => {
   const contentType = request.headers.get('content-type');
@@ -73,6 +74,17 @@ const resolveTriggerSource = (request: Request, provided?: string): string => {
   return 'manual';
 };
 
+function looksLikeTweetScraperRaw(input: unknown): input is Record<string, unknown> {
+  if (!input || typeof input !== 'object') return false;
+  const obj = input as Record<string, unknown>;
+  if (Array.isArray(obj.searchTerms)) return true;
+  if ('includeSearchTerms' in obj) return true;
+  if ('tweetLanguage' in obj) return true;
+  if ('sort' in obj) return true;
+  if ('maxItems' in obj) return true;
+  return false;
+}
+
 export const startApifyRunEndpoint = async (request: Request): Promise<Response> => {
   const cacheHeaders = request.method === 'GET' ? { 'Cache-Control': 'no-store', 'Pragma': 'no-cache' } : undefined;
 
@@ -88,11 +100,13 @@ export const startApifyRunEndpoint = async (request: Request): Promise<Response>
     );
   }
 
+  let rawBody: unknown = undefined;
   let payload: Partial<StartApifyRunCommandInput> = {};
 
   if (request.method === 'POST' && isJsonRequest(request)) {
     try {
-      payload = (await request.json()) as Partial<StartApifyRunCommandInput>;
+      rawBody = await request.json();
+      payload = (rawBody ?? {}) as Partial<StartApifyRunCommandInput>;
     } catch (error) {
       return NextResponse.json(
         { error: 'Invalid JSON payload', details: String(error) },
@@ -104,6 +118,12 @@ export const startApifyRunEndpoint = async (request: Request): Promise<Response>
   const triggerSource = resolveTriggerSource(request, payload.triggerSource);
 
   try {
+    // If caller provided tweet-scraper style input, pass it through RAW (no wrapping)
+    if (rawBody && looksLikeTweetScraperRaw(rawBody)) {
+      const result = await startApifyActorRunRaw(rawBody as Record<string, unknown>);
+      return NextResponse.json({ data: result }, { status: 202, headers: cacheHeaders });
+    }
+
     const result = await startApifyRunCommandHandler({
       ...payload,
       triggerSource,
