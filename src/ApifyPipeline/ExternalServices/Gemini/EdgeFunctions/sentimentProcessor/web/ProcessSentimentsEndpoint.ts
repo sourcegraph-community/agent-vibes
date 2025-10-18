@@ -52,7 +52,11 @@ export const sentimentProcessorEndpoint = async (request: Request): Promise<Resp
         batchSize: 100,
         modelVersion: resolvedModelVersion,
         maxRetries: 3,
-        rateLimitDelayMs: 4000,
+        rateLimitDelayMs: env.rateLimitDelayMs,
+        concurrency: env.concurrency,
+        rpmCap: env.rpmCap,
+        tpmCap: env.tpmCap,
+        tokensPerRequestEstimate: env.tokensPerRequestEstimate,
       },
     });
 

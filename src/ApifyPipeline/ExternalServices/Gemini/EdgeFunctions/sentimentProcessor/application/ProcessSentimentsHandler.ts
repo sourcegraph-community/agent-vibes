@@ -10,6 +10,11 @@ export interface ProcessSentimentsDependencies {
     modelVersion: string;
     maxRetries: number;
     rateLimitDelayMs: number;
+    // New: concurrency & rate limits
+    concurrency: number;
+    rpmCap?: number;
+    tpmCap?: number;
+    tokensPerRequestEstimate: number;
   };
 }
 
@@ -28,6 +33,11 @@ export const handleProcessSentiments = async (
   const maxRetries = command.maxRetries ?? dependencies.defaults.maxRetries;
   const rateLimitDelayMs = dependencies.defaults.rateLimitDelayMs;
 
+  const concurrency = Math.max(1, Math.min(1000, dependencies.defaults.concurrency));
+  const rpmCap = dependencies.defaults.rpmCap && dependencies.defaults.rpmCap > 0 ? dependencies.defaults.rpmCap : undefined;
+  const tpmCap = dependencies.defaults.tpmCap && dependencies.defaults.tpmCap > 0 ? dependencies.defaults.tpmCap : undefined;
+  const tokensPerReqEst = Math.max(1, dependencies.defaults.tokensPerRequestEstimate);
+
   const stats: ProcessingStats = {
     processed: 0,
     failed: 0,
@@ -36,63 +46,132 @@ export const handleProcessSentiments = async (
     totalTokens: 0,
   };
 
+  // Rolling-window limiter state
+  const requestTimestamps: number[] = [];
+  let usedTokensThisWindow = 0;
+  let windowStart = Date.now();
+
+  const acquirePermit = async (): Promise<void> => {
+    while (true) {
+      const now = Date.now();
+      // Reset window every 60s
+      if (now - windowStart >= 60000) {
+        windowStart = now;
+        usedTokensThisWindow = 0;
+        while (requestTimestamps.length && now - requestTimestamps[0] >= 60000) {
+          requestTimestamps.shift();
+        }
+      }
+
+      while (requestTimestamps.length && now - requestTimestamps[0] >= 60000) {
+        requestTimestamps.shift();
+      }
+
+      const rpmAvailable = rpmCap ? requestTimestamps.length < rpmCap : true;
+      const tpmAvailable = tpmCap ? (usedTokensThisWindow + tokensPerReqEst) <= tpmCap : true;
+
+      if (rpmAvailable && tpmAvailable) {
+        requestTimestamps.push(now);
+        usedTokensThisWindow += tokensPerReqEst;
+        return;
+      }
+
+      const waitMs = requestTimestamps.length
+        ? Math.max(50, 60000 - (now - requestTimestamps[0]))
+        : 1000;
+      await delay(waitMs);
+    }
+  };
+
   while (true) {
     const tweets = await dependencies.repository.fetchPendingTweets(batchSize);
-    if (tweets.length === 0) {
-      break;
-    }
+    if (tweets.length === 0) break;
 
-    for (let index = 0; index < tweets.length; index++) {
-      const tweet = tweets[index];
-      const result = await dependencies.analyzer.analyze({
-        content: tweet.content,
-        authorHandle: tweet.authorHandle,
-        language: tweet.language,
-      });
+    let nextIndex = 0;
 
-      stats.totalLatencyMs += result.latencyMs;
+    const worker = async (): Promise<void> => {
+      while (true) {
+        const index = nextIndex;
+        if (index >= tweets.length) return;
+        nextIndex += 1;
 
-      if (result.success) {
-        if (result.totalTokens) {
-          stats.totalTokens += result.totalTokens;
+        const tweet = tweets[index];
+
+        try {
+          // Rate limiting
+          if (rpmCap || tpmCap) {
+            await acquirePermit();
+          }
+
+          const result = await dependencies.analyzer.analyze({
+            content: tweet.content,
+            authorHandle: tweet.authorHandle,
+            language: tweet.language,
+          });
+
+          stats.totalLatencyMs += result.latencyMs;
+
+          if (result.success) {
+            if (result.totalTokens) {
+              stats.totalTokens += result.totalTokens;
+            }
+
+            await dependencies.repository.insertSentiment({
+              tweetId: tweet.id,
+              modelVersion,
+              label: result.label,
+              score: result.score,
+              summary: result.summary,
+              latencyMs: result.latencyMs,
+            });
+
+            await dependencies.repository.updateTweetStatus(tweet, 'processed');
+            stats.processed += 1;
+          } else {
+            const retryCount = (await dependencies.repository.getRetryCount(tweet.id)) + 1;
+
+            await dependencies.repository.recordFailure({
+              tweetId: tweet.id,
+              modelVersion,
+              failureStage: 'gemini_api_call',
+              errorCode: result.code,
+              errorMessage: result.message,
+              retryCount,
+              payload: null,
+            });
+
+            if (!result.retryable || retryCount >= maxRetries) {
+              await dependencies.repository.updateTweetStatus(tweet, 'failed');
+              stats.failed += 1;
+            } else {
+              stats.skipped += 1;
+            }
+          }
+
+          // Only use fixed delay if rpmCap not set
+          if (!rpmCap && rateLimitDelayMs > 0) {
+            await delay(rateLimitDelayMs);
+          }
         }
-
-        await dependencies.repository.insertSentiment({
-          tweetId: tweet.id,
-          modelVersion,
-          label: result.label,
-          score: result.score,
-          summary: result.summary,
-          latencyMs: result.latencyMs,
-        });
-
-        await dependencies.repository.updateTweetStatus(tweet, 'processed');
-        stats.processed += 1;
-      } else {
-        const retryCount = (await dependencies.repository.getRetryCount(tweet.id)) + 1;
-
-        await dependencies.repository.recordFailure({
-          tweetId: tweet.id,
-          modelVersion,
-          failureStage: 'gemini_api_call',
-          errorCode: result.code,
-          errorMessage: result.message,
-          retryCount,
-          payload: null,
-        });
-
-        if (!result.retryable || retryCount >= maxRetries) {
+        catch (error) {
+          const retryCount = (await dependencies.repository.getRetryCount(tweet.id)) + 1;
+          await dependencies.repository.recordFailure({
+            tweetId: tweet.id,
+            modelVersion,
+            failureStage: 'unexpected_error',
+            errorCode: 'PROCESSOR_ERROR',
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+            retryCount,
+            payload: null,
+          });
           await dependencies.repository.updateTweetStatus(tweet, 'failed');
           stats.failed += 1;
-        } else {
-          stats.skipped += 1;
         }
       }
+    };
 
-      if (index < tweets.length - 1 && rateLimitDelayMs > 0) {
-        await delay(rateLimitDelayMs);
-      }
-    }
+    const pool = Array.from({ length: concurrency }, () => worker());
+    await Promise.all(pool);
   }
 
   return {

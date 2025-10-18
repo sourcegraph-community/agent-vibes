@@ -3,6 +3,12 @@ export interface EnvironmentConfig {
   supabaseServiceRoleKey: string;
   geminiApiKey: string;
   geminiModel: string;
+  // Concurrency & rate-limit controls
+  concurrency: number; // parallel requests
+  rpmCap?: number; // requests per minute cap (optional)
+  tpmCap?: number; // tokens per minute cap (optional)
+  tokensPerRequestEstimate: number; // estimated tokens per request
+  rateLimitDelayMs: number; // optional fixed delay between requests when rpmCap not set
 }
 
 export interface ProcessSentimentsCommandInput {
