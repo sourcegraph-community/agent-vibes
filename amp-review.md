@@ -1,107 +1,72 @@
-## High-level summary  
-The change introduces a “brand / product” dimension to the social-sentiment feature.
+## High-level summary
+This diff is a **pure documentation update** that modernises `docs/apify-pipeline/local-testing-guide.md` to match the current codebase and infrastructure:
 
-1. **BE – new API endpoints**  
-   • `/api/social-sentiment/brands` – returns the list of distinct enabled brands/products.  
-   • `/api/social-sentiment/by-product` – returns daily sentiment aggregates filtered by days, language and brands.
+* Updates the “last-updated” date and “validated” footer.
+* Re-brands the dashboard route to `/dashboard-v2` and adds redirect notes.
+* Aligns terminology with the latest API / schema changes (`maxItems` replaces `maxItemsPerKeyword`, `content` replaces `text`, `keyword_snapshot` replaces `keywords`, etc.).
+* Adds the new Backfill processor everywhere it is relevant.
+* Refreshes environment-variable tables, Supabase Edge-Functions workflow, and troubleshooting guidance.
+* Expands CLI / npm script reference and API endpoint reference, especially around auth headers.
+* Many small edits: wording, command flags, examples, typos, SQL column names, etc.
 
-2. **BE – repository**  
-   • `DashboardRepository.getProductDailySentiment()` added, mapping to view `vw_product_daily_sentiment`.
+No executable code was changed, but the document drives local-developer behaviour, so correctness is still important.
 
-3. **FE – dashboard widget**  
-   • `SocialSentiment.tsx` extended with brand filter UI, dynamic colour assignment and a multi-dataset Chart.js line chart.  
-   • Summary cards now honour either global or brand-filtered data.
+## Tour of changes
+Start with the **“API Endpoint Reference”** section (`/api/start-apify-run`, `/api/process-sentiments`, `/api/process-backfill`).  
+These pages received the heaviest structural changes and incorporate the key renames (`maxItems`, auth headers). Understanding those updates makes the rest of the diff (examples, SQL snippets, env table, CLI commands) self-explanatory.
 
-No existing files are removed; only additive changes were made.  
+## File level review
 
-## Tour of changes  
-Start with `DashboardRepository.getProductDailySentiment()` – it defines the contract that both new API routes and the UI rely on. Then review `/api/social-sentiment/by-product/route.ts` to understand request semantics and data shaping. Finally inspect the large React diff (`SocialSentiment.tsx`) where most logic and potential UI issues reside.
+### `docs/apify-pipeline/local-testing-guide.md`
+#### Correctness & coherence
+1. Dates and footer  
+   ✔  Updated consistently.
 
-## File level review  
+2. Dashboard route rename  
+   * You changed **all** links except in the architecture diagram at line ~40 (`app/dashboard-v2/` ✓). Good.
 
-### `src/ApifyPipeline/DataAccess/Repositories/DashboardRepository.ts`  
-+ Added `ProductDailySentiment` DTO and `getProductDailySentiment()`.
+3. New ingestion props (`maxItems`)  
+   * Examples, cURL and TS test files all replaced `maxItemsPerKeyword` / `keywordBatchSize`.  
+   * Ensure the backend actually removed `keywordBatchSize`. If the handler still supports both, note that here for backward compatibility.
 
-Correctness  
-• Uses column names available in view; mapping looks consistent.  
-• Limit and ordering are applied after filters – OK.  
-• When both `limit` and `order` are present Supabase requires `order()` before `limit()` – you already do that (good catch).  
-• The query is guarded by try/catch in the caller, but here you throw on error → good.
+4. DB column renames  
+   * `text` → `content`, `keywords` → `keyword_snapshot`, `reasoning->>'summary' AS summary`. Those match the 2025-10-10 migration—LGTM.
 
-Potential issues / improvements  
-1. You default to `limit 30`; for a multi-product request that is tiny (30 rows total, not per product). Consider defaulting to e.g. `30 * (filters.products?.length ?? 1)` or requiring caller to pass `limit`.  
-2. Aggregates come back **descending**. Both API and UI regroup by day, so order is irrelevant, but if any future caller relies on sort it may be confusing – document it.
+5. Auth wording  
+   * Clarifies three auth mechanisms (Bearer $CRON_SECRET, `x-vercel-cron`, `x-api-key`). Accurate with current middleware.  
+   * The note on `ALLOW_API_KEY_QUERY` deviation is good; maybe explicitly state “for development only”.
 
-Security  
-Supabase typed query builder is safe from SQLi; RLS still applies.  
+6. Edge-functions flow  
+   * Adds `SUPABASE_FUNCTIONS_URL`, `SENTIMENT_EDGE_FALLBACK`. Matches infra/env.ts.  
+   * Build/serve commands are correct.
 
-### `app/api/social-sentiment/brands/route.ts`  
-Creates server client, fetches brands, returns sorted list.
+7. Scripts matrix  
+   * Splits into topical blocks (quality/tests/pipeline/maintenance). ✓  
+   * The new `npm run fix` alias is documented; make sure it exists in `package.json`.
 
-Correctness  
-• `products.sort()` is locale-unaware; fine for ASCII names but might mis-order international brands.  
-• No pagination needed.
+8. Examples
+   * JS→TS conversion (`test-apify-client.ts`) uses `tsx`, not `node --input-type=module`. 👍  
+   * Sentiment example switched to `analyzeSentiment` original signature. Verify file path in import (`ExternalServices/Gemini/GeminiClient`) actually exports that method name (v2 renamed, so OK).
 
-Security / robustness  
-• Endpoint is public unauthenticated – confirm that `fetchDistinctEnabledProducts` only returns non-sensitive data.  
-• Consider setting `Cache-Control` headers; this list rarely changes.
+9. SQL snippets  
+   * Updated column names; the `sentiment_failures` table uses `last_attempt_at`, not `last_attempted_at`. Good catch.
 
-### `app/api/social-sentiment/by-product/route.ts`  
-Large endpoint that consumes the new repo call.
+10. Troubleshooting  
+    * Error messages now match thrown text constants—nice.
 
-Correctness & bugs  
-1. `days` validation is good, but parsing failure for `days=abc` still gives `NaN`, caught by `Number.isFinite`. 👍  
-2. `decodeURIComponent(productsParam)` can throw on malformed input – wrap in try/catch or fall back.  
-3. `limit` heuristic: `days * 10 * products` (capped at 10 000). That can still be 10 000×N large JSON; consider streaming or hard cap by row size rather than arbitrary multiple.  
-4. Average sentiment score is **unweighted** (simple average of daily averages). If tweet volume per day varies greatly, result will be misleading. Either weight by `totalCount` or rename to `avgDailySentimentScore`.  
-5. Summary percentages use posted totals – correct.  
-6. Returned JSON can be big; gzip is automatic, but you may still hit Vercel 4 MB limit.
+#### Minor nits / suggestions
+* The architecture ASCII diagram gained “BackfillProc.”; line length is one char longer—no overflow, but check markdown render width.
+* For rate-limit advice, also mention `SENTIMENT_RPM_CAP` env var which appears earlier.
+* Typo: “SENTIMENT_RPM_CAP=60” was removed from the shell script example but still listed in the Edge functions env snippet—keep them consistent.
+* In “Local Environment” list, Node requirement says “20+ (Next.js 15)”; Next.js 15 is currently in **canary**, maybe add “≥ 15.0.0-canary” to avoid confusion.
+* The API reference shows both POST & GET for `/api/start-apify-run`; add a quick sentence telling users that GET is **never** allowed in production to avoid accidental exposure.
 
-Security  
-• Same open endpoint; if sentiment data is sensitive, add auth.  
+#### Security
+* The doc now encourages setting `SENTIMENT_EDGE_FALLBACK=true` which could allow large GPT requests to hit Node in prod if someone copies it unchanged. Maybe add a big “Dev-only” caution.
+* Query-string API keys: reiterate the danger—docs already limit to non-prod, but bolding wouldn’t hurt.
 
-Performance  
-• One Supabase round-trip; grouping/summary executed in JS – fine for ≤10 k rows but could be done in SQL for efficiency.
+#### Broken links / paths
+* “Operational Runbook” path `../../src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md` looks correct relative to docs/; verify case-sensitivity on Linux.
+* `specification.md` and `overview.md` still live one directory above; good.
 
-### `app/dashboard-v2/components/SocialSentiment.tsx`  
-Largest change.
-
-UI logic  
-• Adds brand filter UI with “All / Clear” helpers.  
-• Keeps two data sources: global (`/api/social-sentiment`) and per-product; chooses one for summary and chart.  
-• Dynamically builds datasets: solid line for positives, dashed for negatives, per colourised product.
-
-Correctness / edge cases  
-1. **Hook dependencies** – `selectedProducts` is a `Set`. The `useCallback` / `useEffect` dependencies will treat every change as different reference (desired) but spreading into array (`Array.from(selectedProducts)`) inside hook can be costly; negligible now.  
-2. `brandColor` returns 7-char `#RRGGBB`. You append `FF`/`80`/etc. to form 9-char `#RRGGBBFF`, which is valid in modern browsers but _Chart.js_ on canvas relies on CSS parser (OK on modern Chrome/Firefox). For broader coverage use `rgba()` helper.  
-3. When zero brands selected the component shows friendly message – good.  
-4. Recent social activity still uses global `data`; that might diverge from brand filter. Consider switching to productData when only one product is chosen or disabling the panel.  
-5. React key for recent feed uses index; acceptable for static preview rows.  
-
-Performance  
-• Each product selection triggers a full API fetch; acceptable but consider debounce if brands list grows.  
-• Colour palette hashing is deterministic; collisions possible but rare.
-
-Security  
-Front-end only.
-
-Accessibility  
-Checkboxes / buttons have focus styles via Tailwind default. Good.
-
-### `app/api/social-sentiment/by-product/route.ts` (previous) – minor observations  
-• `Math.min(days * 10 * (products?.length || 1), 10000)` risk of 0 when `products` undefined? You default to 1, so OK.  
-• You convert `startDate` to ISO and split at `T` in UI; sending `'YYYY-MM-DD'` is sufficient.
-
-### `app/api/social-sentiment/brands/route.ts`  
-No further remarks.
-
-## Overall recommendations  
-1. Handle malformed `decodeURIComponent` gracefully.  
-2. Weight `avgScore` by tweet count or rename.  
-3. Consider caching both new endpoints (`revalidatePath`, `Cache-Control`).  
-4. Document that `/api/social-sentiment/by-product` returns **descending** days.  
-5. Convert 8-digit hex to `rgba` for wider browser/Chart.js support.  
-6. Limit JSON size or offer CSV export if product/timeframe is large.  
-7. Optional: unify “Recent Social Activity” with brand filter to avoid confusion.
-
-With these small fixes the feature looks solid and well-structured.
+Overall the documentation is substantially clearer and aligns with the latest codebase. Only minor polishing points remain.

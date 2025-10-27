@@ -1,7 +1,7 @@
 # Apify Pipeline - Local Testing Guide
 
 **Document Owner:** Engineering Team  
-**Last Updated:** October 6, 2025  
+**Last Updated:** October 27, 2025  
 **Related Documents:** [Specification](specification.md), [Overview](overview.md), [Date-Based Collection Strategy](date-based-collection-strategy.md), [Operational Runbook](../../src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md)
 
 ---
@@ -27,9 +27,9 @@
 
 ## Overview
 
-This guide provides step-by-step instructions for testing the Apify Pipeline locally. The pipeline consists of multiple integrated components working together to collect, process, and display social media mentions.
+This guide provides step-by-step instructions for testing the Apify Pipeline locally. The pipeline consists of multiple integrated components working together to collect, process, and display social media mentions. The root path redirects to `/dashboard-v2`.
 
-Note: Vercel cron jobs are currently disabled (see vercel.json). Use the manual API examples in this guide until cron is re-enabled after testing.
+Note: Vercel cron is configured in `vercel.json` for `/api/start-apify-run`. For local testing, use the manual API examples in this guide.
 
 ### Architecture Summary
 
@@ -46,6 +46,7 @@ Note: Vercel cron jobs are currently disabled (see vercel.json). Use the manual 
 │           │            ┌─────────────────────┐           │
 │           │            │  Background Jobs    │           │
 │           │            │  - TweetCollector   │           │
+│           │            │  - BackfillProc.    │           │
 │           │            │  - SentimentProc.   │           │
 │           │            └─────────────────────┘           │
 │           │                       │                      │
@@ -65,11 +66,11 @@ Note: Vercel cron jobs are currently disabled (see vercel.json). Use the manual 
 |-----------|----------|---------|
 | **API Endpoints** | `app/api/` | REPR pattern entry points |
 | **Command Handlers** | `src/ApifyPipeline/Web/Application/Commands/` | Business logic orchestration |
-| **Background Jobs** | `src/ApifyPipeline/Background/Jobs/` | Tweet collection & sentiment processing |
+| **Background Jobs** | `src/ApifyPipeline/Background/Jobs/` | Tweet collection, backfill & sentiment processing |
 | **Data Access** | `src/ApifyPipeline/DataAccess/` | Supabase repositories & queries |
 | **External Services** | `src/ApifyPipeline/ExternalServices/` | Apify, Supabase, Gemini clients |
 | **Core Logic** | `src/ApifyPipeline/Core/` | Pure business logic & transformations |
-| **Dashboard** | `app/dashboard/` | Frontend visualization |
+| **Dashboard** | `app/dashboard-v2/` | Frontend visualization |
 
 ---
 
@@ -109,9 +110,11 @@ INTERNAL_API_KEY=$(openssl rand -hex 32)
 # Install dependencies
 npm install
 
-# Apply migrations (Supabase CLI)
+# Apply migrations (recommended)
+npm run apply-migrations
+
+# —or— using Supabase CLI for local dev
 supabase db push
-# —or— apply SQL manually using the migration and seed scripts
 ```
 
 ```bash
@@ -122,7 +125,7 @@ npm run health-check
 npm run dev
 ```
 
-Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
+Visit [http://localhost:3000/dashboard-v2](http://localhost:3000/dashboard-v2)
 
 ### 2. Quick Test Sequence (≈5 minutes)
 
@@ -166,16 +169,15 @@ Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
 3. **Process sentiments**
    ```bash
    # Option A: API route
-   curl -X POST http://localhost:3000/api/process-sentiments \
-     -H "Content-Type: application/json" \
-     -d '{"batchSize": 10}'
+curl -X POST http://localhost:3000/api/process-sentiments \
+   -H "Content-Type: application/json" \
+   -H "x-api-key: $INTERNAL_API_KEY" \
+  -d '{"batchSize": 10}'
 
    # Option B: Local script (no Edge dependency)
    NUMBER_OF_PENDING_TWEETS=10 \
    SENTIMENT_MAX_RETRIES=1 \
    SENTIMENT_MODEL_VERSION=gemini-2.5-flash-lite \
-   SENTIMENT_CONCURRENCY=4 \
-   SENTIMENT_RPM_CAP=60 \
    npm run process:sentiments
    ```
    - Expect `200 OK` with a `processed` count (API), or script console output with per-item lines:
@@ -183,9 +185,7 @@ Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
      - `[Sentiment] FAIL [i/N] code=...` on failure
 
 4. **Spot-check the dashboard**
-   - [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
-   - [http://localhost:3000/dashboard/keywords](http://localhost:3000/dashboard/keywords)
-   - [http://localhost:3000/dashboard/tweets](http://localhost:3000/dashboard/tweets)
+   - [http://localhost:3000/dashboard-v2](http://localhost:3000/dashboard-v2)
 
 ### 3. Success Criteria
 
@@ -226,10 +226,11 @@ Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
 
 ### Local Environment
 
-- **Node.js:** 20+ (required by Next.js 15)
+- **Node.js:** 20+ (Next.js 15); recommend Node 20 LTS
 - **npm:** Latest version
 - **Git:** For repository access
-- **psql (Postgres client):** Required for `npm run apply-migrations`
+- **psql (Postgres client, on PATH):** Required for `npm run apply-migrations`
+- **Supabase CLI:** Required for `npm run functions:serve`
 - **curl or Postman:** For API testing
 - **Database client:** (optional) pgAdmin or Supabase Studio for data inspection
 
@@ -304,14 +305,40 @@ INTERNAL_API_KEY=your-random-secret-key
 | `CRON_SECRET` | ⚠️ | Production cron auth | Generate `openssl rand -hex 32` |
 | `INTERNAL_API_KEY` | ⚠️ | Manual API auth | Generate `openssl rand -hex 32` |
 | `APIFY_ACTOR_BUILD` | ❌ | Actor version pin | Default `latest` |
+| `SUPABASE_FUNCTIONS_URL` | ❌ | Override functions base URL (local Edge Functions) | Default `${SUPABASE_URL}/functions/v1`; use `http://127.0.0.1:54321/functions/v1` when serving locally |
+| `SENTIMENT_EDGE_FALLBACK` | ❌ | Fallback to Node job if Edge function fails | Set `true` for local API testing without functions |
 | `VERCEL_ENV` | ❌ | Environment flag | Auto-set by Vercel |
+
+Note: For local Edge Functions testing, create `supabase/.env.local` with at least:
+
+```bash
+SUPABASE_URL=https://<your-project>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
+GEMINI_API_KEY=<your-gemini-api-key>
+# optional
+GEMINI_MODEL=gemini-2.5-flash-lite
+SENTIMENT_CONCURRENCY=4
+SENTIMENT_RPM_CAP=60
+SENTIMENT_TPM_CAP=0
+SENTIMENT_TOKENS_PER_REQUEST_ESTIMATE=600
+SENTIMENT_RATE_LIMIT_DELAY_MS=0
+```
+
+Then serve functions locally:
+
+```bash
+npm run build:edge-functions
+npm run functions:serve
+```
+
+If calling the API locally, either set `SUPABASE_FUNCTIONS_URL=http://127.0.0.1:54321/functions/v1` or set `SENTIMENT_EDGE_FALLBACK=true` in `.env.local`.
 
 ### Step 3: Database Setup
 
 Apply the Apify Pipeline migration to Supabase:
 
 ```bash
-# Option 1: Project script (requires DATABASE_URL)
+# Option 1: Project script (requires psql and DATABASE_URL, or SUPABASE_URL + SUPABASE_DB_PASSWORD)
 npm run apply-migrations
 
 # Option 2: Supabase CLI
@@ -356,8 +383,8 @@ npm run dev
 
 The application runs at [http://localhost:3000](http://localhost:3000). Verify:
 
-- [http://localhost:3000](http://localhost:3000) loads without errors
-- [http://localhost:3000/dashboard](http://localhost:3000/dashboard) displays the dashboard shell
+- [http://localhost:3000](http://localhost:3000) loads and redirects to `/dashboard-v2`
+- [http://localhost:3000/dashboard-v2](http://localhost:3000/dashboard-v2) displays the dashboard
 
 ---
 
@@ -384,8 +411,7 @@ curl -X POST http://localhost:3000/api/start-apify-run \
   -d '{
     "triggerSource": "manual-test",
     "ingestion": {
-      "maxItemsPerKeyword": 50,
-      "keywordBatchSize": 2,
+      "maxItems": 50,
       "sort": "Top",
       "cooldownSeconds": 5
     }
@@ -431,7 +457,7 @@ ORDER BY collected_at DESC
 LIMIT 3;
 
 -- Normalized tweets
-SELECT id, platform_id, author_handle, text, status, engagement_likes, engagement_retweets, keywords, posted_at, collected_at
+SELECT id, platform_id, author_handle, content, status, engagement_likes, engagement_retweets, keyword_snapshot, posted_at, collected_at
 FROM normalized_tweets
 ORDER BY collected_at DESC
 LIMIT 5;
@@ -444,6 +470,7 @@ Expect new rows with `status = 'pending_sentiment'` prior to processing, populat
 ```bash
 curl -X POST http://localhost:3000/api/process-sentiments \
   -H "Content-Type: application/json" \
+  -H "x-api-key: $INTERNAL_API_KEY" \
   -d '{
     "batchSize": 10
   }'
@@ -453,15 +480,14 @@ curl -X POST http://localhost:3000/api/process-sentiments \
 
 ```json
 {
-  "data": {
-    "success": true,
-    "stats": {
-      "processed": 10,
-      "failed": 0,
-      "skipped": 0,
-      "totalLatencyMs": 12500,
-      "totalTokens": 850
-    }
+  "success": true,
+  "message": "Processed 10 tweets, 0 failed, 0 deferred",
+  "stats": {
+    "processed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "totalLatencyMs": 12500,
+    "totalTokens": 850
   }
 }
 ```
@@ -469,7 +495,7 @@ curl -X POST http://localhost:3000/api/process-sentiments \
 Verify sentiments:
 
 ```sql
-SELECT ts.id, ts.sentiment_label, ts.sentiment_score, ts.summary, ts.model_version, nt.text
+SELECT ts.id, ts.sentiment_label, ts.sentiment_score, ts.reasoning->>'summary' AS summary, ts.model_version, nt.content
 FROM tweet_sentiments ts
 JOIN normalized_tweets nt ON ts.normalized_tweet_id = nt.id
 ORDER BY ts.processed_at DESC
@@ -482,9 +508,7 @@ GROUP BY status;
 
 #### Test 5: Dashboard Verification
 
-- Navigate to [http://localhost:3000/dashboard](http://localhost:3000/dashboard) for summary metrics
-- Visit [http://localhost:3000/dashboard/keywords](http://localhost:3000/dashboard/keywords) to confirm keyword toggles
-- Visit [http://localhost:3000/dashboard/tweets](http://localhost:3000/dashboard/tweets) to confirm sentiment labels and engagement metrics
+- Navigate to [http://localhost:3000/dashboard-v2](http://localhost:3000/dashboard-v2) for summary metrics and Social Sentiment
 
 Ensure charts render and browser console remains free of errors.
 
@@ -495,18 +519,18 @@ Ensure charts render and browser console remains free of errors.
 ### 1. Apify Client Dry Run
 
 ```bash
-cat > test-apify-client.js <<'EOF'
-import { startApifyActorRun } from './src/ApifyPipeline/ExternalServices/Apify/client.js';
+cat > test-apify-client.ts <<'EOF'
+import { startApifyActorRun } from './src/ApifyPipeline/ExternalServices/Apify/client';
 
 const result = await startApifyActorRun(
-  { triggerSource: 'test', ingestion: { maxItemsPerKeyword: 10 } },
+  { triggerSource: 'test', ingestion: { maxItems: 10 } },
   { dryRun: true }
 );
 
 console.log('Dry run result:', result);
 EOF
 
-node --input-type=module < test-apify-client.js
+tsx test-apify-client.ts
 ```
 
 ### 2. Normalization Logic
@@ -517,12 +541,14 @@ npm test -- src/ApifyPipeline/Tests/Unit/Core/Transformations/normalizeTweet.tes
 
 ### 3. Supabase Connectivity
 
+Requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`.
+
 ```typescript
 // test-supabase.ts
 import { createSupabaseServiceClient } from './src/ApifyPipeline/ExternalServices/Supabase/client';
 
 const client = createSupabaseServiceClient();
-const { data, error } = await client.from('keywords').select('count').limit(1);
+const { data, error } = await client.from('keywords').select('id').limit(1);
 
 if (error) {
   console.error('Supabase connection failed:', error);
@@ -538,6 +564,8 @@ tsx test-supabase.ts
 
 ### 4. Gemini Client
 
+Requires `GEMINI_API_KEY` in `.env.local`.
+
 ```typescript
 // test-gemini.ts
 import { GeminiClient } from './src/ApifyPipeline/ExternalServices/Gemini/GeminiClient';
@@ -546,11 +574,11 @@ import { getGeminiEnv } from './src/ApifyPipeline/Infrastructure/Config/env';
 const env = getGeminiEnv();
 const client = new GeminiClient({ apiKey: env.apiKey });
 
-const result = await client.classifySentiment({
-  text: 'This AI coding agent is amazing! It boosted my productivity significantly.',
+const result = await client.analyzeSentiment({
   tweetId: 'test-123',
+  content: 'This AI coding agent is amazing! It boosted my productivity significantly.',
   authorHandle: 'test_user',
-  postedAt: new Date().toISOString(),
+  language: 'en',
 });
 
 console.log('Sentiment result:', result);
@@ -583,6 +611,7 @@ Process batches:
 npm run process:backfill
 # or
 curl -X POST http://localhost:3000/api/process-backfill \
+  -H "Content-Type: application/json" \
   -H "x-api-key: $INTERNAL_API_KEY"
 ```
 
@@ -629,7 +658,7 @@ Re-running the processor with the same `apifyRunId` keeps using the original Api
 
 ```sql
 -- Optional: seed failures for testing
-INSERT INTO sentiment_failures (normalized_tweet_id, error_message, retry_count, last_attempted_at)
+INSERT INTO sentiment_failures (normalized_tweet_id, error_message, retry_count, last_attempt_at)
 SELECT id, 'Test failure', 1, now()
 FROM normalized_tweets
 WHERE status = 'pending_sentiment'
@@ -718,7 +747,7 @@ SELECT * FROM keywords WHERE is_enabled = true; -- returns 0 rows
 ### Issue 4: Apify Run Failed or Rate Limited
 
 - Check compute units in the Apify dashboard
-- Reduce `keywordBatchSize` or `maxItemsPerKeyword`
+- Reduce `maxItems`
 - Increase `cooldownSeconds`
 - Monitor run logs via the provided console URL
 
@@ -758,12 +787,13 @@ Verify unique index on `(platform, platform_id)` exists and migrations applied s
 ```
 Issue: API returns error
 ├─ 401 Unauthorized
-│  ├─ /api/process-backfill → Add INTERNAL_API_KEY header
-│  └─ Other endpoints → Check env variables
+│  ├─ /api/process-backfill → Add header: x-api-key: $INTERNAL_API_KEY (or use x-vercel-cron)
+│  ├─ /api/process-sentiments → Add header: x-api-key: $INTERNAL_API_KEY (or use x-vercel-cron)
+│  └─ /api/start-apify-run → Use Authorization: Bearer $CRON_SECRET, or x-vercel-cron, or x-api-key: $INTERNAL_API_KEY
 ├─ 500 Internal Server Error
-│  ├─ "APIFY_TOKEN not configured" → Check .env.local
-│  ├─ "GEMINI_API_KEY not configured" → Check .env.local
-│  └─ "Supabase connection failed" → Verify SUPABASE_URL & key
+│  ├─ "APIFY_TOKEN and APIFY_ACTOR_ID must be configured." → Check .env.local
+│  ├─ "GEMINI_API_KEY must be configured for sentiment analysis." → Check .env.local
+│  └─ "Supabase unreachable: ..." → Verify SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
 └─ 429 Rate Limit
    ├─ Apify → Check compute units, reduce batch size
    └─ Gemini → Free tier: 15 RPM, reduce batch size
@@ -814,7 +844,7 @@ GROUP BY sentiment_label
 ORDER BY count DESC;
 
 -- Top engaged tweets
-SELECT nt.text, nt.author_handle,
+SELECT nt.content, nt.author_handle,
        nt.engagement_likes + nt.engagement_retweets AS total_engagement,
        ts.sentiment_label, nt.posted_at
 FROM normalized_tweets nt
@@ -889,62 +919,146 @@ FROM normalized_tweets;
 ## Development Commands
 
 ```bash
-npm run check          # Typecheck + lint
-npm run check:fix      # Typecheck + lint --fix
-npm test               # Unit tests
-npm run test:watch     # Unit tests in watch mode
-npm run typecheck      # TypeScript only
-npm run lint           # ESLint only
-npm run lint:fix       # ESLint --fix
-npm run apply-migrations  # Apply SQL migrations via DATABASE_URL
-npm run build:edge-functions # Build Supabase edge functions
-npm run functions:serve     # Serve edge functions locally
-npm run enqueue:backfill    # Enqueue historical collection batches
+# App lifecycle
+npm run dev                 # Next.js dev server (Turbopack)
+npm run build               # Next.js build (Turbopack)
+npm run start               # Next.js production server
+
+# Quality
+npm run check               # Typecheck + lint
+npm run check:fix           # Typecheck + lint --fix
+npm run typecheck           # TypeScript only
+npm run typecheck:watch     # TypeScript watch mode
+npm run lint                # ESLint only
+npm run lint:fix            # ESLint --fix
+npm run fix                 # Alias for lint:fix
+
+# Tests (Vitest)
+npm test                    # Run tests once
+npm run test:watch          # Watch mode
+npm run test:ui             # UI mode
+npm run test:date-filtering # Date filtering test harness
+
+# Health & setup
+npm run health-check        # Validate env and connectivity
+npm run apply-migrations    # Apply SQL migrations via DATABASE_URL
+npm run apply-product-extension # Apply product extension
+
+# Supabase Edge Functions
+npm run build:edge-functions # Build Supabase Edge Functions
+npm run functions:serve      # Serve functions locally
+
+# Pipeline: collection & processing
+npm run start:collector     # Kick off Apify collection (env-driven)
+npm run process:sentiments  # Process pending sentiments
+
+# Backfill workflows
+npm run enqueue:backfill    # Enqueue historical batches
 npm run process:backfill    # Process a backfill batch
+
+# Replay & cleanup
 npm run replay:sentiments   # Retry failed sentiments
 npm run cleanup:raw-tweets  # Prune raw tweets (30-day retention)
 npm run cleanup:sentiment-failures -- --max-age-days=90 # Prune sentiment failures
-npm run start:collector      # Collector (default: sequential per product; set COLLECTOR_PRODUCT for single brand)
+
+# Maintenance
+npm run rotate:supabase     # Rotate Supabase secrets
+
+# RSS utilities
+npm run sync-rss-entries    # Sync RSS entries
+npm run summarize-rss-entries # Summarize RSS entries
+npm run cleanup-rss-failures  # Cleanup RSS failures
+npm run reset-sync-rss        # Reset RSS sync state
+npm run dry-run:inhouse       # Dry run in-house RSS
 ```
 
 ---
 
 ## API Endpoint Reference
 
+Auth overview
+- Authorization: Bearer $CRON_SECRET (Vercel Cron or manual)
+- x-vercel-cron: 1 (Vercel Cron only)
+- x-api-key: $INTERNAL_API_KEY (manual triggers)
+
+Note: /api/start-apify-run additionally supports public GET triggers in non-production when ALLOW_PUBLIC_START_APIFY=true. Query-string API keys are allowed only when ALLOW_API_KEY_QUERY=true and NODE_ENV!="production".
+
 ### `/api/start-apify-run`
 
+- Methods: POST, GET
+- Auth: Authorization Bearer $CRON_SECRET OR x-vercel-cron OR x-api-key $INTERNAL_API_KEY. In non-prod, GET may be public if ALLOW_PUBLIC_START_APIFY=true.
+- Request payload (command variant):
+  - triggerSource: string (default: "manual")
+  - requestedBy: string (optional)
+  - dryRun: boolean (optional, default: false)
+  - ingestion: {
+    - tweetLanguage?: string (2–5 chars)
+    - sort: "Top" | "Latest" (default: "Latest")
+    - maxItems: integer 1..1000 (default: 100)
+    - cooldownSeconds: integer 0..3600 (default: 0)
+    - useDateFiltering: boolean (default: false)
+    - defaultLookbackDays: integer 1..30 (default: 7)
+    - minimumEngagement?: { retweets?: int; favorites?: int; replies?: int }
+  }
+  - metadata?: { [k: string]: unknown }
+- Request payload (raw pass-through): if the body looks like tweet-scraper input (e.g. searchTerms/includeSearchTerms/tweetLanguage/sort/maxItems), it is forwarded as-is to the Apify actor.
+- GET JSON: you may pass JSON via query params named input or raw or json.
+
+Examples
+
+POST with x-api-key
 ```bash
 curl -X POST http://localhost:3000/api/start-apify-run \
   -H "Content-Type: application/json" \
   -H "x-api-key: $INTERNAL_API_KEY" \
   -d '{
     "triggerSource": "manual",
-    "ingestion": {
+    "ingestion": { "maxItems": 100, "sort": "Latest" }
+  }'
+```
+
+GET with Authorization Bearer and URL-encoded JSON
+```bash
+curl -G http://localhost:3000/api/start-apify-run \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  --data-urlencode 'json={"ingestion":{"maxItems":50}}'
+```
+
+Raw pass-through (tweet-scraper style)
+```bash
+curl -X POST http://localhost:3000/api/start-apify-run \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "searchTerms": ["ampcode", "windsurf"],
+    "maxItems": 50,
     "tweetLanguage": "en",
     "sort": "Latest",
-    "maxItems": 100,
-    "useDateFiltering": false,
-    "cooldownSeconds": 0,
-    "minimumEngagement": {
-    "retweets": 5,
-    "favorites": 10
-    }
-    }
+    "includeSearchTerms": true
   }'
 ```
 
 ### `/api/process-sentiments`
 
+- Method: POST
+- Auth: x-vercel-cron OR x-api-key $INTERNAL_API_KEY
+- Request payload: { batchSize?: number (default 10); modelVersion?: string; maxRetries?: number }
+
+Example
 ```bash
 curl -X POST http://localhost:3000/api/process-sentiments \
   -H "Content-Type: application/json" \
-  -d '{
-    "batchSize": 10
-  }'
+  -H "x-api-key: $INTERNAL_API_KEY" \
+  -d '{"batchSize": 10}'
 ```
 
 ### `/api/process-backfill`
 
+- Method: POST
+- Auth: x-vercel-cron OR x-api-key $INTERNAL_API_KEY
+- Request payload: none
+
+Example
 ```bash
 curl -X POST http://localhost:3000/api/process-backfill \
   -H "x-api-key: $INTERNAL_API_KEY"
@@ -1013,8 +1127,7 @@ curl -X POST http://localhost:3000/api/process-backfill \
 {
   "triggerSource": "manual-test-minimal",
   "ingestion": {
-    "maxItemsPerKeyword": 10,
-    "keywordBatchSize": 1,
+    "maxItems": 10,
     "sort": "Latest"
   }
 }
@@ -1029,8 +1142,7 @@ curl -X POST http://localhost:3000/api/process-backfill \
   "ingestion": {
     "tweetLanguage": "en",
     "sort": "Top",
-    "maxItemsPerKeyword": 100,
-    "keywordBatchSize": 3,
+    "maxItems": 100,
     "cooldownSeconds": 10,
     "minimumEngagement": {
       "retweets": 5,
@@ -1052,8 +1164,7 @@ curl -X POST http://localhost:3000/api/process-backfill \
   "triggerSource": "vercel-cron",
   "ingestion": {
     "sort": "Top",
-    "maxItemsPerKeyword": 200,
-    "keywordBatchSize": 5
+    "maxItems": 200
   }
 }
 ```
@@ -1062,4 +1173,4 @@ curl -X POST http://localhost:3000/api/process-backfill \
 
 **Time to First Success:** ~10 minutes with existing external accounts  
 **Confidence Level:** High — components validated end-to-end  
-**Last Validated:** October 2, 2025
+**Last Validated:** October 27, 2025
