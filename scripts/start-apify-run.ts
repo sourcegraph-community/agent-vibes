@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { startApifyRunCommandHandler } from '@/src/ApifyPipeline/Web/Application/Commands/StartApifyRun';
 import { getApifyEnv } from '@/src/ApifyPipeline/Infrastructure/Config/env';
 import { createSupabaseServiceClient } from '@/src/ApifyPipeline/ExternalServices/Supabase/client';
-import { fetchEnabledKeywords } from '@/src/ApifyPipeline/DataAccess/Repositories/KeywordsRepository';
+import { fetchEnabledKeywords, fetchEnabledKeywordsByProduct, fetchDistinctEnabledProducts } from '@/src/ApifyPipeline/DataAccess/Repositories/KeywordsRepository';
 import { insertCronRun } from '@/src/ApifyPipeline/DataAccess/Repositories/CronRunsRepository';
 import { insertRawTweets } from '@/src/ApifyPipeline/DataAccess/Repositories/RawTweetsRepository';
 import { insertNormalizedTweets, type NormalizedTweetInsert } from '@/src/ApifyPipeline/DataAccess/Repositories/NormalizedTweetsRepository';
@@ -32,7 +32,10 @@ async function resolveKeywords(): Promise<string[]> {
 
   try {
     const supabase = createSupabaseServiceClient();
-    const kws = await fetchEnabledKeywords(supabase);
+    const product = (process.env.COLLECTOR_PRODUCT || '').trim();
+    const kws = product
+      ? await fetchEnabledKeywordsByProduct(supabase, product)
+      : await fetchEnabledKeywords(supabase);
     if (kws.length > 0) return kws;
   } catch (_) {
     // fall through to defaults
@@ -40,9 +43,24 @@ async function resolveKeywords(): Promise<string[]> {
 
   return [
     'ampcode.com',
-    '"ampcode"',
+    'ampcode',
     '"sourcegraph amp"',
     '(to:ampcode)',
+    'windsurf',
+    '(to:windsurf)',
+    'windsurf.com',
+    'augmentcode',
+    'augmentcode.com',
+    '(to:augmentcode)',
+    'cline',
+    'cline.bot',
+    '(to:cline)',
+    'kilocode',
+    'kilocode.ai',
+    '(to:kilocode)',
+    'opencode',
+    'opencode.ai',
+    '(to:opencode)',
   ];
 }
 
@@ -245,6 +263,171 @@ async function startTweetScraper(params: {
   };
 }
 
+async function runTweetScraperOnce(params: {
+  maxItems: number;
+  sort: 'Top' | 'Latest';
+  tweetLanguage?: string;
+  minRetweets?: number;
+  minFavorites?: number;
+  minReplies?: number;
+  triggerSource: string;
+}) {
+  const { maxItems, sort, tweetLanguage, minRetweets, minFavorites, minReplies, triggerSource } = params;
+  const env = getApifyEnv();
+  const actorPath = env.actorId.replace(/\//g, '~');
+  const keywords = await resolveKeywords();
+
+  // Try to reuse a recent Apify run to avoid duplicate cost
+  let start: { runId: string; actorId: string; status: string; url: string; startedAt: string } | null = null;
+  const reuseExisting = bool(process.env.COLLECTOR_REUSE_EXISTING, false);
+  if (reuseExisting) {
+    const last = await findLastApifyRunId(triggerSource);
+    if (last) {
+      start = {
+        runId: last.runId,
+        actorId: env.actorId,
+        status: 'REUSED',
+        startedAt: last.startedAt,
+        url: `https://api.apify.com/v2/acts/${actorPath}/runs/${last.runId}`,
+      };
+    }
+  }
+
+  if (!start) {
+    start = await startTweetScraper({
+      maxItems,
+      sort,
+      tweetLanguage,
+      minRetweets,
+      minFavorites,
+      minReplies,
+    });
+  }
+
+  console.log('✅ Run started');
+  console.log('---------------------------------');
+  console.log(`Run ID: ${start.runId}`);
+  console.log(`Actor ID: ${start.actorId}`);
+  console.log(`Status: ${start.status}`);
+  console.log(`URL: ${start.url}`);
+  console.log(`Started At: ${start.startedAt}`);
+
+  try {
+    // Wait for completion
+    const runInfo = await waitForRunCompletion(start.runId, env.token);
+
+    // Fetch dataset
+    const items = await fetchDatasetItems(runInfo.datasetId, env.token, maxItems);
+
+    // Normalize + persist, then trigger sentiment
+    const supabase = createSupabaseServiceClient();
+
+    const candidateMap = new Map<string, { item: ApifyTweetItem; keywords: string[]; collectedAt: string }>();
+    const errors: unknown[] = [];
+    const nowIso = runInfo.finishedAt;
+
+    for (const raw of items) {
+      const item = raw as ApifyTweetItem;
+      const collectedAt = (item as { collectedAt?: string }).collectedAt ?? nowIso;
+      try {
+        const platformId = extractPlatformId(item);
+        if (candidateMap.has(platformId)) continue;
+        candidateMap.set(platformId, { item, keywords, collectedAt });
+      } catch (e) {
+        errors.push({ type: 'normalization_precheck_failed', message: e instanceof Error ? e.message : String(e), item });
+      }
+    }
+
+    const allPlatformIds = Array.from(candidateMap.keys());
+    const existingPlatformIds = allPlatformIds.length > 0 ? await fetchExistingNormalizedIds(supabase, 'twitter', allPlatformIds) : new Set<string>();
+    const newPlatformIds = allPlatformIds.filter(id => !existingPlatformIds.has(id));
+
+    const normalizedPrototypes = new Map<string, NormalizedTweetInsert>();
+    const internalRunId = randomUUID();
+    // Ensure FK: record a running cron_run row with this internalRunId before inserting raw/normalized
+    await recordRunStart({ id: internalRunId, triggerSource, keywords, apifyRunId: start.runId, startedAt: start.startedAt });
+
+    for (const platformId of newPlatformIds) {
+      const candidate = candidateMap.get(platformId);
+      if (!candidate) continue;
+      try {
+        const proto = normalizeTweet(candidate.item, {
+          runId: internalRunId,
+          rawTweetId: null,
+          collectedAt: candidate.collectedAt,
+          keywords: candidate.keywords,
+        });
+        normalizedPrototypes.set(platformId, proto);
+      } catch (e) {
+        errors.push({ type: 'normalization_failed', platformId, message: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
+    const processedNewCount = normalizedPrototypes.size;
+    const processedDuplicateCount = existingPlatformIds.size;
+    const processedErrorCount = errors.length;
+    const status = processedErrorCount === 0 ? 'succeeded' : (processedNewCount > 0 ? 'partial_success' : 'failed');
+
+    const rawRows = Array.from(normalizedPrototypes.keys()).map((platformId) => {
+      const c = candidateMap.get(platformId)!;
+      return {
+        runId: internalRunId,
+        platform: 'twitter' as const,
+        platformId,
+        collectedAt: c.collectedAt,
+        payload: { item: c.item, keywords: c.keywords, fetchedAt: c.collectedAt },
+        ingestionReason: 'initial' as const,
+      };
+    });
+
+    const rawRecords = rawRows.length > 0 ? await insertRawTweets(supabase, rawRows) : [];
+    const rawIdByPlatform = new Map<string, string | null>();
+    for (const r of rawRecords) rawIdByPlatform.set(r.platformId, r.id);
+
+    const normalizedRows: NormalizedTweetInsert[] = Array.from(normalizedPrototypes.entries()).map(([platformId, proto]) => ({
+      ...proto,
+      rawTweetId: rawIdByPlatform.get(platformId) ?? null,
+    }));
+
+    if (normalizedRows.length > 0) {
+      await insertNormalizedTweets(supabase, normalizedRows);
+      try {
+        await invokeSentimentProcessorFunction({ batchSize: normalizedRows.length });
+      } catch (e) {
+        console.warn('Sentiment processor invocation failed:', String(e));
+      }
+    }
+
+    await insertCronRun(supabase, {
+      triggerSource,
+      keywordBatch: keywords,
+      startedAt: start.startedAt,
+      finishedAt: runInfo.finishedAt,
+      status,
+      processedNewCount,
+      processedDuplicateCount,
+      processedErrorCount,
+      metadata: {
+        apifyRunId: start.runId,
+        datasetId: runInfo.datasetId,
+        maxItemsRequested: maxItems,
+        candidateCount: candidateMap.size,
+        requestedAt: start.startedAt,
+      },
+      errors,
+    });
+
+    console.log('✅ Completed');
+    console.log('---------------------------------');
+    console.log(`New: ${processedNewCount}`);
+    console.log(`Duplicates: ${processedDuplicateCount}`);
+    console.log(`Errors: ${processedErrorCount}`);
+  } catch (e) {
+    await recordFailureRun({ triggerSource, keywords, startedAt: start.startedAt, apifyRunId: start.runId, error: e });
+    throw e;
+  }
+}
+
 async function main() {
   // Pre-flight env checks for Apify credentials (the handler will also validate)
   const missing: string[] = [];
@@ -302,160 +485,39 @@ async function main() {
     }
 
     if (isTweetScraper) {
-      const env = getApifyEnv();
-      const actorPath = env.actorId.replace(/\//g, '~');
-      const keywords = await resolveKeywords();
+      const override = process.env.COLLECTOR_KEYWORDS && process.env.COLLECTOR_KEYWORDS.trim().length > 0;
+      const hasProduct = !!(process.env.COLLECTOR_PRODUCT && process.env.COLLECTOR_PRODUCT.trim());
 
-      // Try to reuse a recent Apify run to avoid duplicate cost
-      let start: { runId: string; actorId: string; status: string; url: string; startedAt: string } | null = null;
-      const reuseExisting = bool(process.env.COLLECTOR_REUSE_EXISTING, false);
-      if (reuseExisting) {
-        const last = await findLastApifyRunId(triggerSource);
-        if (last) {
-          start = {
-            runId: last.runId,
-            actorId: env.actorId,
-            status: 'REUSED',
-            startedAt: last.startedAt,
-            url: `https://api.apify.com/v2/acts/${actorPath}/runs/${last.runId}`,
-          };
-        }
-      }
-
-      if (!start) {
-        start = await startTweetScraper({
-          maxItems,
-          sort,
-          tweetLanguage,
-          minRetweets,
-          minFavorites,
-          minReplies,
-        });
-        // Note: we'll record the ingestion run ID (internalRunId) once created, not here
-      }
-
-      console.log('✅ Run started');
-      console.log('---------------------------------');
-      console.log(`Run ID: ${start.runId}`);
-      console.log(`Actor ID: ${start.actorId}`);
-      console.log(`Status: ${start.status}`);
-      console.log(`URL: ${start.url}`);
-      console.log(`Started At: ${start.startedAt}`);
-
-      try {
-        // Wait for completion
-        const runInfo = await waitForRunCompletion(start.runId, env.token);
-
-        // Fetch dataset
-        const items = await fetchDatasetItems(runInfo.datasetId, env.token, maxItems);
-
-        // Normalize + persist, then trigger sentiment
+      if (!override && !hasProduct) {
+        // Default: sequential runs per brand when no explicit product is provided
         const supabase = createSupabaseServiceClient();
-
-        const candidateMap = new Map<string, { item: ApifyTweetItem; keywords: string[]; collectedAt: string }>();
-        const errors: unknown[] = [];
-        const nowIso = runInfo.finishedAt;
-
-        for (const raw of items) {
-          const item = raw as ApifyTweetItem;
-          const collectedAt = (item as { collectedAt?: string }).collectedAt ?? nowIso;
-          try {
-            const platformId = extractPlatformId(item);
-            if (candidateMap.has(platformId)) continue;
-            candidateMap.set(platformId, { item, keywords, collectedAt });
-          } catch (e) {
-            errors.push({ type: 'normalization_precheck_failed', message: e instanceof Error ? e.message : String(e), item });
-          }
+        const products = await fetchDistinctEnabledProducts(supabase);
+        for (const product of products) {
+          console.log(`\n=== Collecting for brand: ${product} ===`);
+          process.env.COLLECTOR_PRODUCT = product;
+          await runTweetScraperOnce({
+            maxItems,
+            sort,
+            tweetLanguage,
+            minRetweets,
+            minFavorites,
+            minReplies,
+            triggerSource,
+          });
         }
-
-        const allPlatformIds = Array.from(candidateMap.keys());
-        const existingPlatformIds = allPlatformIds.length > 0 ? await fetchExistingNormalizedIds(supabase, 'twitter', allPlatformIds) : new Set<string>();
-        const newPlatformIds = allPlatformIds.filter(id => !existingPlatformIds.has(id));
-
-        const normalizedPrototypes = new Map<string, NormalizedTweetInsert>();
-        const internalRunId = randomUUID();
-        // Ensure FK: record a running cron_run row with this internalRunId before inserting raw/normalized
-        await recordRunStart({ id: internalRunId, triggerSource, keywords, apifyRunId: start.runId, startedAt: start.startedAt });
-
-        for (const platformId of newPlatformIds) {
-          const candidate = candidateMap.get(platformId);
-          if (!candidate) continue;
-          try {
-            const proto = normalizeTweet(candidate.item, {
-              runId: internalRunId,
-              rawTweetId: null,
-              collectedAt: candidate.collectedAt,
-              keywords: candidate.keywords,
-            });
-            normalizedPrototypes.set(platformId, proto);
-          } catch (e) {
-            errors.push({ type: 'normalization_failed', platformId, message: e instanceof Error ? e.message : String(e) });
-          }
-        }
-
-        const processedNewCount = normalizedPrototypes.size;
-        const processedDuplicateCount = existingPlatformIds.size;
-        const processedErrorCount = errors.length;
-        const status = processedErrorCount === 0 ? 'succeeded' : (processedNewCount > 0 ? 'partial_success' : 'failed');
-
-        const rawRows = Array.from(normalizedPrototypes.keys()).map((platformId) => {
-          const c = candidateMap.get(platformId)!;
-          return {
-            runId: internalRunId,
-            platform: 'twitter' as const,
-            platformId,
-            collectedAt: c.collectedAt,
-            payload: { item: c.item, keywords: c.keywords, fetchedAt: c.collectedAt },
-            ingestionReason: 'initial' as const,
-          };
-        });
-
-        const rawRecords = rawRows.length > 0 ? await insertRawTweets(supabase, rawRows) : [];
-        const rawIdByPlatform = new Map<string, string | null>();
-        for (const r of rawRecords) rawIdByPlatform.set(r.platformId, r.id);
-
-        const normalizedRows: NormalizedTweetInsert[] = Array.from(normalizedPrototypes.entries()).map(([platformId, proto]) => ({
-          ...proto,
-          rawTweetId: rawIdByPlatform.get(platformId) ?? null,
-        }));
-
-        if (normalizedRows.length > 0) {
-          await insertNormalizedTweets(supabase, normalizedRows);
-          try {
-            await invokeSentimentProcessorFunction({ batchSize: normalizedRows.length });
-          } catch (e) {
-            console.warn('Sentiment processor invocation failed:', String(e));
-          }
-        }
-
-        await insertCronRun(supabase, {
-          triggerSource,
-          keywordBatch: keywords,
-          startedAt: start.startedAt,
-          finishedAt: runInfo.finishedAt,
-          status,
-          processedNewCount,
-          processedDuplicateCount,
-          processedErrorCount,
-          metadata: {
-            apifyRunId: start.runId,
-            datasetId: runInfo.datasetId,
-            maxItemsRequested: maxItems,
-            candidateCount: candidateMap.size,
-            requestedAt: start.startedAt,
-          },
-          errors,
-        });
-
-        console.log('✅ Completed');
-        console.log('---------------------------------');
-        console.log(`New: ${processedNewCount}`);
-        console.log(`Duplicates: ${processedDuplicateCount}`);
-        console.log(`Errors: ${processedErrorCount}`);
-      } catch (e) {
-        await recordFailureRun({ triggerSource, keywords, startedAt: start.startedAt, apifyRunId: start.runId, error: e });
-        throw e;
+        return;
       }
+
+      // Single run for explicit product or keyword override
+      await runTweetScraperOnce({
+        maxItems,
+        sort,
+        tweetLanguage,
+        minRetweets,
+        minFavorites,
+        minReplies,
+        triggerSource,
+      });
       return;
     }
 

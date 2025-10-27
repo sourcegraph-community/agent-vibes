@@ -30,7 +30,7 @@ When a collection run starts:
 2. **Calculate Since Date**: 
    - If any tweets exist → use that date (e.g., '2025-09-29')
    - If no tweets exist → use default lookback (7 days ago)
-3. **Apply to All Keywords**: Use the same `sinceDate` for all keywords
+3. **Apply per Brand**: Use the same `sinceDate` for all keywords within a product (brand)
 
 ### 3. Apify Actor Integration
 
@@ -45,10 +45,10 @@ The calculated `sinceDate` is passed to the Apify Twitter Search Scraper for all
 }
 ```
 
-**Why use a single date for all keywords?**
-- Only 4 keywords total, no need for per-keyword tracking
+**Why use a single date per brand?**
+- Per‑brand keyword sets; size varies by product
 - Simpler logic, fewer database queries
-- All keywords stay in sync
+- All keywords within a brand stay in sync
 
 ## Configuration
 

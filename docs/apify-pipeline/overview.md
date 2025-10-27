@@ -7,14 +7,14 @@ Architecture note: The repository follows a Vertical Slice Architecture. The com
 
 ## High-Level Flow
 1. **Trigger:** A Vercel Cron Job (Pro plan) calls the internal endpoint `/api/start-apify-run`, which then invokes the Apify Run API. The App Router file `app/api/start-apify-run/route.ts` re-exports the slice endpoint `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`. Manual runs can also be triggered.
-2. **Data Collection (Apify Actor):** The Actor uses the Apify Twitter Search Scraper. It performs a single call across all configured search terms with a total `maxItems` cap (default 100) and respects anti-monitoring restrictions.
+2. **Data Collection (Apify Actor):** Uses the Apify Twitter Search Scraper. By default (when `COLLECTOR_PRODUCT` is omitted), the collector runs sequentially per enabled product; each run uses that product’s keywords with its own `maxItems` cap (default 100) and respects anti-monitoring restrictions.
 3. **Preprocessing:** Raw tweets are cleaned, enriched (e.g., source, timestamp, platform), and transformed into a uniform format.
 4. **Persistence (Supabase):** Normalized records are stored in Supabase. Historical values are preserved and form the foundation for analysis.
 5. **Sentiment Analysis (Gemini):** Supabase Edge Function `sentiment-processor` invokes Gemini 2.5 via Structured Output (no dedicated sentiment API) and stores results back in Supabase; costs/TPS are monitored depending on model variant (Flash, Flash Lite, Pro).
 6. **Frontend (Vercel):** A Next.js application visualizes the data (trends, metrics, individual records) and exclusively consumes the Supabase API.
 
 ## Components & Responsibilities
-- **Apify Actor:** Data collection, normalization, delivery to Supabase using Apify Twitter Search Scraper with anti-monitoring throttling. (Slice: `src/ApifyPipeline/Background/Jobs/TweetCollector`)
+- **Collector Script:** Orchestrates Apify Twitter Search Scraper runs sequentially per product by default. Entry: `scripts/start-apify-run.ts` (Endpoint proxy: `app/api/start-apify-run`).
 - **Supabase:** Persistence layer (tables for raw data, normalized tweets, sentiment results) with `sb_secret_*` keys and PG17-compliant extensions. (Slice: `src/ApifyPipeline/DataAccess`)
 - **Google Gemini:** Structured-output classification executed by Supabase Edge Function `sentiment-processor` (source: `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor`).
 - **Next.js Frontend:** Display of statistics, filtering, trend detection; build target Node.js 20+ on Vercel. (Location: `app/dashboard/*`)
@@ -99,10 +99,10 @@ graph TB
 ## Current Status
 - Vercel crons are currently disabled (vercel.json); use manual triggers until re-enabled after testing.
 - The Supabase base schema including append-only triggers and RLS policies exists as a migration under `src/ApifyPipeline/DataAccess/Migrations/20250929_1200_InitApifyPipeline.sql`.
-- Views `vw_daily_sentiment` and `vw_keyword_trends` are created but remain empty until you ingest tweets; the seed file (`src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql`) now only loads default keywords.
+- Views `vw_daily_sentiment` and `vw_keyword_trends` are created but remain empty until you ingest tweets; the seed file (`src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql`) includes multiple products (`keywords.product`).
 - Supabase secret rotation runs via `npm run rotate:supabase` (TypeScript script [`scripts/rotate-supabase-secrets.ts`](file:///home/prinova/CodeProjects/agent-vibes/scripts/rotate-supabase-secrets.ts) uses Supabase Management API + Secrets Endpoint).
-- The ingestion slice provides `/api/start-apify-run` via `app/api/start-apify-run/route.ts` and delegates to `src/ApifyPipeline/Web/Application/Commands/StartApifyRun` + `Background/Jobs/TweetCollector`.
-- The Apify Actor under `src/ApifyPipeline/Background/Jobs/TweetCollector/TweetCollectorJob.ts` fetches keywords from Supabase, starts the Twitter scraper, writes `cron_runs`, `raw_tweets` and `normalized_tweets`, and marks duplicates.
+- The ingestion slice provides `/api/start-apify-run` via `app/api/start-apify-run/route.ts` and delegates to `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`.
+- Local/scripted ingestion runs are handled by [`scripts/start-apify-run.ts`](file:///home/prinova/CodeProjects/agent-vibes/scripts/start-apify-run.ts), which orchestrates per-product runs and persists results.
 - Supabase Edge Function `sentiment-processor` source lives at `src/ApifyPipeline/ExternalServices/Gemini/EdgeFunctions/sentimentProcessor` and is built to `supabase/functions/sentiment-processor` via `npm run build:edge-functions`; `/api/process-sentiments` proxies to it with optional fallback to the legacy job.
 
 ## Open Items for Later Iterations

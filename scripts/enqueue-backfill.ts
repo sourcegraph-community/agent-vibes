@@ -16,7 +16,18 @@ async function main() {
   const supabase = createClient(supabaseUrl, supabaseKey);
   const job = new BackfillProcessorJob(supabase);
 
-  const keywords = ['ampcode.com', '"ampcode"', '"sourcegraph amp"', '(to:ampcode)'];
+  const { data, error } = await supabase
+    .from('keywords')
+    .select('keyword')
+    .eq('is_enabled', true)
+    .order('priority', { ascending: true })
+    .order('keyword', { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to load keywords: ${error.message}`);
+  }
+
+  const keywords = (data ?? []).map((row: { keyword: string }) => row.keyword);
 
   // Configuration: Customize for testing
   const totalDays = parseInt(process.env.BACKFILL_DAYS || '30', 10);

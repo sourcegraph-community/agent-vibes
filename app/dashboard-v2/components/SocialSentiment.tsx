@@ -48,13 +48,95 @@ interface ApiResponse {
   };
 }
 
+interface ProductResponse {
+  dataByProduct: Record<string, Array<{
+    day: string;
+    positive_count: number;
+    negative_count: number;
+    neutral_count: number;
+    total_count: number;
+    avg_sentiment_score: number;
+  }>>;
+  summary: {
+    totalTweets: number;
+    positiveCount: number;
+    neutralCount: number;
+    negativeCount: number;
+    avgSentimentScore: number;
+    positivePercentage: number;
+    neutralPercentage: number;
+    negativePercentage: number;
+  };
+}
+
 interface SocialSentimentProps {
   timeframe: number;
 }
 
+const brandColorPalette = [
+  '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#2dd4bf',
+  '#fb923c', '#4ade80', '#38bdf8', '#f472b6', '#6366f1', '#84cc16',
+];
+
+const brandColor = (brand: string): string => {
+  let hash = 0;
+  for (let i = 0; i < brand.length; i++) {
+    hash = ((hash << 5) - hash) + brand.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return brandColorPalette[Math.abs(hash) % brandColorPalette.length];
+};
+
 export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<string[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [productData, setProductData] = useState<ProductResponse | null>(null);
+  const [productLoading, setProductLoading] = useState(false);
+
+  // Fetch available brands on mount
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const response = await fetch('/api/social-sentiment/brands');
+        const result = await response.json();
+        if (result.products && Array.isArray(result.products)) {
+          setProducts(result.products);
+          setSelectedProducts(new Set(result.products));
+        }
+      } catch (error) {
+        console.error('Failed to fetch brands:', error);
+      }
+    };
+    fetchBrands();
+  }, []);
+
+  // Fetch product data when timeframe or selected products change
+  const fetchProductData = useCallback(async () => {
+    if (selectedProducts.size === 0) {
+      setProductData(null);
+      return;
+    }
+
+    setProductLoading(true);
+    try {
+      const productsParam = Array.from(selectedProducts).join(',');
+      const response = await fetch(
+        `/api/social-sentiment/by-product?days=${timeframe}&products=${encodeURIComponent(productsParam)}`,
+      );
+      const result = await response.json();
+      setProductData(result);
+    } catch (error) {
+      console.error('Failed to fetch product sentiment:', error);
+    } finally {
+      setProductLoading(false);
+    }
+  }, [timeframe, selectedProducts]);
+
+  useEffect(() => {
+    fetchProductData();
+  }, [fetchProductData]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -72,6 +154,24 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleBrandToggle = (product: string) => {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(product)) {
+      newSelected.delete(product);
+    } else {
+      newSelected.add(product);
+    }
+    setSelectedProducts(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    setSelectedProducts(new Set(products));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedProducts(new Set());
+  };
 
   // Only show the loading placeholder when there's no data yet (initial load)
   if (loading && !data) {
@@ -96,20 +196,11 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
     );
   }
 
-  // Aggregate daily data keyed by ISO date (YYYY-MM-DD)
-  const aggregatedByDay = data.data.reduce((acc: Record<string, { positive: number; neutral: number; negative: number; total: number }>, row) => {
-    const dateKey = row.sentimentDay.split('T')[0]; // expect YYYY-MM-DD or YYYY-MM-DDTHH:mm
-    if (!acc[dateKey]) {
-      acc[dateKey] = { positive: 0, neutral: 0, negative: 0, total: 0 };
-    }
-    acc[dateKey].positive += row.positiveCount;
-    acc[dateKey].neutral += row.neutralCount;
-    acc[dateKey].negative += row.negativeCount;
-    acc[dateKey].total += row.totalCount;
-    return acc;
-  }, {});
+  // Determine which data to use for summary
+  const summaryData = productData?.summary || data?.summary;
+  const chartDataSource = productData || data;
 
-  // Build continuous last 14 days range (oldest -> newest, include today)
+  // Format date key helper
   const formatDateKey = (d: Date) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -117,10 +208,11 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
     return `${y}-${m}-${dd}`;
   };
 
+  // Build continuous date range
   const dateKeysAsc = Array.from({ length: timeframe }, (_, i) => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - ((timeframe - 1) - i)); // oldest..today
+    d.setDate(d.getDate() - ((timeframe - 1) - i));
     return formatDateKey(d);
   });
 
@@ -130,18 +222,77 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   });
 
-  const positivePercentages = dateKeysAsc.map((key) => {
-    const day = aggregatedByDay[key] ?? { positive: 0, neutral: 0, negative: 0, total: 0 };
-    return day.total > 0 ? (day.positive / day.total) * 100 : 0;
-  });
-  const negativePercentages = dateKeysAsc.map((key) => {
-    const day = aggregatedByDay[key] ?? { positive: 0, neutral: 0, negative: 0, total: 0 };
-    return day.total > 0 ? (day.negative / day.total) * 100 : 0;
-  });
+  // Build chart datasets
+  let datasets: Array<{
+    label: string;
+    data: number[];
+    borderColor: string;
+    backgroundColor: string;
+    tension: number;
+    borderDash?: number[];
+  }> = [];
 
-  const chartData = {
-    labels,
-    datasets: [
+  if (productData && productData.dataByProduct) {
+    const productNames = Object.keys(productData.dataByProduct).sort();
+    for (const product of productNames) {
+      const productRows = productData.dataByProduct[product];
+      const dayMap = new Map(productRows.map(row => [row.day.split('T')[0], row]));
+
+      const baseColor = brandColor(product);
+      const positiveData = dateKeysAsc.map((key) => {
+        const row = dayMap.get(key);
+        return row && row.total_count > 0 ? (row.positive_count / row.total_count) * 100 : 0;
+      });
+
+      const negativeData = dateKeysAsc.map((key) => {
+        const row = dayMap.get(key);
+        return row && row.total_count > 0 ? (row.negative_count / row.total_count) * 100 : 0;
+      });
+
+      // Parse color and create variants
+      const positiveColor = baseColor + 'FF';
+      const negativeColor = baseColor + '80';
+
+      datasets.push({
+        label: `${product} - Positive`,
+        data: positiveData,
+        borderColor: positiveColor,
+        backgroundColor: baseColor + '33',
+        tension: 0.4,
+      });
+
+      datasets.push({
+        label: `${product} - Negative`,
+        data: negativeData,
+        borderColor: negativeColor,
+        backgroundColor: baseColor + '1a',
+        tension: 0.4,
+        borderDash: [5, 5],
+      });
+    }
+  } else if (data && data.data) {
+    const aggregatedByDay = data.data.reduce((acc: Record<string, { positive: number; neutral: number; negative: number; total: number }>, row) => {
+      const dateKey = row.sentimentDay.split('T')[0];
+      if (!acc[dateKey]) {
+        acc[dateKey] = { positive: 0, neutral: 0, negative: 0, total: 0 };
+      }
+      acc[dateKey].positive += row.positiveCount;
+      acc[dateKey].neutral += row.neutralCount;
+      acc[dateKey].negative += row.negativeCount;
+      acc[dateKey].total += row.totalCount;
+      return acc;
+    }, {});
+
+    const positivePercentages = dateKeysAsc.map((key) => {
+      const day = aggregatedByDay[key] ?? { positive: 0, neutral: 0, negative: 0, total: 0 };
+      return day.total > 0 ? (day.positive / day.total) * 100 : 0;
+    });
+    const negativePercentages = dateKeysAsc.map((key) => {
+      const day = aggregatedByDay[key] ?? { positive: 0, neutral: 0, negative: 0, total: 0 };
+      return day.total > 0 ? (day.negative / day.total) * 100 : 0;
+    });
+
+    datasets = [
       {
         label: 'Positive',
         data: positivePercentages,
@@ -157,7 +308,12 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
         tension: 0.4,
         borderDash: [5, 5],
       },
-    ],
+    ];
+  }
+
+  const chartData = {
+    labels,
+    datasets,
   };
 
   const chartOptions: ChartOptions<'line'> = {
@@ -199,82 +355,139 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
         <h2 className="section-title">Social Sentiment</h2>
       </div>
 
+      {/* Brand Filter */}
+      {products.length > 0 && (
+        <div className="card mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-400">Filter by Brand</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSelectAll}
+                className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+              >
+                All
+              </button>
+              <button
+                onClick={handleDeselectAll}
+                className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {products.map((product) => (
+              <label key={product} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedProducts.has(product)}
+                  onChange={() => handleBrandToggle(product)}
+                  className="w-4 h-4 bg-gray-700 border border-gray-600 rounded cursor-pointer"
+                />
+                <span className="text-sm text-gray-300">{product}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="card">
-          <h3 className="text-sm font-medium text-gray-400">Total Posts</h3>
-          <p className="text-3xl font-bold mt-2">{data.summary.totalTweets.toLocaleString()}</p>
+      {summaryData && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="card">
+            <h3 className="text-sm font-medium text-gray-400">Total Posts</h3>
+            <p className="text-3xl font-bold mt-2">{summaryData.totalTweets.toLocaleString()}</p>
+          </div>
+          <div className="card">
+            <h3 className="text-sm font-medium text-gray-400">Positive</h3>
+            <p className="text-3xl font-bold mt-2 text-green-400">
+              {summaryData.positivePercentage.toFixed(1)}%
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              {summaryData.positiveCount.toLocaleString()} posts
+            </p>
+          </div>
+          <div className="card">
+            <h3 className="text-sm font-medium text-gray-400">Neutral</h3>
+            <p className="text-3xl font-bold mt-2 text-gray-400">
+              {summaryData.neutralPercentage.toFixed(1)}%
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              {summaryData.neutralCount.toLocaleString()} posts
+            </p>
+          </div>
+          <div className="card">
+            <h3 className="text-sm font-medium text-gray-400">Negative</h3>
+            <p className="text-3xl font-bold mt-2 text-red-400">
+              {summaryData.negativePercentage.toFixed(1)}%
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              {summaryData.negativeCount.toLocaleString()} posts
+            </p>
+          </div>
         </div>
-        <div className="card">
-          <h3 className="text-sm font-medium text-gray-400">Positive</h3>
-          <p className="text-3xl font-bold mt-2 text-green-400">
-            {data.summary.positivePercentage.toFixed(1)}%
-          </p>
-          <p className="text-sm text-gray-400 mt-1">
-            {data.summary.positiveCount.toLocaleString()} posts
-          </p>
-        </div>
-        <div className="card">
-          <h3 className="text-sm font-medium text-gray-400">Neutral</h3>
-          <p className="text-3xl font-bold mt-2 text-gray-400">
-            {data.summary.neutralPercentage.toFixed(1)}%
-          </p>
-          <p className="text-sm text-gray-400 mt-1">
-            {data.summary.neutralCount.toLocaleString()} posts
-          </p>
-        </div>
-        <div className="card">
-          <h3 className="text-sm font-medium text-gray-400">Negative</h3>
-          <p className="text-3xl font-bold mt-2 text-red-400">
-            {data.summary.negativePercentage.toFixed(1)}%
-          </p>
-          <p className="text-sm text-gray-400 mt-1">
-            {data.summary.negativeCount.toLocaleString()} posts
-          </p>
-        </div>
-      </div>
+      )}
 
       {/* Chart */}
       <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Sentiment Trends (Last {timeframe} Days)</h3>
-        <div className="chart-container" style={{ height: '400px' }}>
-          <Line data={chartData} options={chartOptions} />
-        </div>
+        <h3 className="text-lg font-semibold mb-4">
+          Sentiment Trends (Last {timeframe} Days)
+          {productLoading && ' — Loading...'}
+        </h3>
+        {selectedProducts.size === 0 ? (
+          <div className="flex items-center justify-center h-96 text-gray-400">
+            <p>Select brands to view sentiment trends</p>
+          </div>
+        ) : productLoading ? (
+          <div className="flex items-center justify-center h-96 text-gray-400">
+            <p>Loading chart data...</p>
+          </div>
+        ) : chartData.datasets.length > 0 ? (
+          <div className="chart-container" style={{ height: '400px' }}>
+            <Line data={chartData} options={chartOptions} />
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-96 text-gray-400">
+            <p>No data available for selected brands in this period</p>
+          </div>
+        )}
       </div>
 
       {/* Social Feed Preview */}
-      <div className="card mt-6">
-        <h3 className="text-lg font-semibold mb-4">Recent Social Activity</h3>
-        <div className="space-y-4">
-          {data.data.slice(0, 5).map((row, idx) => (
-            <div
-              key={idx}
-              className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg"
-            >
-              <div className="flex-1">
-                <p className="text-sm text-gray-400">
-                  {new Date(row.sentimentDay).toLocaleDateString()}
-                </p>
-                <div className="flex gap-4 mt-2 text-sm">
-                  <span className="text-green-400">
-                    Positive: {row.positiveCount}
-                  </span>
-                  <span className="text-gray-400">
-                    Neutral: {row.neutralCount}
-                  </span>
-                  <span className="text-red-400">
-                    Negative: {row.negativeCount}
-                  </span>
+      {data && data.data.length > 0 && (
+        <div className="card mt-6">
+          <h3 className="text-lg font-semibold mb-4">Recent Social Activity</h3>
+          <div className="space-y-4">
+            {data.data.slice(0, 5).map((row, idx) => (
+              <div
+                key={idx}
+                className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg"
+              >
+                <div className="flex-1">
+                  <p className="text-sm text-gray-400">
+                    {new Date(row.sentimentDay).toLocaleDateString()}
+                  </p>
+                  <div className="flex gap-4 mt-2 text-sm">
+                    <span className="text-green-400">
+                      Positive: {row.positiveCount}
+                    </span>
+                    <span className="text-gray-400">
+                      Neutral: {row.neutralCount}
+                    </span>
+                    <span className="text-red-400">
+                      Negative: {row.negativeCount}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">{row.language}</p>
+                  <p className="text-sm font-medium">{row.totalCount} posts</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">{row.language}</p>
-                <p className="text-sm font-medium">{row.totalCount} posts</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

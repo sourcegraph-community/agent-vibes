@@ -142,11 +142,15 @@ Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
      }'
    
    # Option B: Script (env-driven)
+   # Default: runs sequentially per enabled product when COLLECTOR_PRODUCT is omitted
    COLLECTOR_MAX_ITEMS=100 npm run start:collector
-   ```
-   - Expect `202 Accepted` with a `runId` (API) or script console output
-   - Monitor the run in Apify Console
-    - Tip: Set `COLLECTOR_REUSE_EXISTING=false` to force a new Apify run.
+   
+   # Single brand only
+   COLLECTOR_PRODUCT=windsurf COLLECTOR_MAX_ITEMS=100 npm run start:collector
+    ```
+    - Expect `202 Accepted` with a `runId` (API) or script console output
+    - Monitor the run in Apify Console
+     - Tip: Set `COLLECTOR_REUSE_EXISTING=false` to force a new Apify run.
 
 2. **Verify data landed**
    ```sql
@@ -196,7 +200,7 @@ Visit [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
 | Symptom | Quick Fix |
 |---------|-----------|
 | "Environment variable not found" | Ensure `.env.local` exists, confirm names, rerun `npm run dev` |
-| "No keywords available" | Re-run `src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql` |
+| "No keywords available" | Re-run `src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql` and verify enabled keywords per product |
 | Apify run fails | Lower `maxItems` (e.g. 50); verify compute units |
 | Gemini quota exceeded | Lower sentiment `batchSize` (e.g. 3) to stay under free-tier limits |
 
@@ -319,7 +323,7 @@ supabase db push
 # 3. Run src/ApifyPipeline/DataAccess/Seeds/20250929_1230_KeywordsSeed.sql
 ```
 
-Migrations are idempotent; seeds create four enabled keywords aligned with the current dashboards.
+Migrations are idempotent; seeds include multiple enabled keywords across products (`keywords.product`).
 
 **Verify Migration:**
 
@@ -336,10 +340,12 @@ WHERE table_schema = 'public'
     'tweet_sentiments'
   );
 
--- Check keywords are seeded (expect 4 enabled keywords)
-SELECT id, keyword, is_enabled
+-- Check keywords are seeded (enabled keywords grouped by product)
+SELECT product, COUNT(*) AS enabled_count
 FROM keywords
-ORDER BY created_at;
+WHERE is_enabled = true
+GROUP BY product
+ORDER BY product;
 ```
 
 ### Step 4: Start Development Server
@@ -898,7 +904,7 @@ npm run process:backfill    # Process a backfill batch
 npm run replay:sentiments   # Retry failed sentiments
 npm run cleanup:raw-tweets  # Prune raw tweets (30-day retention)
 npm run cleanup:sentiment-failures -- --max-age-days=90 # Prune sentiment failures
-npm run start:collector      # Start single-run collection (env-driven)
+npm run start:collector      # Collector (default: sequential per product; set COLLECTOR_PRODUCT for single brand)
 ```
 
 ---

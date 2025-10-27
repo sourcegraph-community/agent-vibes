@@ -10,6 +10,17 @@ export interface DailySentiment {
   avgSentimentScore: number
 }
 
+export interface ProductDailySentiment {
+  sentimentDay: string
+  language: string
+  product: string
+  positiveCount: number
+  neutralCount: number
+  negativeCount: number
+  totalCount: number
+  avgSentimentScore: number
+}
+
 export interface KeywordTrend {
   sentimentDay: string
   keyword: string
@@ -39,6 +50,7 @@ export interface DashboardFilters {
   language?: string
   keyword?: string
   sentiment?: string
+  products?: string[]
   limit?: number
   offset?: number
 }
@@ -83,6 +95,47 @@ export class DashboardRepository {
     return (data ?? []).map(row => ({
       sentimentDay: row.sentiment_day,
       language: row.language,
+      positiveCount: row.positive_count,
+      neutralCount: row.neutral_count,
+      negativeCount: row.negative_count,
+      totalCount: row.total_count,
+      avgSentimentScore: row.avg_sentiment_score,
+    }));
+  }
+
+  async getProductDailySentiment(filters: DashboardFilters = {}): Promise<ProductDailySentiment[]> {
+    let query = this.supabase
+      .from('vw_product_daily_sentiment')
+      .select('*');
+
+    if (filters.startDate) {
+      query = query.gte('sentiment_day', filters.startDate);
+    }
+
+    if (filters.endDate) {
+      query = query.lte('sentiment_day', filters.endDate);
+    }
+
+    if (filters.language) {
+      query = query.eq('language', filters.language);
+    }
+
+    if (filters.products && filters.products.length > 0) {
+      query = query.in('product', filters.products);
+    }
+
+    const { data, error } = await query
+      .order('sentiment_day', { ascending: false })
+      .limit(filters.limit ?? 30);
+
+    if (error) {
+      throw new Error(`Failed to fetch product daily sentiment: ${error.message}`);
+    }
+
+    return (data ?? []).map(row => ({
+      sentimentDay: row.sentiment_day,
+      language: row.language,
+      product: row.product,
       positiveCount: row.positive_count,
       neutralCount: row.neutral_count,
       negativeCount: row.negative_count,

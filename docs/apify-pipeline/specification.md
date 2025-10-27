@@ -17,8 +17,8 @@ Architecture note: The pipeline is organized as a Vertical Slice `src/ApifyPipel
 ### 3.1 Data Collection
 - Vercel Cron calls the internal endpoint `/api/start-apify-run`, which proxies the Apify Run API call; intervals under 24h require at least the Vercel Pro plan. The route `app/api/start-apify-run/route.ts` imports the handler `src/ApifyPipeline/Web/Application/Commands/StartApifyRun` (REPR entry point).
 - Manual triggers via Apify UI or REST endpoint remain unchanged.
-- Data collection uses the Apify Twitter Search Scraper; scraper runs must respect anti-monitoring requirements. The collector performs a single call across all configured search terms with a total `maxItems` cap (default 100); optional pauses are supported but disabled by default.
-- Actor uses a predefined keyword list (configurable via Supabase table `keywords`).
+- Data collection uses the Apify Twitter Search Scraper; scraper runs must respect anti-monitoring requirements. By default, the collector runs sequentially per enabled product when `COLLECTOR_PRODUCT` is omitted; each run uses that product’s keywords with its own `maxItems` cap (default 100). Optional pauses are supported via env.
+- Actor uses a predefined keyword list (configurable via Supabase table `keywords`, including `product`).
 - On API limit errors or network errors, retry occurs (exponential up to 3 attempts).
 - Monitoring of duplicate rate: Stores tweet IDs in Supabase, runs document ratio `new vs. duplicated` (via `cron_runs`).
 
@@ -59,7 +59,7 @@ Architecture note: The pipeline is organized as a Vertical Slice `src/ApifyPipel
 - **Compliance:** Adherence to Apify scraper guidelines; data deletion on request.
 
 ## 5. Architecture & Components
-- **Apify Actor:** Node.js/TypeScript scripts using Apify Twitter Search Scraper with anti-monitoring pacing. (Slice: `src/ApifyPipeline/Background/Jobs/TweetCollector`)
+- **Collector Script:** Node.js/TypeScript orchestrator that runs Apify Twitter Search Scraper sequentially per product by default. Entry: `scripts/start-apify-run.ts` (Endpoint proxy: `app/api/start-apify-run`).
 - **Supabase:** Postgres + Edge Functions, auth via `sb_secret_*` keys; PG17-compatible extensions (e.g., alternatives to TimescaleDB) are considered. (Slice: `src/ApifyPipeline/DataAccess`)
 - **Sentiment Worker:** Supabase Edge Function with Gemini 2.5 Structured Output, optional Vercel Serverless fallback for bulk re-runs. (Slice: `src/ApifyPipeline/ExternalServices/Gemini`)
 - **Frontend:** Next.js 15 App Router on Vercel (Node.js 20, async Request APIs, `@supabase/ssr` integration). (Location: `app/dashboard/*`)
@@ -109,6 +109,7 @@ sentiment_failures
 keywords
 - keyword (text) PRIMARY KEY
 - is_enabled (boolean)
+- product (text)
 - last_used_at (timestamptz)
 
 cron_runs
@@ -127,7 +128,7 @@ cron_runs
 ## 7. Workflows
 ### 7.1 Automatic Run
 1. Vercel Cron calls `/api/start-apify-run` (Vercel Function) which proxies the Apify Run API call. The route imports the slice endpoint `src/ApifyPipeline/Web/Application/Commands/StartApifyRun`.
-2. Actor uses Apify Scraper tokens and reads `keywords` from Supabase.
+2. Actor/script uses Apify Scraper tokens and reads `keywords` (scoped by `product` when running per brand) from Supabase.
 3. Actor fetches tweets, stores raw data (`raw_tweets`).
 4. Actor transforms and upserts `normalized_tweets`.
 5. Actor marks records as `pending_sentiment`.
