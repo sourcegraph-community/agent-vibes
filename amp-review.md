@@ -1,72 +1,81 @@
 ## High-level summary
-This diff is a **pure documentation update** that modernises `docs/apify-pipeline/local-testing-guide.md` to match the current codebase and infrastructure:
+Two files were modified:
 
-* Updates the “last-updated” date and “validated” footer.
-* Re-brands the dashboard route to `/dashboard-v2` and adds redirect notes.
-* Aligns terminology with the latest API / schema changes (`maxItems` replaces `maxItemsPerKeyword`, `content` replaces `text`, `keyword_snapshot` replaces `keywords`, etc.).
-* Adds the new Backfill processor everywhere it is relevant.
-* Refreshes environment-variable tables, Supabase Edge-Functions workflow, and troubleshooting guidance.
-* Expands CLI / npm script reference and API endpoint reference, especially around auth headers.
-* Many small edits: wording, command flags, examples, typos, SQL column names, etc.
+1. **scripts/start-apify-run.ts**  
+   • Re-structured keyword-resolution logic.  
+   • Adds a two–step fallback when a `COLLECTOR_PRODUCT` is present (first try product-specific keywords, then all keywords).  
+   • When the DB query throws, the script now *re-throws* instead of silently falling back to static defaults, after logging a detailed error.  
 
-No executable code was changed, but the document drives local-developer behaviour, so correctness is still important.
+2. **KeywordsRepository.ts**  
+   • Changes the Supabase filter from a case-sensitive equality (`eq`) to a case-insensitive match (`ilike`) for the `product` column.
 
 ## Tour of changes
-Start with the **“API Endpoint Reference”** section (`/api/start-apify-run`, `/api/process-sentiments`, `/api/process-backfill`).  
-These pages received the heaviest structural changes and incorporate the key renames (`maxItems`, auth headers). Understanding those updates makes the rest of the diff (examples, SQL snippets, env table, CLI commands) self-explanatory.
+Start the review in **scripts/start-apify-run.ts**.  
+All downstream behaviour (including the need for a case-insensitive query) is driven by the way this function now attempts, retries and fails. Understanding this restructuring clarifies why `KeywordsRepository.ts` was updated.
 
 ## File level review
 
-### `docs/apify-pipeline/local-testing-guide.md`
-#### Correctness & coherence
-1. Dates and footer  
-   ✔  Updated consistently.
+### `scripts/start-apify-run.ts`
 
-2. Dashboard route rename  
-   * You changed **all** links except in the architecture diagram at line ~40 (`app/dashboard-v2/` ✓). Good.
+What changed
+------------
+1. Replaced one Supabase query with a small decision tree:
+   • If `COLLECTOR_PRODUCT` is set  
+     – Try `fetchEnabledKeywordsByProduct`.  
+     – If no rows, fall back to all enabled keywords.  
+   • If `COLLECTOR_PRODUCT` is unset  
+     – Fetch all enabled keywords.  
 
-3. New ingestion props (`maxItems`)  
-   * Examples, cURL and TS test files all replaced `maxItemsPerKeyword` / `keywordBatchSize`.  
-   * Ensure the backend actually removed `keywordBatchSize`. If the handler still supports both, note that here for backward compatibility.
+2. Error handling  
+   • Used to swallow all DB errors and keep running with static defaults.  
+   • Now logs (`console.error`) and **re-throws** the error; static defaults are *not* used in this scenario.
 
-4. DB column renames  
-   * `text` → `content`, `keywords` → `keyword_snapshot`, `reasoning->>'summary' AS summary`. Those match the 2025-10-10 migration—LGTM.
+Correctness & bugs
+------------------
+• Functional improvement: the new “fallback to all keywords when product has none” removes an edge case where the crawler would run with the *static* default list even though the DB is reachable.
 
-5. Auth wording  
-   * Clarifies three auth mechanisms (Bearer $CRON_SECRET, `x-vercel-cron`, `x-api-key`). Accurate with current middleware.  
-   * The note on `ALLOW_API_KEY_QUERY` deviation is good; maybe explicitly state “for development only”.
+• Possible **breaking change**: by re-throwing, any connectivity problem, Supabase outage or auth error will now crash the process instead of running with defaults.  
+  – Verify that the calling environment (CI pipeline? lambda? docker entrypoint?) is prepared for this stop-the-world behaviour.  
+  – If partial availability is desirable, consider restoring the previous swallow-and-default strategy or making it configurable (e.g. `FAIL_ON_DB_ERROR=true`).
 
-6. Edge-functions flow  
-   * Adds `SUPABASE_FUNCTIONS_URL`, `SENTIMENT_EDGE_FALLBACK`. Matches infra/env.ts.  
-   * Build/serve commands are correct.
+• `toErrorMessage(err)` is used but not imported in this diff. Make sure it already exists in this file; otherwise build will fail.
 
-7. Scripts matrix  
-   * Splits into topical blocks (quality/tests/pipeline/maintenance). ✓  
-   * The new `npm run fix` alias is documented; make sure it exists in `package.json`.
+• Minor style: inside the `else` branch we shadow `kws` (`const kws = ...`) while in the `if` branch it is a `let`. Shadowing is legal but slightly harder to read. Consider using a single `let kws` outside both branches.
 
-8. Examples
-   * JS→TS conversion (`test-apify-client.ts`) uses `tsx`, not `node --input-type=module`. 👍  
-   * Sentiment example switched to `analyzeSentiment` original signature. Verify file path in import (`ExternalServices/Gemini/GeminiClient`) actually exports that method name (v2 renamed, so OK).
+Performance
+-----------
+• In the product path we sometimes execute two sequential DB queries (product-filtered then full list). A single query with `or` logic could cut latency by half, but the current approach is clear and acceptable.
 
-9. SQL snippets  
-   * Updated column names; the `sentiment_failures` table uses `last_attempt_at`, not `last_attempted_at`. Good catch.
+Security
+--------
+• No additional attack surface. Logging the error body is fine as long as credentials are not embedded in the message (Supabase throws normally do not include secrets).
 
-10. Troubleshooting  
-    * Error messages now match thrown text constants—nice.
+### `src/ApifyPipeline/DataAccess/Repositories/KeywordsRepository.ts`
 
-#### Minor nits / suggestions
-* The architecture ASCII diagram gained “BackfillProc.”; line length is one char longer—no overflow, but check markdown render width.
-* For rate-limit advice, also mention `SENTIMENT_RPM_CAP` env var which appears earlier.
-* Typo: “SENTIMENT_RPM_CAP=60” was removed from the shell script example but still listed in the Edge functions env snippet—keep them consistent.
-* In “Local Environment” list, Node requirement says “20+ (Next.js 15)”; Next.js 15 is currently in **canary**, maybe add “≥ 15.0.0-canary” to avoid confusion.
-* The API reference shows both POST & GET for `/api/start-apify-run`; add a quick sentence telling users that GET is **never** allowed in production to avoid accidental exposure.
+What changed
+------------
+`eq('product', normalized)` → `ilike('product', normalized)`
 
-#### Security
-* The doc now encourages setting `SENTIMENT_EDGE_FALLBACK=true` which could allow large GPT requests to hit Node in prod if someone copies it unchanged. Maybe add a big “Dev-only” caution.
-* Query-string API keys: reiterate the danger—docs already limit to non-prod, but bolding wouldn’t hurt.
+Correctness & bugs
+------------------
+• `.ilike` is case-insensitive but still performs a *pattern match*. If `normalized` does **not** contain wildcards (`%`), behaviour equals a case-insensitive equality, which is probably what you want. If you actually intended substring matching, you must wrap the value (`%${normalized}%`).
 
-#### Broken links / paths
-* “Operational Runbook” path `../../src/ApifyPipeline/Docs/ApifyPipeline-start-apify-run-runbook.md` looks correct relative to docs/; verify case-sensitivity on Linux.
-* `specification.md` and `overview.md` still live one directory above; good.
+• Supabase JS returns an error if the column is not of type `text`. Make sure `product` is `text`/`varchar` and not `enum('product')`. Otherwise Postgres may complain that `ilike` is not defined for that type.
 
-Overall the documentation is substantially clearer and aligns with the latest codebase. Only minor polishing points remain.
+• Indexes: changing to `ilike` disables any B-tree index on `product` unless the index is created with `LOWER(product)` or a `citext` column is used. If this table grows, query could become slower. Consider:
+  – Converting column to `citext`, or  
+  – Adding an index on `LOWER(product)` and querying with `.ilike(normalized.toLowerCase())`.
+
+Security
+--------
+No additional risks.
+
+### Other files (static defaults array at bottom of `start-apify-run.ts`)
+No changes, but note that the array is now unreachable on DB failure because the error is thrown earlier. Confirm that this is intentional.
+
+## Recommendation checklist
+1. Decide if crashing on DB errors is acceptable or should be gated behind a feature flag.  
+2. Confirm `toErrorMessage` import.  
+3. Evaluate the need for `%` wildcards with `.ilike`.  
+4. Assess performance / indexing impact of `ilike` on `product`.  
+5. Optional: refactor variable shadowing for clarity.

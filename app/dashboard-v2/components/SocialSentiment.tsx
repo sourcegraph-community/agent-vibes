@@ -73,25 +73,11 @@ interface SocialSentimentProps {
   timeframe: number;
 }
 
-const brandColorPalette = [
-  '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#2dd4bf',
-  '#fb923c', '#4ade80', '#38bdf8', '#f472b6', '#6366f1', '#84cc16',
-];
-
-const brandColor = (brand: string): string => {
-  let hash = 0;
-  for (let i = 0; i < brand.length; i++) {
-    hash = ((hash << 5) - hash) + brand.charCodeAt(i);
-    hash = hash & hash;
-  }
-  return brandColorPalette[Math.abs(hash) % brandColorPalette.length];
-};
-
 export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<string[]>([]);
-  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [productData, setProductData] = useState<ProductResponse | null>(null);
   const [productLoading, setProductLoading] = useState(false);
 
@@ -103,7 +89,7 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
         const result = await response.json();
         if (result.products && Array.isArray(result.products)) {
           setProducts(result.products);
-          setSelectedProducts(new Set(result.products));
+          setSelectedBrand(result.products[0] ?? null);
         }
       } catch (error) {
         console.error('Failed to fetch brands:', error);
@@ -112,18 +98,17 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
     fetchBrands();
   }, []);
 
-  // Fetch product data when timeframe or selected products change
+  // Fetch product data when timeframe or selected brand changes
   const fetchProductData = useCallback(async () => {
-    if (selectedProducts.size === 0) {
+    if (!selectedBrand) {
       setProductData(null);
       return;
     }
 
     setProductLoading(true);
     try {
-      const productsParam = Array.from(selectedProducts).join(',');
       const response = await fetch(
-        `/api/social-sentiment/by-product?days=${timeframe}&products=${encodeURIComponent(productsParam)}`,
+        `/api/social-sentiment/by-product?days=${timeframe}&products=${encodeURIComponent(selectedBrand)}`,
       );
       const result = await response.json();
       setProductData(result);
@@ -132,7 +117,7 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
     } finally {
       setProductLoading(false);
     }
-  }, [timeframe, selectedProducts]);
+  }, [timeframe, selectedBrand]);
 
   useEffect(() => {
     fetchProductData();
@@ -154,24 +139,6 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const handleBrandToggle = (product: string) => {
-    const newSelected = new Set(selectedProducts);
-    if (newSelected.has(product)) {
-      newSelected.delete(product);
-    } else {
-      newSelected.add(product);
-    }
-    setSelectedProducts(newSelected);
-  };
-
-  const handleSelectAll = () => {
-    setSelectedProducts(new Set(products));
-  };
-
-  const handleDeselectAll = () => {
-    setSelectedProducts(new Set());
-  };
 
   // Only show the loading placeholder when there's no data yet (initial load)
   if (loading && !data) {
@@ -198,7 +165,6 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
 
   // Determine which data to use for summary
   const summaryData = productData?.summary || data?.summary;
-  const chartDataSource = productData || data;
 
   // Format date key helper
   const formatDateKey = (d: Date) => {
@@ -232,44 +198,37 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
     borderDash?: number[];
   }> = [];
 
-  if (productData && productData.dataByProduct) {
-    const productNames = Object.keys(productData.dataByProduct).sort();
-    for (const product of productNames) {
-      const productRows = productData.dataByProduct[product];
-      const dayMap = new Map(productRows.map(row => [row.day.split('T')[0], row]));
+  if (productData && productData.dataByProduct && selectedBrand) {
+    const productRows = productData.dataByProduct[selectedBrand] ?? [];
+    const dayMap = new Map(productRows.map(row => [row.day.split('T')[0], row]));
 
-      const baseColor = brandColor(product);
-      const positiveData = dateKeysAsc.map((key) => {
-        const row = dayMap.get(key);
-        return row && row.total_count > 0 ? (row.positive_count / row.total_count) * 100 : 0;
-      });
+    const positiveData = dateKeysAsc.map((key) => {
+      const row = dayMap.get(key);
+      return row && row.total_count > 0 ? (row.positive_count / row.total_count) * 100 : 0;
+    });
 
-      const negativeData = dateKeysAsc.map((key) => {
-        const row = dayMap.get(key);
-        return row && row.total_count > 0 ? (row.negative_count / row.total_count) * 100 : 0;
-      });
+    const negativeData = dateKeysAsc.map((key) => {
+      const row = dayMap.get(key);
+      return row && row.total_count > 0 ? (row.negative_count / row.total_count) * 100 : 0;
+    });
 
-      // Parse color and create variants
-      const positiveColor = baseColor + 'FF';
-      const negativeColor = baseColor + '80';
-
-      datasets.push({
-        label: `${product} - Positive`,
+    datasets = [
+      {
+        label: 'Positive',
         data: positiveData,
-        borderColor: positiveColor,
-        backgroundColor: baseColor + '33',
+        borderColor: 'hsl(0, 0%, 90%)',
+        backgroundColor: 'hsla(0, 0%, 90%, 0.2)',
         tension: 0.4,
-      });
-
-      datasets.push({
-        label: `${product} - Negative`,
+      },
+      {
+        label: 'Negative',
         data: negativeData,
-        borderColor: negativeColor,
-        backgroundColor: baseColor + '1a',
+        borderColor: 'hsl(0, 0%, 50%)',
+        backgroundColor: 'hsla(0, 0%, 50%, 0.2)',
         tension: 0.4,
         borderDash: [5, 5],
-      });
-    }
+      },
+    ];
   } else if (data && data.data) {
     const aggregatedByDay = data.data.reduce((acc: Record<string, { positive: number; neutral: number; negative: number; total: number }>, row) => {
       const dateKey = row.sentimentDay.split('T')[0];
@@ -358,36 +317,26 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
       {/* Brand Filter */}
       {products.length > 0 && (
         <div className="card mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-400">Filter by Brand</h3>
-            <div className="flex gap-2">
-              <button
-                onClick={handleSelectAll}
-                className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
-              >
-                All
-              </button>
-              <button
-                onClick={handleDeselectAll}
-                className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
-              >
-                Clear
-              </button>
+          <fieldset role="radiogroup" aria-labelledby="brand-filter-label">
+            <div className="flex items-center justify-between mb-3">
+              <h3 id="brand-filter-label" className="text-sm font-medium text-gray-400">Filter by Brand</h3>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {products.map((product) => (
-              <label key={product} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedProducts.has(product)}
-                  onChange={() => handleBrandToggle(product)}
-                  className="w-4 h-4 bg-gray-700 border border-gray-600 rounded cursor-pointer"
-                />
-                <span className="text-sm text-gray-300">{product}</span>
-              </label>
-            ))}
-          </div>
+            <div className="flex flex-wrap gap-3">
+              {products.map((product) => (
+                <label key={product} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="brand"
+                    value={product}
+                    checked={selectedBrand === product}
+                    onChange={() => setSelectedBrand(product)}
+                    className="w-4 h-4 bg-gray-700 border border-gray-600 rounded-full cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-300">{product}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </div>
       )}
 
@@ -430,15 +379,11 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
 
       {/* Chart */}
       <div className="card">
-        <h3 className="text-lg font-semibold mb-4">
+        <h3 id="sentiment" className="text-lg font-semibold mb-4">
           Sentiment Trends (Last {timeframe} Days)
           {productLoading && ' — Loading...'}
         </h3>
-        {selectedProducts.size === 0 ? (
-          <div className="flex items-center justify-center h-96 text-gray-400">
-            <p>Select brands to view sentiment trends</p>
-          </div>
-        ) : productLoading ? (
+        {productLoading ? (
           <div className="flex items-center justify-center h-96 text-gray-400">
             <p>Loading chart data...</p>
           </div>
@@ -448,7 +393,7 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
           </div>
         ) : (
           <div className="flex items-center justify-center h-96 text-gray-400">
-            <p>No data available for selected brands in this period</p>
+            <p>No data available for selected brand in this period</p>
           </div>
         )}
       </div>

@@ -33,12 +33,20 @@ async function resolveKeywords(): Promise<string[]> {
   try {
     const supabase = createSupabaseServiceClient();
     const product = (process.env.COLLECTOR_PRODUCT || '').trim();
-    const kws = product
-      ? await fetchEnabledKeywordsByProduct(supabase, product)
-      : await fetchEnabledKeywords(supabase);
-    if (kws.length > 0) return kws;
-  } catch (_) {
-    // fall through to defaults
+    if (product) {
+      let kws = await fetchEnabledKeywordsByProduct(supabase, product);
+      if (kws.length === 0) {
+        // Fallback to all enabled keywords from DB when product has no rows
+        kws = await fetchEnabledKeywords(supabase);
+      }
+      if (kws.length > 0) return kws;
+    } else {
+      const kws = await fetchEnabledKeywords(supabase);
+      if (kws.length > 0) return kws;
+    }
+  } catch (err) {
+    console.error('❗ Keyword resolution failed while querying DB; not using static defaults due to error:', toErrorMessage(err));
+    throw err;
   }
 
   return [

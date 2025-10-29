@@ -43,7 +43,7 @@ export const fetchEnabledKeywordsByProduct = async (
     .from('keywords')
     .select('keyword, is_enabled, priority, last_used_at, product')
     .eq('is_enabled', true)
-    .eq('product', normalized)
+    .ilike('product', normalized)
     .order('priority', { ascending: true })
     .order('keyword', { ascending: true });
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './dashboard.css';
 import SocialSentiment from './components/SocialSentiment';
 import RssSection from './components/RssSection';
@@ -9,6 +9,30 @@ export default function DashboardV2Page() {
   const [timeframe, setTimeframe] = useState(7);
   const [highlightFilter, setHighlightFilter] = useState('all');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [activeSection, setActiveSection] = useState<string>('overview');
+
+  useEffect(() => {
+    const updateActiveFromHash = () => {
+      const hash = window.location.hash?.replace('#', '');
+      setActiveSection(hash || 'overview');
+    };
+    updateActiveFromHash();
+    window.addEventListener('hashchange', updateActiveFromHash);
+    return () => window.removeEventListener('hashchange', updateActiveFromHash);
+  }, []);
+
+  // Compute sticky header offset for anchor positioning
+  useEffect(() => {
+    const setHeaderOffset = () => {
+      const header = document.querySelector('.main-header') as HTMLElement | null;
+      const height = header ? header.offsetHeight : 96; // fallback
+      document.documentElement.style.setProperty('--header-offset', `${height}px`);
+    };
+    setHeaderOffset();
+    window.addEventListener('resize', setHeaderOffset);
+    return () => window.removeEventListener('resize', setHeaderOffset);
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -24,39 +48,68 @@ export default function DashboardV2Page() {
         <nav className="sidebar-nav">
           <div className="nav-section">
             <div className="nav-section-title">Dashboard</div>
-            <a href="#overview" className="nav-item active">
+            <a
+              href="#overview"
+              className={`nav-item${activeSection === 'overview' ? ' active' : ''}`}
+              onClick={() => setActiveSection('overview')}
+            >
               <span>Overview</span>
             </a>
-            <a href="#highlights" className="nav-item">
-              <span>TL;DR Highlights</span>
+            <a
+              href="#social"
+              className={`nav-item${activeSection === 'social' ? ' active' : ''}`}
+              onClick={() => setActiveSection('social')}
+            >
+              <span>Social Sentiment</span>
             </a>
-            <a href="#sentiment" className="nav-item">
-              <span>Sentiment Trends</span>
+            <a
+              href="#highlights"
+              className={`nav-item${activeSection === 'highlights' ? ' active' : ''}`}
+              onClick={() => setActiveSection('highlights')}
+            >
+              <span>TL;DR Highlights</span>
             </a>
           </div>
 
           <div className="nav-section">
             <div className="nav-section-title">Content</div>
-            <a href="#updates" className="nav-item">
+            <a
+              href="#updates"
+              className={`nav-item${activeSection === 'updates' ? ' active' : ''}`}
+              onClick={() => setActiveSection('updates')}
+            >
               <span>Product Updates</span>
             </a>
-            <a href="#research" className="nav-item">
+            <a
+              href="#research"
+              className={`nav-item${activeSection === 'research' ? ' active' : ''}`}
+              onClick={() => setActiveSection('research')}
+            >
               <span>Research Papers</span>
             </a>
-            <a href="#perspectives" className="nav-item">
+            <a
+              href="#perspectives"
+              className={`nav-item${activeSection === 'perspectives' ? ' active' : ''}`}
+              onClick={() => setActiveSection('perspectives')}
+            >
               <span>Perspective Pieces</span>
-            </a>
-            <a href="#social" className="nav-item">
-              <span>Social Sentiment</span>
             </a>
           </div>
 
           <div className="nav-section">
             <div className="nav-section-title">Tools</div>
-            <a href="#timeline" className="nav-item">
+            <a
+              href="#timeline"
+              className={`nav-item${activeSection === 'timeline' ? ' active' : ''}`}
+              onClick={() => setActiveSection('timeline')}
+            >
               <span>Timeline View</span>
             </a>
-            <a href="#search" className="nav-item">
+            <a
+              href="#search"
+              className={`nav-item${activeSection === 'search' ? ' active' : ''}`}
+              onClick={() => setActiveSection('search')}
+            >
               <span>Search & Filter</span>
             </a>
           </div>
@@ -102,6 +155,9 @@ export default function DashboardV2Page() {
         <div className="content-container">
           {/* Overview Section */}
           <section id="overview" className="section">
+            <div className="section-header">
+              <h2 className="section-title">Overview</h2>
+            </div>
             <div className="metrics-grid">
               <div className="card">
                 <div className="card-header">
@@ -168,6 +224,8 @@ export default function DashboardV2Page() {
               </div>
             </div>
           </section>
+
+          <SocialSentiment timeframe={timeframe} />
 
           {/* TL;DR Highlights Section */}
           <section id="highlights" className="section">
@@ -264,9 +322,6 @@ export default function DashboardV2Page() {
               </p>
             </div>
           </section>
-
-          {/* Social Sentiment Section - Connected to Real Data */}
-          <SocialSentiment timeframe={timeframe} />
 
           {/* Product Updates Section */}
           <RssSection

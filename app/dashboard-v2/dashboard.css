@@ -188,10 +188,19 @@ body {
 
 .content-container {
     padding: 1.5rem;
+    /* Helps native scrollIntoView when used programmatically; anchor nav relies on section scroll-margin */
+    scroll-padding-top: var(--header-offset, 96px);
 }
 
 .section {
     margin-bottom: 2rem;
+    /* Ensure anchor navigation accounts for sticky header height */
+    scroll-margin-top: var(--header-offset, 96px);
+}
+
+/* Overview needs a touch more room to avoid visual crowding under the sticky header */
+#overview {
+    scroll-margin-top: calc(var(--header-offset, 96px) + 16px);
 }
 
 .section-header {
