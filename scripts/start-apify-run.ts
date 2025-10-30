@@ -9,7 +9,7 @@ import { insertRawTweets } from '@/src/ApifyPipeline/DataAccess/Repositories/Raw
 import { insertNormalizedTweets, type NormalizedTweetInsert } from '@/src/ApifyPipeline/DataAccess/Repositories/NormalizedTweetsRepository';
 import { fetchExistingNormalizedIds } from '@/src/ApifyPipeline/DataAccess/Repositories/NormalizedTweetsLookup';
 import { normalizeTweet, extractPlatformId, type ApifyTweetItem } from '@/src/ApifyPipeline/Core/Transformations/normalizeTweet';
-import { invokeSentimentProcessorFunction } from '@/src/ApifyPipeline/ExternalServices/Supabase/edgeFunctions';
+
 
 // Load .env.local for local testing
 config({ path: '.env.local' });
@@ -399,11 +399,6 @@ async function runTweetScraperOnce(params: {
 
     if (normalizedRows.length > 0) {
       await insertNormalizedTweets(supabase, normalizedRows);
-      try {
-        await invokeSentimentProcessorFunction({ batchSize: normalizedRows.length });
-      } catch (e) {
-        console.warn('Sentiment processor invocation failed:', String(e));
-      }
     }
 
     await insertCronRun(supabase, {

@@ -1,81 +1,76 @@
 ## High-level summary
-Two files were modified:
+The script that triggers the sentiment–processing job (`scripts/process-sentiments.ts`) has been refactored to optionally run in a self-looping “drain the queue” mode.  
+Key additions:
 
-1. **scripts/start-apify-run.ts**  
-   • Re-structured keyword-resolution logic.  
-   • Adds a two–step fallback when a `COLLECTOR_PRODUCT` is present (first try product-specific keywords, then all keywords).  
-   • When the DB query throws, the script now *re-throws* instead of silently falling back to static defaults, after logging a detailed error.  
+* New Supabase service client is created to count the remaining `pending_sentiment` rows.
+* New environment variables  
+  * `SENTIMENT_LOOP_ALL` – turns the loop on/off (`true` by default).  
+  * `SENTIMENT_LOOP_MAX_RUNS` – safety-cap for number of passes (clamped 1-10 000, default 100).
+* Robust parsing / clamping of existing env vars was tightened.
+* Extensive logging & several exit-guard conditions were added.
 
-2. **KeywordsRepository.ts**  
-   • Changes the Supabase filter from a case-sensitive equality (`eq`) to a case-insensitive match (`ilike`) for the `product` column.
+No other files were touched.
+
+---
 
 ## Tour of changes
-Start the review in **scripts/start-apify-run.ts**.  
-All downstream behaviour (including the need for a case-insensitive query) is driven by the way this function now attempts, retries and fails. Understanding this restructuring clarifies why `KeywordsRepository.ts` was updated.
+Start the review at the **new configuration block (lines 10-25)** that introduces the loop flags (`SENTIMENT_LOOP_ALL`, `SENTIMENT_LOOP_MAX_RUNS`) and the Supabase client. This section drives all subsequent logic changes (loop, counting, exit conditions). From there, proceed to the `try` block where the looping algorithm is implemented.
+
+---
 
 ## File level review
 
-### `scripts/start-apify-run.ts`
+### `scripts/process-sentiments.ts`
+1. Imports  
+   • Added `createSupabaseServiceClient` – implies a dependency on Supabase service-role creds. No changes needed here.
 
-What changed
-------------
-1. Replaced one Supabase query with a small decision tree:
-   • If `COLLECTOR_PRODUCT` is set  
-     – Try `fetchEnabledKeywordsByProduct`.  
-     – If no rows, fall back to all enabled keywords.  
-   • If `COLLECTOR_PRODUCT` is unset  
-     – Fetch all enabled keywords.  
+2. Env-var parsing / clamping  
+   • `rawRetries` refactor is clearer and prevents NaN from being clamped.  
+   • `loopAll` parsing: anything other than the literal string `"false"` (case-insensitive, surrounding spaces trimmed) evaluates to `true`.  
+     ‑ Consider also treating `"0"`, `"no"`, `"off"` as false to be more user-friendly.  
+   • `maxRuns` clamped to `[1, 10 000]`, default 100 – sensible.
 
-2. Error handling  
-   • Used to swallow all DB errors and keep running with static defaults.  
-   • Now logs (`console.error`) and **re-throws** the error; static defaults are *not* used in this scenario.
+3. Supabase helper `hasPending`  
+   • Uses `count:'exact', head:true` ⇒ only metadata is returned, efficient.  
+   • Error is converted to exception – good.  
+   • `count ?? 0` coverage prevents `null` leakage.  
+   • Possible optimisation: create an index on `(status)` in `normalized_tweets` to keep count queries fast on large tables.
 
-Correctness & bugs
-------------------
-• Functional improvement: the new “fallback to all keywords when product has none” removes an edge case where the crawler would run with the *static* default list even though the DB is reachable.
+4. Non-loop path (`!loopAll`)  
+   • Behaviour identical to prior version – straightforward.
 
-• Possible **breaking change**: by re-throwing, any connectivity problem, Supabase outage or auth error will now crash the process instead of running with defaults.  
-  – Verify that the calling environment (CI pipeline? lambda? docker entrypoint?) is prepared for this stop-the-world behaviour.  
-  – If partial availability is desirable, consider restoring the previous swallow-and-default strategy or making it configurable (e.g. `FAIL_ON_DB_ERROR=true`).
+5. Looping path  
+   • Guard: `runs < maxRuns` protects from infinite loops.  
+   • Secondary guard: if a pass processed 0 items *and* items still pending, it warns & aborts, preventing a tight loop due to hidden bug or mis-status rows.  
+   • After loop exits, checks again whether items remain; exits with non-zero code if so – keeps CI / cron jobs honest.  
+   • Overall logic is solid and side-effect free.
 
-• `toErrorMessage(err)` is used but not imported in this diff. Make sure it already exists in this file; otherwise build will fail.
+6. Error handling  
+   • Fatal errors and job-reported failures correctly cause `process.exit(1)`.  
+   • Beware: Unhandled rejection outside of `try` (e.g., inside Supabase’s fetch) would still bubble – consider `process.on('unhandledRejection')`.
 
-• Minor style: inside the `else` branch we shadow `kws` (`const kws = ...`) while in the `if` branch it is a `let`. Shadowing is legal but slightly harder to read. Consider using a single `let kws` outside both branches.
+7. TypeScript / correctness  
+   • All new functions are typed (`Promise<number>` etc.).  
+   • No implicit `any`s introduced.  
+   • `clamp` usage remained correct.
 
-Performance
------------
-• In the product path we sometimes execute two sequential DB queries (product-filtered then full list). A single query with `or` logic could cut latency by half, but the current approach is clear and acceptable.
+8. Security considerations  
+   • Script now pulls Supabase service keys; ensure `.env.local` / environment is not committed.  
+   • No user-supplied input reaches the DB query directly – good.  
+   • The script still prints stats but never logs raw tweet content or keys.
 
-Security
---------
-• No additional attack surface. Logging the error body is fine as long as credentials are not embedded in the message (Supabase throws normally do not include secrets).
+9. Performance  
+   • Each loop performs **two** network calls: a `count` then the job itself. For thousands of passes this is negligible, but if latency is a concern you could let the job return “remaining” to avoid the extra query.  
+   • `maxRuns` upper bound (10 000) ensures resource exhaustion can’t happen accidentally.
 
-### `src/ApifyPipeline/DataAccess/Repositories/KeywordsRepository.ts`
+10. Style / maintainability  
+    • Logging is clean and emoji-labelled; consistent with existing style.  
+    • The larger `try` block could be broken into helper functions (`processOnce`, `processLoop`) for testability, but not blocking.
 
-What changed
-------------
-`eq('product', normalized)` → `ilike('product', normalized)`
+---
 
-Correctness & bugs
-------------------
-• `.ilike` is case-insensitive but still performs a *pattern match*. If `normalized` does **not** contain wildcards (`%`), behaviour equals a case-insensitive equality, which is probably what you want. If you actually intended substring matching, you must wrap the value (`%${normalized}%`).
+Overall the change is well-structured, provides safer automation, and introduces no obvious bugs. My only recommendations are:
 
-• Supabase JS returns an error if the column is not of type `text`. Make sure `product` is `text`/`varchar` and not `enum('product')`. Otherwise Postgres may complain that `ilike` is not defined for that type.
-
-• Indexes: changing to `ilike` disables any B-tree index on `product` unless the index is created with `LOWER(product)` or a `citext` column is used. If this table grows, query could become slower. Consider:
-  – Converting column to `citext`, or  
-  – Adding an index on `LOWER(product)` and querying with `.ilike(normalized.toLowerCase())`.
-
-Security
---------
-No additional risks.
-
-### Other files (static defaults array at bottom of `start-apify-run.ts`)
-No changes, but note that the array is now unreachable on DB failure because the error is thrown earlier. Confirm that this is intentional.
-
-## Recommendation checklist
-1. Decide if crashing on DB errors is acceptable or should be gated behind a feature flag.  
-2. Confirm `toErrorMessage` import.  
-3. Evaluate the need for `%` wildcards with `.ilike`.  
-4. Assess performance / indexing impact of `ilike` on `product`.  
-5. Optional: refactor variable shadowing for clarity.
+1. Expand `loopAll` falsy semantics (`'0', 'no', 'off'`), or document the strict requirement.  
+2. Optionally fold the initial `count` into `runSentimentProcessorJob` return signature to halve DB round-trips.  
+3. Add `process.on('unhandledRejection', …)` to avoid silent exits on promise leaks.

@@ -4,6 +4,41 @@ Recommended improvements and optimizations for future implementation.
 
 ## Pending Enhancements
 
+### Fully remove Supabase Edge usage from ApifyPipeline execution paths
+- Goal: Keep the edge function available, but decouple it from ApifyPipeline (Background + Web/Application) so the pipeline uses only the internal sentiment processor.
+- What: Replace all invocations of `invokeSentimentProcessorFunction` in ApifyPipeline with `runSentimentProcessorJob` or a shared Application command that delegates to the job. Specifically update [TweetCollectorJob.ts#L239-L247](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Background/Jobs/TweetCollector/TweetCollectorJob.ts#L239-L247) and [ProcessSentimentsCommandHandler.ts#L24-L29](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Web/Application/Commands/ProcessSentiments/ProcessSentimentsCommandHandler.ts#L24-L29) to remove the edge dependency.
+- Why: Simplifies the runtime path, avoids external network dependency during pipeline runs, and makes processing behavior explicit and predictable while preserving the edge function for separate, non-pipeline use cases.
+- Priority: High
+- Status: Pending
+
+### Add clarity log after normalized inserts in ad-hoc collector
+- Goal: Make it explicit that sentiment processing is handled by the subsequent step.
+- What: After `insertNormalizedTweets` in [start-apify-run.ts#L400-L402](file:///home/prinova/CodeProjects/agent-vibes/scripts/start-apify-run.ts#L400-L402), add a brief log noting that sentiment processing is deferred to the `process:sentiments` step.
+- Why: Aids future maintainers and operators by clarifying that analysis is intentionally decoupled from ingestion.
+- Priority: Low
+- Status: Pending
+
+### Make `SENTIMENT_LOOP_ALL` accept common falsy values
+- Goal: Improve ergonomics for local/dev runs.
+- What: Parse `SENTIMENT_LOOP_ALL` with a broader falsy set (e.g., `false`, `0`, `no`, `off`), likely via a small util reused across scripts.
+- Why: Current strict parsing only treats the string `"false"` as false; more flexible parsing reduces footguns.
+- Priority: Medium
+- Status: Pending
+
+### Return remaining count from sentiment job to avoid pre-pass query
+- Goal: Reduce one round trip per pass in the processing loop.
+- What: Extend the result of [SentimentProcessorJob.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Background/Jobs/SentimentProcessor/SentimentProcessorJob.ts) to include `remaining` after the batch, so callers like [process-sentiments.ts](file:///home/prinova/CodeProjects/agent-vibes/scripts/process-sentiments.ts) can decide to continue without an extra count query.
+- Why: Eliminates the pre-pass `count` call when looping, making the loop more efficient and self-sufficient.
+- Priority: Medium
+- Status: Pending
+
+### Add global `unhandledRejection` handler for CLI scripts
+- Goal: Improve resilience and operator feedback during batch runs.
+- What: In Node CLI entrypoints, add a one-liner `process.on('unhandledRejection', ...)` to ensure errors surface with non-zero exit.
+- Why: Prevents silent failures from unawaited promises during long-running or iterative scripts.
+- Priority: Low
+- Status: Pending
+
 ### Optimize product filtering indexing for case-insensitive queries
 - **Goal**: Improve query performance for case-insensitive product lookups as keyword volume grows.
 - **What**: Add a database index such as `CREATE INDEX ... ON keywords (LOWER(product));` or migrate the `product` column to `citext` type, then query via lowercased comparison.
