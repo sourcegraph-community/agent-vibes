@@ -11,7 +11,9 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 async function main() {
-  const opmlPath = process.env.RSS_OPML_PATH || 'src/RssPipeline/Data/miniflux-feeds.opml';
+  const opmlPaths = [
+    'src/RssPipeline/Data/product-updates.opml',
+  ];
   const limitEnv = process.env.RSS_SYNC_LIMIT;
   const parsedLimit = limitEnv ? Number.parseInt(limitEnv, 10) : NaN;
   const limit = clamp(Number.isFinite(parsedLimit) ? parsedLimit : 100, 1, 500);
@@ -22,10 +24,8 @@ async function main() {
   const timeoutMs = process.env.INHOUSE_RSS_TIMEOUT_MS || '20000';
   const maxConc = process.env.INHOUSE_RSS_MAX_CONCURRENCY || '5';
 
-  const feeds = parseOpmlFileToInhouseFeeds(opmlPath);
+  const feeds = opmlPaths.flatMap((p) => parseOpmlFileToInhouseFeeds(p));
 
-  process.env.MINIFLUX_MODE = 'inhouse';
-  process.env.INHOUSE_RSS_FEEDS = JSON.stringify(feeds);
   process.env.INHOUSE_RSS_TIMEOUT_MS = timeoutMs;
   process.env.INHOUSE_RSS_MAX_CONCURRENCY = maxConc;
 
@@ -34,7 +34,7 @@ async function main() {
   console.log(`Feeds: ${feeds.length}`);
   console.log(`Limit: ${limit}`);
   console.log(`Since Days: ${sinceDays}`);
-  console.log(`OPML: ${opmlPath}`);
+  console.log(`OPML: ${opmlPaths.join(', ')}`);
   console.log('');
 
   const miniflux = createMinifluxClient();

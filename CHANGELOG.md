@@ -20,6 +20,24 @@ Add Build Crew Discussions section and placeholders for content areas; simplify 
 - Miniflux integration note under TL;DR Highlights removed in [page.tsx#L246-L264](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L246-L264) and trailing section closure at [page.tsx#L328](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L328).
 - `RssSection` import and usages removed/replaced with placeholders in [page.tsx#L3-L6](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L3-L6), [page.tsx#L330-L358](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L330-L358).
 
+### Goal
+Ingest “Product Updates” via in-house RSS only; remove external Miniflux path; keep configuration explicit and simple with OPML sources.
+
+### Added
+- New OPML file for Product Updates feeds: [product-updates.opml](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Data/product-updates.opml).
+
+### Changed
+- In-house Miniflux client simplified to in-house only; HTTP/external path removed in [client.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/client.ts).
+- In-house feed source now hardcoded to OPML list; parses aggregated feeds from OPML in [inhouse.ts#L6-L13](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts#L6-L13) and [inhouse.ts#L54-L64](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts#L54-L64).
+- Dry-run script updated to read OPML list directly (no env-based INHOUSE_RSS_FEEDS) in [dry-run-inhouse-rss.ts#L12-L16](file:///home/prinova/CodeProjects/agent-vibes/scripts/dry-run-inhouse-rss.ts#L12-L16) and [dry-run-inhouse-rss.ts#L27-L35](file:///home/prinova/CodeProjects/agent-vibes/scripts/dry-run-inhouse-rss.ts#L27-L35).
+- RSS Pipeline README updated to reflect in-house only path in [README.md#L1-L6](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/README.md#L1-L6) and structure notes in [README.md#L18-L31](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/README.md#L18-L31).
+- Test setup simplified for in-house path in [inhouse-dry-run.test.ts#L38-L47](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/__tests__/inhouse-dry-run.test.ts#L38-L47).
+- `.gitignore` updated to ignore `plan/` artifacts in [.gitignore#L49-L52](file:///home/prinova/CodeProjects/agent-vibes/.gitignore#L49-L52).
+
+### Removed
+- Legacy combined OPML removed: [miniflux-feeds.opml](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Data/miniflux-feeds.opml).
+- External Miniflux config/env path removed from example envs: `MINIFLUX_MODE` deleted in [.env.example#L76-L80](file:///home/prinova/CodeProjects/agent-vibes/.env.example#L76-L80).
+
 ## [Agent-Vibes 0.1.3]
 
 ### Goal

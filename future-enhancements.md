@@ -122,3 +122,31 @@ Recommended improvements and optimizations for future implementation.
 - **References**: [SocialSentiment.tsx#L352-L356](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/SocialSentiment.tsx#L352-L356)
 - **Priority**: Low
 - **Status**: Pending
+
+### Clarify RSS docs to OPML-only configuration
+- Goal: Make documentation explicit that in-house RSS aggregation is OPML-only (no `INHOUSE_RSS_FEEDS` JSON input).
+- What: Update [README.md](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/README.md) to remove or reword residual references to JSON-fed configs and ensure examples point to OPML aggregation.
+- Why: Reduces confusion and aligns docs with the new single source of truth.
+- Priority: Low
+- Status: Pending
+
+### Harden OPML path resolution for diverse runtimes
+- Goal: Improve robustness of OPML path discovery across build and runtime environments.
+- What: Replace direct `__dirname` joins in [inhouse.ts#L6-L13](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts#L6-L13) with a more resilient approach (e.g., config module, `process.cwd()`-based resolution, or `import.meta.url`), and centralize OPML path list in a small config.
+- Why: Minimizes brittleness across transpiled/packaged contexts and improves discoverability.
+- Priority: Low
+- Status: Pending
+
+### Simplify Miniflux client error union for in-house only
+- Goal: Remove unused HTTP-specific error codes/types now that only in-house path remains.
+- What: Trim unused error variants and align the error surface to `API_ERROR` (and any internal parsing/timeout semantics if applicable) in [client.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/client.ts).
+- Why: Keeps the API explicit and reduces dead code.
+- Priority: Low
+- Status: Pending
+
+### Centralize OPML path list in a configuration module
+- Goal: Make OPML sources easier to extend without touching reader logic.
+- What: Extract the OPML paths array from [inhouse.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts) into a small config file under `Data/` or `ExternalServices/Miniflux/`.
+- Why: Improves extensibility while keeping the single source of truth explicit.
+- Priority: Low
+- Status: Pending

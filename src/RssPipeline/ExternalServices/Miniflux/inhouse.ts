@@ -1,5 +1,12 @@
 import Parser from 'rss-parser';
 import type { GetEntriesParams, MinifluxEntriesResponse, MinifluxEntry } from './client';
+import { parseOpmlFileToInhouseFeeds } from './opml';
+import { join } from 'node:path';
+
+// Hardcoded OPML paths (extendable). Add more OPML files to aggregate feeds
+const OPML_PATHS = [
+  join(__dirname, '../../../Data/product-updates.opml'),
+];
 
 export type InhouseCategory = 'product_updates' | 'industry_research' | 'perspectives' | 'uncategorized';
 
@@ -47,17 +54,17 @@ function stableHashInt(input: string): number {
 }
 
 function parseFeedsEnv(): InhouseFeedConfig[] {
-  const raw = process.env.INHOUSE_RSS_FEEDS ?? '[]';
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error('INHOUSE_RSS_FEEDS is invalid JSON');
+  const all: InhouseFeedConfig[] = [];
+  for (const p of OPML_PATHS) {
+    const feeds = parseOpmlFileToInhouseFeeds(p);
+    if (Array.isArray(feeds) && feeds.length > 0) {
+      all.push(...feeds);
+    }
   }
-  if (!Array.isArray(parsed) || parsed.length === 0) {
-    throw new Error('INHOUSE_RSS_FEEDS is empty or invalid');
+  if (all.length === 0) {
+    throw new Error(`No feeds found in OPML files: ${OPML_PATHS.join(', ')}`);
   }
-  return parsed as InhouseFeedConfig[];
+  return all;
 }
 
 async function parseOneFeed(feed: InhouseFeedConfig) {

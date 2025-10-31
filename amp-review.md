@@ -1,73 +1,73 @@
 ## High-level summary
-The diff touches a single file, `app/dashboard-v2/page.tsx`.
+The change set completely removes support for talking to an external Miniflux instance and makes the “in-house” RSS implementation the single, hard-wired path.  
+Key themes:
 
-Main themes  
-1. All `<RssSection … />` instances have been replaced with static “Coming soon …” placeholders.  
-2. The associated `RssSection` import was deleted.  
-3. A new in-page section “Build Crew Discussions” plus a corresponding navbar link were introduced.  
-4. The explanatory footer note about “Miniflux RSS + AI summaries” was removed.  
-5. Minor cosmetic tweaks: consistent bold/large font for “Coming soon …” placeholders.
+* Environment / configuration clean-up (no more `MINIFLUX_MODE`, no need for external URL / API key, `.env.example` updated).
+* Miniflux client drastically simplified – all HTTP code deleted, only the in-house code path remains.
+* Feed source configuration is now driven by one or more OPML files checked into the repo (currently only `product-updates.opml`).  The large, catch-all `miniflux-feeds.opml` file was deleted and a smaller, topical OPML file added.
+* Scripts/tests updated to the new expectations (no `MINIFLUX_MODE`, no `INHOUSE_RSS_FEEDS` env variable).
+* README, `.gitignore` and misc clean-ups.
 
-Net effect: the dashboard temporarily **removes live RSS-driven content** and replaces it with stubs, while adding one extra stub section.
-
----
-
-## Tour of changes (recommended review order)
-
-1. Start with the **navigation bar block (lines ~60-70)**.  
-   Understanding how the new “Build Crew Discussions” link is wired is crucial because it drives the next changes (new section id, active state handling, scroll spy, etc.).
-
-2. Then review the **new “Build Crew” section (lines ~225-240)** to confirm id/title consistency and styling parity with existing sections.
-
-3. Finally, scan the **large block (lines ~300-360)** where each `RssSection` component is replaced by static HTML. That reveals the functional rollback and any side-effects (removed note, unused component).
-
----
+## Tour of changes
+Start with `src/RssPipeline/ExternalServices/Miniflux/client.ts`.  
+This file embodies the fundamental architectural change: everything related to external HTTP Miniflux is gone, and all other changes in the diff are ripple effects (env vars, OPML handling, tests, docs).
 
 ## File level review
 
-### `app/dashboard-v2/page.tsx`
+### `.env.example`
+* `MINIFLUX_MODE` removed.  
+  ✔️ Correct given single-mode design.
+* Consider adding a comment clarifying that OPML paths are hard-coded in code (`inhouse.ts`) so users aren’t left guessing where to configure feeds.
 
-Changes made
-• Removed `import RssSection …`  
-• Added navbar `<a>` element for `#build-crew`.  
-• Inserted new section markup for “Build Crew Discussions.”  
-• Replaced three `<RssSection … />` blocks (Product Updates, Research Papers, Perspective Pieces) with static placeholders.  
-• Adjusted a Timeline placeholder message.  
-• Deleted the Miniflux integration note at the end of the Highlights section.
+### `.gitignore`
+* Added `plan/`. Harmless.
 
-Code review
+### `scripts/dry-run-inhouse-rss.ts`
+* Now supports an array of OPML paths instead of a single path and stops mutating `MINIFLUX_MODE` / `INHOUSE_RSS_FEEDS`.
+* Suggestion: accept paths via CLI arg or env to avoid code edits when someone wants to test a different OPML.
 
-Correctness / consistency
-1. Active-section tracking  
-   – The file already tracks `activeSection` via state & scroll listeners (not shown in diff). Make sure the code that enumerates section ids now includes `'build-crew'`, otherwise the nav pill will never receive/lose the `.active` class during scroll.  
-   – Likewise, the array that drives scroll-to-section logic (if any) must be updated.
+### `src/RssPipeline/Data/miniflux-feeds.opml` (deleted)
+* Big feed list removed. If it’s still useful, keep it under `archive/` or docs rather than full deletion.
 
-2. Navigation link
-   – `href="#build-crew"` correctly matches the new section id.  
-   – Consider adding `aria-current="page"` or similar when active for accessibility.
+### `src/RssPipeline/Data/product-updates.opml` (new)
+* Focused OPML that matches the hard-coded category `product_updates`.
+* ✅ XML well-formed.
 
-3. Placeholder consistency  
-   – Re-used `.card` container and `font-bold text-lg text-gray-400` → consistent.  
-   – All other placeholder sections follow the same pattern; good visual consistency.
+### `src/RssPipeline/ExternalServices/Miniflux/client.ts`
+* External‐only code (HTTP, retries, timeout, auth) stripped.
+* `MinifluxConfig` and ctor parameters removed; `MinifluxClient` now has no state.
+* `makeRequest` and `markEntryAsRead` deleted.
+* `getEntries` simply delegates to `inhouse.getEntries` and wraps errors.
+* `createMinifluxClient` is now a one-liner.
+#### Review comments
+1. Type safety: `new MinifluxClient()` compiles because there is no constructor; fine, but document that `MinifluxClient` is stateless.
+2. The exported public shape changed; any downstream code that previously imported `MinifluxConfig` or called `markEntryAsRead` will break.  Search/compile before merge.
+3. The file retained the extensive interface declarations (`MinifluxEntry`, etc.); good for consumers but double-check unreachable types (e.g., error codes for HTTP that no longer exist).
 
-4. Removed `RssSection`  
-   – Component is now orphaned. Delete the file or mark as dead code to avoid confusion.  
-   – If feature deprecation is temporary, leave a TODO comment or open a tracking issue; otherwise future maintainers won’t know why this was removed.
+### `src/RssPipeline/ExternalServices/Miniflux/inhouse.ts`
+* Introduces hard-coded `OPML_PATHS`.
+* `parseFeedsEnv` renamed behaviour: no longer uses env JSON; instead parses all OPML files.
+* Better error messages if no feeds found.
+#### Review comments
+1. Path robustness: `join(__dirname, '../../../Data/product-updates.opml')` depends on being executed from `dist/.../inhouse.js` after compilation.  For Jest/ts-node runs the file path is `src/RssPipeline/ExternalServices/Miniflux`, so the relative depth looks correct (three levels up).  Still, add a helper to resolve project root to avoid fragile `../../../`.
+2. Extensibility: users must modify code to add feeds.  Expose an env such as `INHOUSE_OPML_PATHS` or read `plan/` directory to avoid source changes.
+3. Concurrency / timeout envs continue to work. 👍
+4. Consider caching parsed OPML results between calls to avoid re-reading files for every request.
 
-5. Lost explanatory note  
-   – The docs link to the Miniflux integration is valuable context; consider relocating it to the repo’s README or a dedicated “Coming soon” message so users still understand the roadmap.
+### `src/RssPipeline/README.md`
+* Docs now accurately describe single-mode architecture.
+* Example env section still mentions “provide a single-line JSON array of feed configs” which no longer does anything. Remove or rephrase.
 
-Performance / efficiency
-No impact—logic was removed, so bundle size is marginally smaller.
+### `src/RssPipeline/__tests__/inhouse-dry-run.test.ts`
+* Removes now-obsolete env setup of `MINIFLUX_MODE` and `INHOUSE_RSS_FEEDS`.  
+* The test indirectly relies on the hard-coded OPML to provide feeds; if the OPML ever empties the test will start failing.  For hermetic tests prefer injecting mock feeds (e.g., via dependency injection or overriding `OPML_PATHS`).
 
-Security
-No new user input or network interaction → no new attack surface.  
-Removing dynamic RSS fetching eliminates any potential XSS vectors that might have been introduced via un-sanitized feed content.
+## Overall assessment
+The simplification eliminates a lot of complexity and dependency on an external service, which is great, but the new configuration mechanism is rigid.  I recommend:
 
-Potential improvements / follow-ups
-• If scroll-spy code lives in a hard-coded array, update it now to avoid mismatch bugs.  
-• Add a central “Under construction” component instead of duplicating the same markup several times; keeps future changes DRY.  
-• If the RSS sections are expected to return, consider feature-flagging instead of full removal to make toggling easier.
+1. Make OPML paths configurable (CLI arg, env, or config file) to avoid code edits.
+2. Audit the codebase for dead references (`MinifluxConfig`, `markEntryAsRead`, HTTP error codes).
+3. Ensure documentation & environment examples no longer mention the JSON feed env var.
+4. Add a unit test covering the new OPML parsing path explicitly (mock file system) so future refactors don’t silently break feed discovery.
 
----
-
+With these tweaks the patch should be safe to merge.

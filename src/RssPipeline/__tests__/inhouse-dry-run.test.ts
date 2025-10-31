@@ -36,13 +36,8 @@ vi.mock('rss-parser', () => {
 import { createMinifluxClient } from '@/src/RssPipeline/ExternalServices/Miniflux/client';
 
 beforeEach(() => {
-  process.env.MINIFLUX_MODE = 'inhouse';
   process.env.INHOUSE_RSS_TIMEOUT_MS = '10';
   process.env.INHOUSE_RSS_MAX_CONCURRENCY = '2';
-  process.env.INHOUSE_RSS_FEEDS = JSON.stringify([
-    { url: 'https://example.com/feedA', title: 'Feed A', category: 'product_updates' },
-    { url: 'https://example.com/feedB', title: 'Feed B', category: 'perspectives' },
-  ]);
 });
 
 describe('Inhouse Miniflux getEntries (dry)', () => {
