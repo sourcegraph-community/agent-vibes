@@ -4,6 +4,27 @@ Recommended improvements and optimizations for future implementation.
 
 ## Pending Enhancements
 
+### Reintroduce RSS content via Miniflux + AI summaries
+- Goal: Restore dynamic content for Product Updates, Research Papers, and Perspective Pieces using Miniflux-backed feeds with AI summaries.
+- What: Rewire [page.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx) sections to use the existing [RssSection.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RssSection.tsx) component (or successor) and connect to configured Miniflux categories.
+- Why: The current placeholders unblock layout changes while deferring integration. Reinstating feeds returns value by surfacing real-time content.
+- Priority: Medium
+- Status: Pending
+
+### Implement Build Crew Discussions content source
+- Goal: Replace the Build Crew Discussions placeholder with real data.
+- What: Define the data source and contract (e.g., Supabase table or API) and render discussion threads in the new section at [page.tsx#L236-L244](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L236-L244).
+- Why: Enables the new section to deliver actionable insights beyond a stub while keeping VSA boundaries explicit.
+- Priority: Medium
+- Status: Pending
+
+### Build unified Timeline view
+- Goal: Replace the simplified Timeline placeholder with a chronological, merged feed across sections.
+- What: Aggregate entries from highlights, product updates, research, perspectives, and build crew discussions into a single timeline in [page.tsx#L361-L367](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L361-L367).
+- Why: Provides a comprehensive overview that matches the intended UX.
+- Priority: Low
+- Status: Pending
+
 ### Fully remove Supabase Edge usage from ApifyPipeline execution paths
 - Goal: Keep the edge function available, but decouple it from ApifyPipeline (Background + Web/Application) so the pipeline uses only the internal sentiment processor.
 - What: Replace all invocations of `invokeSentimentProcessorFunction` in ApifyPipeline with `runSentimentProcessorJob` or a shared Application command that delegates to the job. Specifically update [TweetCollectorJob.ts#L239-L247](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Background/Jobs/TweetCollector/TweetCollectorJob.ts#L239-L247) and [ProcessSentimentsCommandHandler.ts#L24-L29](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Web/Application/Commands/ProcessSentiments/ProcessSentimentsCommandHandler.ts#L24-L29) to remove the edge dependency.
@@ -21,7 +42,7 @@ Recommended improvements and optimizations for future implementation.
 ### Make `SENTIMENT_LOOP_ALL` accept common falsy values
 - Goal: Improve ergonomics for local/dev runs.
 - What: Parse `SENTIMENT_LOOP_ALL` with a broader falsy set (e.g., `false`, `0`, `no`, `off`), likely via a small util reused across scripts.
-- Why: Current strict parsing only treats the string `"false"` as false; more flexible parsing reduces footguns.
+- Why: Current strict parsing only treats the string "false" as false; more flexible parsing reduces footguns.
 - Priority: Medium
 - Status: Pending
 

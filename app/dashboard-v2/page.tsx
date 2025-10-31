@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import './dashboard.css';
 import SocialSentiment from './components/SocialSentiment';
-import RssSection from './components/RssSection';
 
 export default function DashboardV2Page() {
   const [timeframe, setTimeframe] = useState(7);
@@ -61,6 +60,13 @@ export default function DashboardV2Page() {
               onClick={() => setActiveSection('social')}
             >
               <span>Social Sentiment</span>
+            </a>
+            <a
+              href="#build-crew"
+              className={`nav-item${activeSection === 'build-crew' ? ' active' : ''}`}
+              onClick={() => setActiveSection('build-crew')}
+            >
+              <span>Build Crew Discussions</span>
             </a>
             <a
               href="#highlights"
@@ -227,6 +233,16 @@ export default function DashboardV2Page() {
 
           <SocialSentiment timeframe={timeframe} />
 
+          {/* Build Crew Discussions Section */}
+          <section id="build-crew" className="section">
+            <div className="section-header">
+              <h2 className="section-title">Build Crew Discussions</h2>
+            </div>
+            <div className="card">
+              <p className="text-gray-400 font-bold text-lg">Coming soon...</p>
+            </div>
+          </section>
+
           {/* TL;DR Highlights Section */}
           <section id="highlights" className="section">
             <div className="section-header">
@@ -309,46 +325,37 @@ export default function DashboardV2Page() {
               </div>
             </div>
 
-            <div className="mt-4 text-center">
-              <p className="text-sm text-gray-400">
-                <strong>Note:</strong> Product Updates, Research, and Perspectives will
-                be powered by Miniflux RSS + AI summaries.{' '}
-                <a
-                  href="https://github.com/sourcegraph-community/agent-vibes/blob/main/docs/miniflux-integration.md"
-                  className="text-blue-400 hover:text-blue-300"
-                >
-                  View integration guide →
-                </a>
-              </p>
-            </div>
           </section>
 
           {/* Product Updates Section */}
-          <RssSection
-            id="updates"
-            title="Product Updates"
-            category="product_updates"
-            limit={6}
-            showLoadMore
-          />
+          <section id="updates" className="section">
+            <div className="section-header">
+              <h2 className="section-title">Product Updates</h2>
+            </div>
+            <div className="card">
+              <p className="text-gray-400 font-bold text-lg">Coming soon...</p>
+            </div>
+          </section>
 
           {/* Research Papers Section */}
-          <RssSection
-            id="research"
-            title="Research Papers"
-            category="industry_research"
-            limit={6}
-            showLoadMore
-          />
+          <section id="research" className="section">
+            <div className="section-header">
+              <h2 className="section-title">Research Papers</h2>
+            </div>
+            <div className="card">
+              <p className="text-gray-400 font-bold text-lg">Coming soon...</p>
+            </div>
+          </section>
 
           {/* Perspectives Section */}
-          <RssSection
-            id="perspectives"
-            title="Perspective Pieces"
-            category="perspectives"
-            limit={6}
-            showLoadMore
-          />
+          <section id="perspectives" className="section">
+            <div className="section-header">
+              <h2 className="section-title">Perspective Pieces</h2>
+            </div>
+            <div className="card">
+              <p className="text-gray-400 font-bold text-lg">Coming soon...</p>
+            </div>
+          </section>
 
           {/* Timeline View Placeholder */}
           <section id="timeline" className="section">
@@ -356,11 +363,7 @@ export default function DashboardV2Page() {
               <h2 className="section-title">Timeline View</h2>
             </div>
             <div className="card">
-              <p className="text-gray-400">
-                Unified timeline view combining all content types chronologically.
-                <br />
-                Coming soon...
-              </p>
+              <p className="text-gray-400 font-bold text-lg">Coming soon...</p>
             </div>
           </section>
         </div>

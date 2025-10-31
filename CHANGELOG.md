@@ -4,13 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
+### Goal
+Add Build Crew Discussions section and placeholders for content areas; simplify Timeline and remove Miniflux note while preserving existing styling.
 
 ### Added
+- New sidebar link for Build Crew Discussions in [page.tsx#L64-L70](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L64-L70).
+- New "Build Crew Discussions" section above TL;DR Highlights in [page.tsx#L236-L244](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L236-L244).
 
 ### Changed
+- Sidebar order updated so "Build Crew Discussions" appears above "TL;DR Highlights" in [page.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx).
+- Replaced content of Product Updates, Research Papers, and Perspective Pieces with bold, slightly larger "Coming soon..." placeholders in [page.tsx#L330-L338](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L330-L338), [page.tsx#L340-L348](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L340-L348), and [page.tsx#L350-L358](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L350-L358).
+- Simplified Timeline View to a single bold placeholder in [page.tsx#L361-L367](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L361-L367).
 
 ### Removed
+- Miniflux integration note under TL;DR Highlights removed in [page.tsx#L246-L264](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L246-L264) and trailing section closure at [page.tsx#L328](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L328).
+- `RssSection` import and usages removed/replaced with placeholders in [page.tsx#L3-L6](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L3-L6), [page.tsx#L330-L358](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L330-L358).
 
 ## [Agent-Vibes 0.1.3]
 
