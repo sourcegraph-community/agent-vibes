@@ -175,7 +175,7 @@ OLLAMA_URL=http://localhost:11434           # Ollama API endpoint
 OLLAMA_MODEL=llama3.1:8b                    # Model to use for summaries
 
 # Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=xxx               # Required for atomic RPC calls
 
 # Cron Authentication (for API endpoint)

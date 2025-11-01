@@ -15,7 +15,7 @@ const optionalEnvSchema = z.object({
   APIFY_ACTOR_BUILD: z.string().min(1).optional(),
   GEMINI_API_KEY: z.string().min(1).optional(),
   VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
+  // NEXT_PUBLIC_SUPABASE_URL removed; use SUPABASE_URL everywhere
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
   SUPABASE_FUNCTIONS_URL: z.string().url().optional(),
 });
@@ -106,14 +106,16 @@ export const getSupabaseClientEnv = (env: NodeJS.ProcessEnv = process.env): Supa
     throw new Error(parsed.error.flatten().formErrors.join('\n'));
   }
 
-  const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = parsed.data;
+  const { NEXT_PUBLIC_SUPABASE_ANON_KEY } = parsed.data;
 
-  if (!NEXT_PUBLIC_SUPABASE_URL || !NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be configured for client-side access.');
+  if (!NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY must be configured for client-side access.');
   }
 
+  const { supabaseUrl } = getSupabaseEnv(env);
+
   return {
-    supabaseUrl: NEXT_PUBLIC_SUPABASE_URL,
+    supabaseUrl,
     supabaseAnonKey: NEXT_PUBLIC_SUPABASE_ANON_KEY,
   } satisfies SupabaseClientEnvConfig;
 };

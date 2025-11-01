@@ -38,6 +38,20 @@ Ingest “Product Updates” via in-house RSS only; remove external Miniflux pat
 - Legacy combined OPML removed: [miniflux-feeds.opml](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Data/miniflux-feeds.opml).
 - External Miniflux config/env path removed from example envs: `MINIFLUX_MODE` deleted in [.env.example#L76-L80](file:///home/prinova/CodeProjects/agent-vibes/.env.example#L76-L80).
 
+### Goal
+Align RSS pipeline with shared Supabase client conventions and standardize env usage.
+
+### Added
+- Shared Supabase service client under [serviceClient.ts](file:///home/prinova/CodeProjects/agent-vibes/src/Shared/Infrastructure/Storage/Supabase/serviceClient.ts); exported type `SupabaseServiceClient` and factory `createSupabaseServiceClient`.
+- Backward-compatible re-export in [client.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/ExternalServices/Supabase/client.ts) to avoid broad import churn.
+
+### Changed
+- RSS command handlers now use the shared client: [SyncEntriesCommandHandler.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Web/Application/Commands/SyncEntries/SyncEntriesCommandHandler.ts) and [GenerateSummariesCommandHandler.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Web/Application/Commands/GenerateSummaries/GenerateSummariesCommandHandler.ts).
+- Standardized env: replaced documentation references of `NEXT_PUBLIC_SUPABASE_URL` with `SUPABASE_URL` in [README.md](file:///home/prinova/CodeProjects/agent-vibes/README.md), [ApifyPipeline/README.md](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/README.md), and [GenerateSummaries/README.md](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Web/Application/Commands/GenerateSummaries/README.md). Updated [env.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Infrastructure/Config/env.ts) to source client URL from server `SUPABASE_URL` and adjusted [.env.example](file:///home/prinova/CodeProjects/agent-vibes/.env.example).
+
+### Notes
+- Clarified docs: `NEXT_PUBLIC_SUPABASE_ANON_KEY` is client-only and not equivalent to `SUPABASE_SERVICE_ROLE_KEY` in [README.md](file:///home/prinova/CodeProjects/agent-vibes/README.md) and [ApifyPipeline/README.md](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/README.md).
+
 ## [Agent-Vibes 0.1.3]
 
 ### Goal

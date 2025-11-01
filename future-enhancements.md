@@ -4,6 +4,34 @@ Recommended improvements and optimizations for future implementation.
 
 ## Pending Enhancements
 
+### Adopt Supabase generated Database types in shared client
+- Goal: Improve type safety for database interactions.
+- What: Replace `any` with project’s generated `Database` types in the shared Supabase client exports and usage sites.
+- Why: Strengthens compile-time guarantees and prevents schema drift across repositories/services.
+- Priority: Medium
+- Status: Pending
+
+### Parameterize `X-Client-Info` for shared Supabase client
+- Goal: Make the shared client suitable across slices without Apify-specific branding.
+- What: Add an optional parameter or environment-driven default for the `X-Client-Info` header in the client factory; set a neutral default.
+- Why: Keeps Shared layer generic and avoids leaking slice-specific identifiers.
+- Priority: Medium
+- Status: Pending
+
+### Remove re-export shim once imports are updated
+- Goal: Reduce indirection after consumers adopt the Shared client import path.
+- What: Replace imports from `src/ApifyPipeline/ExternalServices/Supabase/client.ts` with `src/Shared/Infrastructure/Storage/Supabase/serviceClient.ts` and delete the shim file.
+- Why: Simplifies dependency graph and clarifies source of truth for the Supabase client.
+- Priority: Low
+- Status: Pending
+
+### Consolidate any remaining direct `createClient` usages
+- Goal: Ensure a single creation path for Supabase service clients.
+- What: Audit the repository for direct `@supabase/supabase-js` `createClient` calls outside the Shared client and refactor to use the shared factory.
+- Why: Centralizes configuration, enforces consistent headers/options, and eases future changes (e.g., retries, logging).
+- Priority: Medium
+- Status: Pending
+
 ### Reintroduce RSS content via Miniflux + AI summaries
 - Goal: Restore dynamic content for Product Updates, Research Papers, and Perspective Pieces using Miniflux-backed feeds with AI summaries.
 - What: Rewire [page.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx) sections to use the existing [RssSection.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RssSection.tsx) component (or successor) and connect to configured Miniflux categories.

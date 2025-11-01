@@ -134,7 +134,7 @@ Views consumed by the dashboard:
 Validated in src/ApifyPipeline/Infrastructure/Config/env.ts. Required/used keys in this slice:
 
 - SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
-- NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY (dashboard)
+- SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY (dashboard; client-only, future use; server uses SUPABASE_SERVICE_ROLE_KEY)
 - SUPABASE_FUNCTIONS_URL (optional override for edge function base)
 - APIFY_TOKEN, APIFY_ACTOR_ID, (optional) APIFY_ACTOR_BUILD
 - COLLECTOR_LANGUAGE (optional; default 'en')

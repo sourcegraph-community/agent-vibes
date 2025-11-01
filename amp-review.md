@@ -1,73 +1,79 @@
 ## High-level summary
-The change set completely removes support for talking to an external Miniflux instance and makes the “in-house” RSS implementation the single, hard-wired path.  
-Key themes:
-
-* Environment / configuration clean-up (no more `MINIFLUX_MODE`, no need for external URL / API key, `.env.example` updated).
-* Miniflux client drastically simplified – all HTTP code deleted, only the in-house code path remains.
-* Feed source configuration is now driven by one or more OPML files checked into the repo (currently only `product-updates.opml`).  The large, catch-all `miniflux-feeds.opml` file was deleted and a smaller, topical OPML file added.
-* Scripts/tests updated to the new expectations (no `MINIFLUX_MODE`, no `INHOUSE_RSS_FEEDS` env variable).
-* README, `.gitignore` and misc clean-ups.
+This patch removes the `NEXT_PUBLIC_SUPABASE_URL` environment variable from both code and documentation, standardising on the single server-side variable `SUPABASE_URL`.  
+At the same time, all Supabase *service-role* access is centralised in a new shared helper (`src/Shared/Infrastructure/Storage/Supabase/serviceClient.ts`).  
+All call-sites that manually constructed a Supabase client are refactored to use the shared helper, and validation logic in `env.ts` is updated accordingly.  
+README files and `.env.example` are aligned with the new contract.
 
 ## Tour of changes
-Start with `src/RssPipeline/ExternalServices/Miniflux/client.ts`.  
-This file embodies the fundamental architectural change: everything related to external HTTP Miniflux is gone, and all other changes in the diff are ripple effects (env vars, OPML handling, tests, docs).
+Start with the **new shared client helper** (`src/Shared/Infrastructure/Storage/Supabase/serviceClient.ts`).  
+It is the core of the refactor: everything else (deleted client, updated handlers, changed env validation) flows from introducing this module.
 
 ## File level review
 
 ### `.env.example`
-* `MINIFLUX_MODE` removed.  
-  ✔️ Correct given single-mode design.
-* Consider adding a comment clarifying that OPML paths are hard-coded in code (`inhouse.ts`) so users aren’t left guessing where to configure feeds.
+* Adds clarifying comment that `NEXT_PUBLIC_SUPABASE_ANON_KEY` is *not* the service-role key.
+* Removes `NEXT_PUBLIC_SUPABASE_URL`.
+  * ✅  Doc change only – consistent with code.
 
-### `.gitignore`
-* Added `plan/`. Harmless.
+### `README.md`
+* Table rows updated to reflect the removal of `NEXT_PUBLIC_SUPABASE_URL`.
+* Wording emphasises that the anon key must never be used server-side.
+  * ✅  Correct and welcome clarification.
 
-### `scripts/dry-run-inhouse-rss.ts`
-* Now supports an array of OPML paths instead of a single path and stops mutating `MINIFLUX_MODE` / `INHOUSE_RSS_FEEDS`.
-* Suggestion: accept paths via CLI arg or env to avoid code edits when someone wants to test a different OPML.
+### `src/ApifyPipeline/ExternalServices/Supabase/client.ts`
+* File now re-exports the shared helper/type instead of owning its own implementation.
+* ➕  Eliminates duplicate implementation.
+* ❓  Consider deleting this file entirely and fixing imports; re-export keeps BC but adds indirection.
 
-### `src/RssPipeline/Data/miniflux-feeds.opml` (deleted)
-* Big feed list removed. If it’s still useful, keep it under `archive/` or docs rather than full deletion.
+### `src/Shared/Infrastructure/Storage/Supabase/serviceClient.ts` (NEW)
+```ts
+export const createSupabaseServiceClient = (...)
+```
+* Central, reusable factory for *service-role* Supabase clients.
+* Re-uses `getSupabaseEnv` for validation.
+* Disables session persistence & token refresh – correct for server-to-server usage.
+* Adds `X-Client-Info` custom header.
+* ⚠️  Types are still `any`; if the project has generated types (`Database`), pass them (`createClient<Database>()`) to regain type-safety.
+* ⚠️  Header value is hard-coded to `apify-pipeline-ingestion`; handlers in `RssPipeline` now reuse it. Consider something generic (e.g., `shared-service-client`) or accept an optional override.
 
-### `src/RssPipeline/Data/product-updates.opml` (new)
-* Focused OPML that matches the hard-coded category `product_updates`.
-* ✅ XML well-formed.
+### `src/ApifyPipeline/Infrastructure/Config/env.ts`
+* Optional schema: `NEXT_PUBLIC_SUPABASE_URL` is deleted; inline comment added.
+* `getSupabaseClientEnv`
+  * Drops requirement for `NEXT_PUBLIC_SUPABASE_URL`; instead pulls `supabaseUrl` from `getSupabaseEnv`.
+  * Throws if `NEXT_PUBLIC_SUPABASE_ANON_KEY` is missing.
+* ⚠️  Exposure in browser: `SUPABASE_URL` **is not** exposed to client bundles in Next.js by default.  
+  If `getSupabaseClientEnv` is ever used on client side, this will fail at runtime. The comment says "future use", so OK for now, but document clearly.
+* ✅  Error messaging kept accurate.
 
-### `src/RssPipeline/ExternalServices/Miniflux/client.ts`
-* External‐only code (HTTP, retries, timeout, auth) stripped.
-* `MinifluxConfig` and ctor parameters removed; `MinifluxClient` now has no state.
-* `makeRequest` and `markEntryAsRead` deleted.
-* `getEntries` simply delegates to `inhouse.getEntries` and wraps errors.
-* `createMinifluxClient` is now a one-liner.
-#### Review comments
-1. Type safety: `new MinifluxClient()` compiles because there is no constructor; fine, but document that `MinifluxClient` is stateless.
-2. The exported public shape changed; any downstream code that previously imported `MinifluxConfig` or called `markEntryAsRead` will break.  Search/compile before merge.
-3. The file retained the extensive interface declarations (`MinifluxEntry`, etc.); good for consumers but double-check unreachable types (e.g., error codes for HTTP that no longer exist).
+### `src/ApifyPipeline/README.md`
+* Mirrors env var change; no code impact.
 
-### `src/RssPipeline/ExternalServices/Miniflux/inhouse.ts`
-* Introduces hard-coded `OPML_PATHS`.
-* `parseFeedsEnv` renamed behaviour: no longer uses env JSON; instead parses all OPML files.
-* Better error messages if no feeds found.
-#### Review comments
-1. Path robustness: `join(__dirname, '../../../Data/product-updates.opml')` depends on being executed from `dist/.../inhouse.js` after compilation.  For Jest/ts-node runs the file path is `src/RssPipeline/ExternalServices/Miniflux`, so the relative depth looks correct (three levels up).  Still, add a helper to resolve project root to avoid fragile `../../../`.
-2. Extensibility: users must modify code to add feeds.  Expose an env such as `INHOUSE_OPML_PATHS` or read `plan/` directory to avoid source changes.
-3. Concurrency / timeout envs continue to work. 👍
-4. Consider caching parsed OPML results between calls to avoid re-reading files for every request.
+### `src/RssPipeline/Web/Application/Commands/GenerateSummaries/GenerateSummariesCommandHandler.ts`
+### `src/RssPipeline/Web/Application/Commands/SyncEntries/SyncEntriesCommandHandler.ts`
+* Replace manual client construction with `createSupabaseServiceClient()`.
+  * Removes duplicated env checks.
+  * ✅  Simplifies code and avoids typo risk.
+* Make sure the shared helper is tree-shakeable; otherwise unused code from ApifyPipeline might be bundled.
 
-### `src/RssPipeline/README.md`
-* Docs now accurately describe single-mode architecture.
-* Example env section still mentions “provide a single-line JSON array of feed configs” which no longer does anything. Remove or rephrase.
+### `src/RssPipeline/Web/Application/Commands/GenerateSummaries/README.md`
+* Updates sample env list (`SUPABASE_URL` instead of `NEXT_PUBLIC_SUPABASE_URL`).
 
-### `src/RssPipeline/__tests__/inhouse-dry-run.test.ts`
-* Removes now-obsolete env setup of `MINIFLUX_MODE` and `INHOUSE_RSS_FEEDS`.  
-* The test indirectly relies on the hard-coded OPML to provide feeds; if the OPML ever empties the test will start failing.  For hermetic tests prefer injecting mock feeds (e.g., via dependency injection or overriding `OPML_PATHS`).
+## Additional observations / recommendations
+1. **Search for orphaned references**  
+   Ensure no other files still reference `NEXT_PUBLIC_SUPABASE_URL`; otherwise runtime failures will surface.
 
-## Overall assessment
-The simplification eliminates a lot of complexity and dependency on an external service, which is great, but the new configuration mechanism is rigid.  I recommend:
+2. **Client-side usage**  
+   If a browser layer eventually needs the public URL, you must either:
+   • Re-introduce `NEXT_PUBLIC_SUPABASE_URL`, or  
+   • Expose `SUPABASE_URL` through `NEXT_PUBLIC_` prefix during Next.js build (env passthrough) – document this.
 
-1. Make OPML paths configurable (CLI arg, env, or config file) to avoid code edits.
-2. Audit the codebase for dead references (`MinifluxConfig`, `markEntryAsRead`, HTTP error codes).
-3. Ensure documentation & environment examples no longer mention the JSON feed env var.
-4. Add a unit test covering the new OPML parsing path explicitly (mock file system) so future refactors don’t silently break feed discovery.
+3. **Type Safety**  
+   Switch from `any` to your generated `Database` types in the shared client to regain compile-time checks.
 
-With these tweaks the patch should be safe to merge.
+4. **Header value configurability**  
+   Consider making `X-Client-Info` an optional parameter so each caller can identify itself.
+
+5. **Dead wrapper file**  
+   The re-export file in `ApifyPipeline/ExternalServices/Supabase` can probably be removed in the next major revision; add a TODO to avoid long-term duplication.
+
+Overall, the refactor consolidates Supabase usage, removes redundant env variables, and improves documentation – 👍.

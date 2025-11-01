@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseServiceClient } from '@/src/Shared/Infrastructure/Storage/Supabase/serviceClient';
 import { commandSchema, type SyncEntriesCommandInput } from './SyncEntriesCommand';
 import { createMinifluxClient } from '@/src/RssPipeline/ExternalServices/Miniflux/client';
 import { RssRepository } from '@/src/RssPipeline/DataAccess/Repositories/RssRepository';
@@ -17,14 +17,7 @@ export const syncEntriesCommandHandler = async (
 ): Promise<SyncEntriesResult> => {
   const command = commandSchema.parse(input);
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase configuration missing');
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createSupabaseServiceClient();
   const miniflux = createMinifluxClient();
   const repository = new RssRepository(supabase);
 
