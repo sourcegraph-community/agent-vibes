@@ -52,6 +52,16 @@ Align RSS pipeline with shared Supabase client conventions and standardize env u
 ### Notes
 - Clarified docs: `NEXT_PUBLIC_SUPABASE_ANON_KEY` is client-only and not equivalent to `SUPABASE_SERVICE_ROLE_KEY` in [README.md](file:///home/prinova/CodeProjects/agent-vibes/README.md) and [ApifyPipeline/README.md](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/README.md).
 
+### Goal
+Fix RSS dry-run OPML path; implement per-feed cap semantics for `RSS_SYNC_LIMIT`; align dry-run and sync behavior/logs (no new env vars).
+
+### Changed
+- Corrected OPML path for the in-house Miniflux client in [inhouse.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts).
+- Implemented per-feed cap semantics in [inhouse.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts): filter/sort per feed, cap to `limit`, flatten, then globally order by `published_at`; removed global slicing by `limit`.
+- Clarified dry-run logs in [dry-run-inhouse-rss.ts](file:///home/prinova/CodeProjects/agent-vibes/scripts/dry-run-inhouse-rss.ts) ("Per-feed limit", "Theoretical max fetched").
+- Ensured sync script matches behavior and log wording in [sync-rss-entries.ts](file:///home/prinova/CodeProjects/agent-vibes/scripts/sync-rss-entries.ts).
+- Updated unit test to assert per-feed cap and descending order in [inhouse-dry-run.test.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/__tests__/inhouse-dry-run.test.ts).
+
 ## [Agent-Vibes 0.1.3]
 
 ### Goal

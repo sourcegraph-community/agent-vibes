@@ -1,79 +1,114 @@
 ## High-level summary
-This patch removes the `NEXT_PUBLIC_SUPABASE_URL` environment variable from both code and documentation, standardising on the single server-side variable `SUPABASE_URL`.  
-At the same time, all Supabase *service-role* access is centralised in a new shared helper (`src/Shared/Infrastructure/Storage/Supabase/serviceClient.ts`).  
-All call-sites that manually constructed a Supabase client are refactored to use the shared helper, and validation logic in `env.ts` is updated accordingly.  
-README files and `.env.example` are aligned with the new contract.
+The patch is almost entirely about redefining what the `limit` request parameter means for the “in-house” Miniflux adapter:
+
+* `limit` now caps **each feed individually** instead of capping the **global result set**.
+* Console messages and tests were renamed/updated to communicate this new meaning.
+* The core implementation (`src/RssPipeline/ExternalServices/Miniflux/inhouse.ts`) was rewritten to
+  * perform per-feed filtering, ordering and limiting before aggregating,
+  * drop the final global `limit` slice (but still honours `offset`),
+  * expose some derived variables (`perFeedLimit`, `publishedAfterMs`, `direction`) up-front,
+  * change one relative path to the OPML file.
+
+A new unit test asserts that no feed contributes more than the per-feed cap.
 
 ## Tour of changes
-Start with the **new shared client helper** (`src/Shared/Infrastructure/Storage/Supabase/serviceClient.ts`).  
-It is the core of the refactor: everything else (deleted client, updated handlers, changed env validation) flows from introducing this module.
+Start with  
+`src/RssPipeline/ExternalServices/Miniflux/inhouse.ts`  
+because this file contains the behavioural change; every other diff merely surfaces that change in logs or tests.
 
 ## File level review
 
-### `.env.example`
-* Adds clarifying comment that `NEXT_PUBLIC_SUPABASE_ANON_KEY` is *not* the service-role key.
-* Removes `NEXT_PUBLIC_SUPABASE_URL`.
-  * ✅  Doc change only – consistent with code.
+### `scripts/dry-run-inhouse-rss.ts`
+Changes
+* Rewording log lines (“Per-feed limit”) and printing the theoretical maximum (`feeds.length * limit`).
 
-### `README.md`
-* Table rows updated to reflect the removal of `NEXT_PUBLIC_SUPABASE_URL`.
-* Wording emphasises that the anon key must never be used server-side.
-  * ✅  Correct and welcome clarification.
+Review
+* ✅  Harmless cosmetic change.
+* 💡  Consider printing the *actual* number fetched after the run; that is more actionable than the theoretical maximum.
 
-### `src/ApifyPipeline/ExternalServices/Supabase/client.ts`
-* File now re-exports the shared helper/type instead of owning its own implementation.
-* ➕  Eliminates duplicate implementation.
-* ❓  Consider deleting this file entirely and fixing imports; re-export keeps BC but adds indirection.
+### `scripts/sync-rss-entries.ts`
+Changes
+* Same wording tweak for clarity.
 
-### `src/Shared/Infrastructure/Storage/Supabase/serviceClient.ts` (NEW)
-```ts
-export const createSupabaseServiceClient = (...)
-```
-* Central, reusable factory for *service-role* Supabase clients.
-* Re-uses `getSupabaseEnv` for validation.
-* Disables session persistence & token refresh – correct for server-to-server usage.
-* Adds `X-Client-Info` custom header.
-* ⚠️  Types are still `any`; if the project has generated types (`Database`), pass them (`createClient<Database>()`) to regain type-safety.
-* ⚠️  Header value is hard-coded to `apify-pipeline-ingestion`; handlers in `RssPipeline` now reuse it. Consider something generic (e.g., `shared-service-client`) or accept an optional override.
+Review
+* ✅  Trivial.
 
-### `src/ApifyPipeline/Infrastructure/Config/env.ts`
-* Optional schema: `NEXT_PUBLIC_SUPABASE_URL` is deleted; inline comment added.
-* `getSupabaseClientEnv`
-  * Drops requirement for `NEXT_PUBLIC_SUPABASE_URL`; instead pulls `supabaseUrl` from `getSupabaseEnv`.
-  * Throws if `NEXT_PUBLIC_SUPABASE_ANON_KEY` is missing.
-* ⚠️  Exposure in browser: `SUPABASE_URL` **is not** exposed to client bundles in Next.js by default.  
-  If `getSupabaseClientEnv` is ever used on client side, this will fail at runtime. The comment says "future use", so OK for now, but document clearly.
-* ✅  Error messaging kept accurate.
+### `src/RssPipeline/ExternalServices/Miniflux/inhouse.ts`
+Changes
+1. `OPML_PATHS`
+   * Went from `../../../Data/...` to `../../Data/...`.
 
-### `src/ApifyPipeline/README.md`
-* Mirrors env var change; no code impact.
+   Review  
+   * ⚠️  This new relative path climbs only two levels (`Miniflux → ExternalServices → RssPipeline`) whereas the old path climbed three (landing at `src`).  
+     Unless a `Data` directory exists under `src/RssPipeline`, this will break at runtime. Verify the intended location or use `path.resolve(projectRoot, 'src/Data/...')` to avoid fragile relative hops.
 
-### `src/RssPipeline/Web/Application/Commands/GenerateSummaries/GenerateSummariesCommandHandler.ts`
-### `src/RssPipeline/Web/Application/Commands/SyncEntries/SyncEntriesCommandHandler.ts`
-* Replace manual client construction with `createSupabaseServiceClient()`.
-  * Removes duplicated env checks.
-  * ✅  Simplifies code and avoids typo risk.
-* Make sure the shared helper is tree-shakeable; otherwise unused code from ApifyPipeline might be bundled.
+2. Variable extraction
+   ```ts
+   const perFeedLimit = params.limit ?? 50;
+   const publishedAfterMs = params.published_after ? new Date(params.published_after).getTime() : NaN;
+   const direction = (params.direction ?? 'desc') as 'asc' | 'desc';
+   ```
+   Review  
+   * ✅  Clear and DRY.
+   * ❓  Should validate that `perFeedLimit` is not negative.
 
-### `src/RssPipeline/Web/Application/Commands/GenerateSummaries/README.md`
-* Updates sample env list (`SUPABASE_URL` instead of `NEXT_PUBLIC_SUPABASE_URL`).
+3. Main loop
+   * Maps each feed’s items to `MinifluxEntry`s, then:
+     * Filters by `published_after` **per feed**.
+     * Sorts each feed’s items DESC by publication for “fairness”.
+     * Pushes up to `perFeedLimit` items per feed.
+   * Aggregates all feeds into one `items` array.
 
-## Additional observations / recommendations
-1. **Search for orphaned references**  
-   Ensure no other files still reference `NEXT_PUBLIC_SUPABASE_URL`; otherwise runtime failures will surface.
+   Review  
+   * ✅  Achieves the stated fairness goal.
+   * ⚠️  The planned “fairness” is only as good as the initial per-feed DESC sort; if `direction` is `'asc'`, early capping still keeps the *newest* `perFeedLimit` entries, not the oldest, which might surprise users requesting ascending order.  
+     Fix: compute `perFeed.sort()` according to `direction` before slicing.
+   * ⚠️  Performance: for large feeds we now parse every item, then sort, then slice. Consider short-circuiting once `perFeedLimit` is met (e.g. via partial sort) to reduce memory/time.
 
-2. **Client-side usage**  
-   If a browser layer eventually needs the public URL, you must either:
-   • Re-introduce `NEXT_PUBLIC_SUPABASE_URL`, or  
-   • Expose `SUPABASE_URL` through `NEXT_PUBLIC_` prefix during Next.js build (env passthrough) – document this.
+4. Global ordering & slicing
+   ```ts
+   items.sort(...);
+   if (direction === 'desc') items.reverse();
 
-3. **Type Safety**  
-   Switch from `any` to your generated `Database` types in the shared client to regain compile-time checks.
+   const total = items.length;
+   const offset = params.offset ?? 0;
+   const entries = offset > 0 ? items.slice(offset) : items;
+   ```
+   Review  
+   * 🐛  `limit` is **no longer applied globally**, so `entries` can be unbounded (minus offset).  
+     This breaks callers that expect a bounded list and exposes the system to accidental OOMs.
+   * ❓  If `offset` is provided, ignoring `limit` is inconsistent with Miniflux behaviour.  
+     Recommended fix:
+     ```ts
+     const globalLimit = params.global_limit ?? params.limit ?? 50; // or keep old semantics
+     const entries = items.slice(offset, offset + globalLimit);
+     ```
+   * ⚠️  You sort ascending then possibly reverse; simpler: sort based on multiplier `(direction === 'asc' ? 1 : -1)`.
 
-4. **Header value configurability**  
-   Consider making `X-Client-Info` an optional parameter so each caller can identify itself.
+5. Return signature unchanged—callers might misinterpret the new semantics.
 
-5. **Dead wrapper file**  
-   The re-export file in `ApifyPipeline/ExternalServices/Supabase` can probably be removed in the next major revision; add a TODO to avoid long-term duplication.
+Security / correctness
+* No direct security issues.
+* OOM risk if many feeds × many items.
+* Potential logic error with `direction === 'asc'` (see above).
 
-Overall, the refactor consolidates Supabase usage, removes redundant env variables, and improves documentation – 👍.
+### `src/RssPipeline/__tests__/inhouse-dry-run.test.ts`
+Changes
+* Adjusted description.
+* Instead of asserting `entries.length ≤ 3`, the test now asserts no single feed exceeds `perFeed`.
+
+Review
+* ✅  Reflects new semantics.
+* 🐞  The test no longer fails if the overall size explodes (see OOM risk). Add an assertion on `entries.length` or configure a `globalLimit` to keep the response bounded.
+
+## Recommendations
+1. Verify and fix the new OPML path.
+2. Re-introduce a global cap (maybe a new param) to prevent unbounded result sets.
+3. Respect `direction` when selecting the “top N” per feed.
+4. Validate `limit`, `offset`, and `published_after` inputs; reject negatives and invalid dates early.
+5. Extend unit tests:
+   * Assert overall `entries.length` is reasonable.
+   * Cover the `direction: 'asc'` branch.
+6. Consider renaming parameters (`per_feed_limit`, `global_limit`) to avoid ambiguity for API consumers.
+
+With these adjustments the feature will be safer and less surprising to downstream callers.

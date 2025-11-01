@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 // Hardcoded OPML paths (extendable). Add more OPML files to aggregate feeds
 const OPML_PATHS = [
-  join(__dirname, '../../../Data/product-updates.opml'),
+  join(__dirname, '../../Data/product-updates.opml'),
 ];
 
 export type InhouseCategory = 'product_updates' | 'industry_research' | 'perspectives' | 'uncategorized';
@@ -111,6 +111,10 @@ export async function getEntries(params: Partial<GetEntriesParams> = {}): Promis
     PromiseSettledResult<{ feed: InhouseFeedConfig; data: ParsedFeed }>
   >;
 
+  const perFeedLimit = params.limit ?? 50;
+  const publishedAfterMs = params.published_after ? new Date(params.published_after).getTime() : NaN;
+  const direction = (params.direction ?? 'desc') as 'asc' | 'desc';
+
   const items: MinifluxEntry[] = [];
   for (const r of results) {
     if (r.status !== 'fulfilled') continue;
@@ -119,13 +123,13 @@ export async function getEntries(params: Partial<GetEntriesParams> = {}): Promis
     const feedId = stableHashInt(feed.url);
     const feedTitle = feed.title ?? channelTitle ?? (() => new URL(feed.url).host)();
 
-    for (const item of data.items ?? []) {
+    // Map parsed items to MinifluxEntry for this feed
+    const mapped: MinifluxEntry[] = (data.items ?? []).map((item) => {
       const link = (item.link ?? '') as string;
       const guid = (item.guid ?? link) as string;
       const publishedRaw = (item.isoDate ?? item.pubDate) as string | undefined;
       const publishedAt = asIso(publishedRaw);
-
-      items.push({
+      return {
         id: stableHashInt(`${guid}|${link}|${publishedAt}|${feed.url}`),
         user_id: 0,
         feed_id: feedId,
@@ -144,28 +148,26 @@ export async function getEntries(params: Partial<GetEntriesParams> = {}): Promis
           title: feedTitle,
           category: feed.category ? { id: stableHashInt(feed.category), title: feed.category } : undefined,
         },
-      });
+      };
+    });
+
+    // Per-feed filtering and capping
+    let perFeed = mapped;
+    if (Number.isFinite(publishedAfterMs)) {
+      perFeed = perFeed.filter((i) => new Date(i.published_at).getTime() >= publishedAfterMs);
     }
+    // Sort by published_at desc for capping fairness, then take top perFeedLimit
+    perFeed.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+    items.push(...perFeed.slice(0, Math.max(0, perFeedLimit)));
   }
 
-  let list = items;
+  // Global ordering for presentation
+  items.sort((a, b) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime());
+  if (direction === 'desc') items.reverse();
 
-  if (params.published_after) {
-    const afterMs = new Date(params.published_after).getTime();
-    if (Number.isFinite(afterMs)) {
-      list = list.filter((i) => new Date(i.published_at).getTime() >= afterMs);
-    }
-  }
-
-  const direction = (params.direction ?? 'desc') as 'asc' | 'desc';
-  // Only published_at ordering is supported in MVP
-  list.sort((a, b) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime());
-  if (direction === 'desc') list.reverse();
-
-  const total = list.length;
+  const total = items.length;
   const offset = params.offset ?? 0;
-  const limit = params.limit ?? 50;
-  const entries = list.slice(offset, offset + limit);
+  const entries = offset > 0 ? items.slice(offset) : items;
 
   return { total, entries };
 }

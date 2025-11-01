@@ -178,3 +178,17 @@ Recommended improvements and optimizations for future implementation.
 - Why: Improves extensibility while keeping the single source of truth explicit.
 - Priority: Low
 - Status: Pending
+
+### Per-feed sorting direction before capping (RSS)
+- Goal: Respect requested ordering semantics during per-feed capping.
+- What: Sort entries per feed by the requested `direction` (`asc` or `desc`) before applying the per-feed `limit` in [inhouse.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts).
+- Why: Current behavior always caps using newest-first (desc) for fairness; aligning to the requested direction would make capping semantics consistent with the caller’s sort preference.
+- Priority: Low
+- Status: Pending
+
+### Optimize per-feed capping without full sort (RSS)
+- Goal: Reduce per-feed sorting cost for very large feeds.
+- What: Replace full sort-then-slice with a selection-based approach (e.g., bounded heap for top-N by `published_at`) within each feed in [inhouse.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts).
+- Why: Maintains correctness while improving performance when feeds contain many items and only a small cap is required.
+- Priority: Low
+- Status: Pending

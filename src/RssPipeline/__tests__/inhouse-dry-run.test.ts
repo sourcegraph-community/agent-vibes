@@ -41,17 +41,22 @@ beforeEach(() => {
 });
 
 describe('Inhouse Miniflux getEntries (dry)', () => {
-  it('fetches, filters by published_after, orders desc, and respects limit', async () => {
+  it('fetches, filters by published_after, orders desc, and caps per-feed to limit', async () => {
     const client = createMinifluxClient();
     const publishedAfter = new Date(Date.now() - 10 * 60_000).toISOString(); // 10 minutes ago
-    const res = await client.getEntries({ limit: 3, published_after: publishedAfter });
+    const perFeed = 3;
+    const res = await client.getEntries({ limit: perFeed, published_after: publishedAfter });
 
     expect(res.success).toBe(true);
     const data = res.data!;
     expect(data.total).toBeGreaterThan(0);
 
-    // Should not exceed limit
-    expect(data.entries.length).toBeLessThanOrEqual(3);
+    // No feed contributes more than perFeed entries
+    const counts = new Map<number, number>();
+    for (const e of data.entries) {
+      counts.set(e.feed_id, (counts.get(e.feed_id) ?? 0) + 1);
+    }
+    for (const [, c] of counts) expect(c).toBeLessThanOrEqual(perFeed);
 
     // Desc ordering by published_at
     for (let i = 1; i < data.entries.length; i++) {

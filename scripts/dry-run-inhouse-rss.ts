@@ -32,9 +32,10 @@ async function main() {
   console.log('🧪 Dry-run Inhouse Miniflux (no Supabase, no sentiment)');
   console.log('====================================================');
   console.log(`Feeds: ${feeds.length}`);
-  console.log(`Limit: ${limit}`);
+  console.log(`Per-feed limit: ${limit}`);
   console.log(`Since Days: ${sinceDays}`);
   console.log(`OPML: ${opmlPaths.join(', ')}`);
+  console.log(`Theoretical max fetched: ${feeds.length * limit}`);
   console.log('');
 
   const miniflux = createMinifluxClient();

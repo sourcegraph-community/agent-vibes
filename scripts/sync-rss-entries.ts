@@ -18,7 +18,7 @@ async function main() {
 
   console.log('🔄 Syncing RSS entries from Miniflux');
   console.log('====================================');
-  console.log(`Limit: ${limit}`);
+  console.log(`Per-feed limit: ${limit}`);
   console.log(`Since Days: ${sinceDays}`);
   console.log('');
 
