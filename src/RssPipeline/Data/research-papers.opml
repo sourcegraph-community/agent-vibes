@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Research Papers</title>
+  </head>
+  <body>
+    <outline text="Research Papers" title="Research Papers">
+      <!-- arXiv feeds -->
+      <outline text="arXiv cs.AI - Artificial Intelligence" title="arXiv cs.AI - Artificial Intelligence" type="rss" xmlUrl="http://export.arxiv.org/rss/cs.AI" htmlUrl="https://arxiv.org/list/cs.AI/recent"/>
+      <outline text="arXiv cs.LG - Machine Learning" title="arXiv cs.LG - Machine Learning" type="rss" xmlUrl="http://export.arxiv.org/rss/cs.LG" htmlUrl="https://arxiv.org/list/cs.LG/recent"/>
+      <outline text="arXiv cs.SE - Software Engineering" title="arXiv cs.SE - Software Engineering" type="rss" xmlUrl="http://export.arxiv.org/rss/cs.SE" htmlUrl="https://arxiv.org/list/cs.SE/recent"/>
+      <outline text="arXiv cs.CL - Computation and Language" title="arXiv cs.CL - Computation and Language" type="rss" xmlUrl="http://export.arxiv.org/rss/cs.CL" htmlUrl="https://arxiv.org/list/cs.CL/recent"/>
+      
+      <!-- Papers with Code -->
+      <outline text="Papers with Code - Latest" title="Papers with Code - Latest" type="rss" xmlUrl="https://paperswithcode.com/latest.xml" htmlUrl="https://paperswithcode.com/latest"/>
+      
+      <!-- Research-focused AI sources from "AI Articles" -->
+      <outline text="Artificial Intelligence News" title="Artificial Intelligence News" type="rss" xmlUrl="https://www.artificial-intelligence.blog/ai-news?format=rss" htmlUrl="https://www.artificial-intelligence.blog/ai-news/"/>
+      <outline text="LLM Watch" title="LLM Watch" type="rss" xmlUrl="https://xaiguy.substack.com/feed" htmlUrl="https://xaiguy.substack.com/"/>
+    </outline>
+  </body>
+</opml>

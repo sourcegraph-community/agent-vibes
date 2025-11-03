@@ -22,14 +22,16 @@ interface RssSectionProps {
   category: 'product_updates' | 'industry_research' | 'perspectives' | 'uncategorized';
   limit?: number;
   showLoadMore?: boolean;
+  showBadges?: boolean; // default true; set false for sections where category is implied
 }
 
 export default function RssSection({
   id,
   title,
   category,
-  limit = 6,
+  limit = 8,
   showLoadMore = false,
+  showBadges = true,
 }: RssSectionProps) {
   const [entries, setEntries] = useState<RssEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +109,7 @@ export default function RssSection({
 
       <div className="highlights-grid">
         {entries.map((entry) => (
-          <RssEntryCard key={entry.id} {...entry} />
+          <RssEntryCard key={entry.id} {...entry} showBadge={showBadges} />
         ))}
       </div>
 

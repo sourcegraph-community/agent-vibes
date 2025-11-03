@@ -12,6 +12,28 @@ export default function DashboardV2Page() {
 
   const [activeSection, setActiveSection] = useState<string>('overview');
 
+  type LatestRssEntry = {
+    title: string;
+    url: string;
+    summary: string | null;
+    feedTitle: string | null;
+    publishedAt: string;
+  };
+  const [latestProduct, setLatestProduct] = useState<LatestRssEntry | null>(null);
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
   useEffect(() => {
     const updateActiveFromHash = () => {
       const hash = window.location.hash?.replace('#', '');
@@ -32,6 +54,30 @@ export default function DashboardV2Page() {
     setHeaderOffset();
     window.addEventListener('resize', setHeaderOffset);
     return () => window.removeEventListener('resize', setHeaderOffset);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/rss/entries?category=product_updates&limit=1`);
+        if (!res.ok) return;
+        const json = await res.json();
+        const item = (json?.data && json.data[0]) || null;
+        if (!cancelled && item) {
+          setLatestProduct({
+            title: item.title,
+            url: item.url,
+            summary: item.summary ?? null,
+            feedTitle: item.feedTitle ?? null,
+            publishedAt: item.publishedAt,
+          });
+        }
+      } catch {
+        return;
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   return (
@@ -61,6 +107,13 @@ export default function DashboardV2Page() {
               onClick={() => setActiveSection('social')}
             >
               <span>Social Sentiment</span>
+            </a>
+            <a
+              href="#build-crew"
+              className={`nav-item${activeSection === 'build-crew' ? ' active' : ''}`}
+              onClick={() => setActiveSection('build-crew')}
+            >
+              <span>Build Crew Discussions</span>
             </a>
             <a
               href="#highlights"
@@ -227,6 +280,16 @@ export default function DashboardV2Page() {
 
           <SocialSentiment timeframe={timeframe} />
 
+          {/* Build Crew Discussions Section */}
+          <section id="build-crew" className="section">
+            <div className="section-header">
+              <h2 className="section-title">Build Crew Discussions</h2>
+            </div>
+            <div className="card">
+              <p className="text-gray-400 font-bold text-lg">Coming soon...</p>
+            </div>
+          </section>
+
           {/* TL;DR Highlights Section */}
           <section id="highlights" className="section">
             <div className="section-header">
@@ -247,26 +310,48 @@ export default function DashboardV2Page() {
             </div>
 
             <div className="highlights-grid">
-              <div className="highlight-card product">
-                <div className="highlight-header">
-                  <div className="highlight-badge product">Product Update</div>
-                  <span className="highlight-time">2 hours ago</span>
+              {latestProduct ? (
+                <div className="highlight-card product">
+                  <div className="highlight-header">
+                    <div className="highlight-badge product">Product Update</div>
+                    <span className="highlight-time">{formatTime(latestProduct.publishedAt)}</span>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">{latestProduct.title}</h3>
+                  <p className="highlight-summary">{latestProduct.summary}</p>
+                  <div className="highlight-footer flex items-center justify-between text-xs text-gray-500">
+                    <span>{latestProduct.feedTitle ?? 'Source'}</span>
+                    <a
+                      href={latestProduct.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300"
+                    >
+                      Read more →
+                    </a>
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold mb-2">
-                  Cursor releases Composer with multi-file editing
-                </h3>
-                <p className="text-sm text-gray-400 mb-3">
-                  Cursor's new Composer feature enables seamless multi-file code generation
-                  and refactoring with improved context awareness across your entire
-                  codebase.
-                </p>
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>Cursor Blog</span>
-                  <a href="#" className="text-blue-400 hover:text-blue-300">
-                    Read more →
-                  </a>
+              ) : (
+                <div className="highlight-card product">
+                  <div className="highlight-header">
+                    <div className="highlight-badge product">Product Update</div>
+                    <span className="highlight-time">2 hours ago</span>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Cursor releases Composer with multi-file editing
+                  </h3>
+                  <p className="highlight-summary">
+                    Cursor's new Composer feature enables seamless multi-file code generation
+                    and refactoring with improved context awareness across your entire
+                    codebase.
+                  </p>
+                  <div className="highlight-footer flex items-center justify-between text-xs text-gray-500">
+                    <span>Cursor Blog</span>
+                    <a href="#" className="text-blue-400 hover:text-blue-300">
+                      Read more →
+                    </a>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="highlight-card research">
                 <div className="highlight-header">
@@ -276,11 +361,11 @@ export default function DashboardV2Page() {
                 <h3 className="text-lg font-semibold mb-2">
                   New paper on AI-assisted code review effectiveness
                 </h3>
-                <p className="text-sm text-gray-400 mb-3">
+                <p className="highlight-summary">
                   Study finds AI code assistants reduce review time by 40% while
                   maintaining code quality standards in large enterprise codebases.
                 </p>
-                <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="highlight-footer flex items-center justify-between text-xs text-gray-500">
                   <span>arXiv</span>
                   <a href="#" className="text-blue-400 hover:text-blue-300">
                     Read more →
@@ -296,11 +381,11 @@ export default function DashboardV2Page() {
                 <h3 className="text-lg font-semibold mb-2">
                   The future of pair programming: Human + AI
                 </h3>
-                <p className="text-sm text-gray-400 mb-3">
+                <p className="highlight-summary">
                   Industry leaders discuss how AI coding assistants are reshaping developer
                   workflows and team collaboration patterns.
                 </p>
-                <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="highlight-footer flex items-center justify-between text-xs text-gray-500">
                   <span>Tech Crunch</span>
                   <a href="#" className="text-blue-400 hover:text-blue-300">
                     Read more →
@@ -309,18 +394,6 @@ export default function DashboardV2Page() {
               </div>
             </div>
 
-            <div className="mt-4 text-center">
-              <p className="text-sm text-gray-400">
-                <strong>Note:</strong> Product Updates, Research, and Perspectives will
-                be powered by Miniflux RSS + AI summaries.{' '}
-                <a
-                  href="https://github.com/sourcegraph-community/agent-vibes/blob/main/docs/miniflux-integration.md"
-                  className="text-blue-400 hover:text-blue-300"
-                >
-                  View integration guide →
-                </a>
-              </p>
-            </div>
           </section>
 
           {/* Product Updates Section */}
@@ -328,8 +401,9 @@ export default function DashboardV2Page() {
             id="updates"
             title="Product Updates"
             category="product_updates"
-            limit={6}
+            limit={8}
             showLoadMore
+            showBadges={false}
           />
 
           {/* Research Papers Section */}
@@ -337,17 +411,19 @@ export default function DashboardV2Page() {
             id="research"
             title="Research Papers"
             category="industry_research"
-            limit={6}
+            limit={8}
             showLoadMore
+            showBadges={false}
           />
 
-          {/* Perspectives Section */}
+          {/* Perspective Pieces Section */}
           <RssSection
             id="perspectives"
             title="Perspective Pieces"
             category="perspectives"
-            limit={6}
+            limit={8}
             showLoadMore
+            showBadges={false}
           />
 
           {/* Timeline View Placeholder */}
@@ -356,11 +432,7 @@ export default function DashboardV2Page() {
               <h2 className="section-title">Timeline View</h2>
             </div>
             <div className="card">
-              <p className="text-gray-400">
-                Unified timeline view combining all content types chronologically.
-                <br />
-                Coming soon...
-              </p>
+              <p className="text-gray-400 font-bold text-lg">Coming soon...</p>
             </div>
           </section>
         </div>

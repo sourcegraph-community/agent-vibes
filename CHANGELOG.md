@@ -12,6 +12,113 @@ All notable changes to this project will be documented in this file.
 
 ### Removed
 
+### Goal
+Align highlight cards layout and behavior for TL;DR, Product Updates, and Research Papers: clamp abstracts, pin footer to bottom, ensure consistent heights, and streamline badge/time rendering.
+
+### Changed
+- Made highlight cards flex columns and pinned footers in [dashboard.css](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/dashboard.css) via `.highlight-card { display:flex; flex-direction:column; height:100% }`.
+- Added multi-line clamp with ellipsis for summaries via `.highlight-summary` and applied in [RssEntryCard.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RssEntryCard.tsx) and TL;DR examples in [page.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx).
+- Anchored footer and clamped metadata in [dashboard.css](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/dashboard.css) via `.highlight-footer { margin-top:auto }` and a 3-line clamp for `.highlight-footer > span`. Emphasized "Read more →" with semibold and hover underline.
+- Hid redundant category badges in dedicated sections by adding `showBadge?: boolean` to [RssEntryCard.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RssEntryCard.tsx), `showBadges?: boolean` to [RssSection.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RssSection.tsx), and passing `showBadges={false}` for Product Updates and Research Papers in [page.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx). Left-align time when badge is hidden via `.highlight-header.single`.
+- Mapped API categories to badge tokens in [RssEntryCard.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RssEntryCard.tsx) to keep visual tokens consistent.
+
+### Goal
+Fix Research categorization by enforcing "feed category wins" with a research-domain whitelist override; no other changes.
+
+### Changed
+- Implemented domain whitelist override and feed-first categorization in [SyncEntriesCommandHandler.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Web/Application/Commands/SyncEntries/SyncEntriesCommandHandler.ts):
+  - Whitelist research hosts (`arxiv.org`, `export.arxiv.org`, `paperswithcode.com`, `www.artificial-intelligence.blog`, `xaiguy.substack.com`) → force `industry_research`.
+  - Else prefer feed-provided category when valid (`isValidCategory`).
+  - Else fall back to keyword inference (`inferCategory`).
+- Documented the policy in [README.md](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/README.md#L36-L44) under "Categorization Policy".
+
+### Goal
+Implement OPML directory discovery, wire Research Papers into dashboard, and harden deploy-safe filesystem usage for RSS API routes.
+
+### Added
+- Shared OPML discovery utility to find all `.opml` files in configured directories: [opmlDiscovery.ts](file:///home/prinova/CodeProjects/agent-vibes/src/Shared/Infrastructure/Utilities/opmlDiscovery.ts).
+- Research Papers OPML source list: [research-papers.opml](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Data/research-papers.opml).
+
+### Changed
+- Enforced Node.js runtime for RSS API routes to allow filesystem access:
+  - [app/api/rss/entries/route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/rss/entries/route.ts)
+  - [app/api/rss/sync/route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/rss/sync/route.ts)
+  - [app/api/rss/summarize/route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/rss/summarize/route.ts)
+- Added `outputFileTracingIncludes` for RSS routes so OPML/Data files are bundled in serverless output: [next.config.ts](file:///home/prinova/CodeProjects/agent-vibes/next.config.ts).
+- Aggregator now discovers `.opml` from a directory list using the shared helper and `process.cwd()` for deploy-safe paths: [inhouse.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts).
+- Dry-run script aligned to the same OPML directory discovery and now fails loudly when no feeds are found: [dry-run-inhouse-rss.ts](file:///home/prinova/CodeProjects/agent-vibes/scripts/dry-run-inhouse-rss.ts).
+- Dashboard “Research Papers” section wired to RSS entries API using the existing `RssSection` component (category `industry_research`, `limit=8`): [page.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx).
+
+## [Agent-Vibes 0.1.3]
+
+### Goal
+Add Build Crew Discussions section and placeholders for content areas; simplify Timeline and remove Miniflux note while preserving existing styling.
+
+### Added
+- New sidebar link for Build Crew Discussions in [page.tsx#L64-L70](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L64-L70).
+- New "Build Crew Discussions" section above TL;DR Highlights in [page.tsx#L236-L244](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L236-L244).
+
+### Changed
+- Sidebar order updated so "Build Crew Discussions" appears above "TL;DR Highlights" in [page.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx).
+- Replaced content of Product Updates, Research Papers, and Perspective Pieces with bold, slightly larger "Coming soon..." placeholders in [page.tsx#L330-L338](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L330-L338), [page.tsx#L340-L348](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L340-L348), and [page.tsx#L350-L358](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L350-L358).
+- Simplified Timeline View to a single bold placeholder in [page.tsx#L361-L367](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L361-L367).
+
+### Removed
+- Miniflux integration note under TL;DR Highlights removed in [page.tsx#L246-L264](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L246-L264) and trailing section closure at [page.tsx#L328](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L328).
+- `RssSection` import and usages removed/replaced with placeholders in [page.tsx#L3-L6](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L3-L6), [page.tsx#L330-L358](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L330-L358).
+
+### Goal
+Ingest “Product Updates” via in-house RSS only; remove external Miniflux path; keep configuration explicit and simple with OPML sources.
+
+### Added
+- New OPML file for Product Updates feeds: [product-updates.opml](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Data/product-updates.opml).
+
+### Changed
+- In-house Miniflux client simplified to in-house only; HTTP/external path removed in [client.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/client.ts).
+- In-house feed source now hardcoded to OPML list; parses aggregated feeds from OPML in [inhouse.ts#L6-L13](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts#L6-L13) and [inhouse.ts#L54-L64](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts#L54-L64).
+- Dry-run script updated to read OPML list directly (no env-based INHOUSE_RSS_FEEDS) in [dry-run-inhouse-rss.ts#L12-L16](file:///home/prinova/CodeProjects/agent-vibes/scripts/dry-run-inhouse-rss.ts#L12-L16) and [dry-run-inhouse-rss.ts#L27-L35](file:///home/prinova/CodeProjects/agent-vibes/scripts/dry-run-inhouse-rss.ts#L27-L35).
+- RSS Pipeline README updated to reflect in-house only path in [README.md#L1-L6](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/README.md#L1-L6) and structure notes in [README.md#L18-L31](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/README.md#L18-L31).
+- Test setup simplified for in-house path in [inhouse-dry-run.test.ts#L38-L47](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/__tests__/inhouse-dry-run.test.ts#L38-L47).
+- `.gitignore` updated to ignore `plan/` artifacts in [.gitignore#L49-L52](file:///home/prinova/CodeProjects/agent-vibes/.gitignore#L49-L52).
+
+### Removed
+- Legacy combined OPML removed: [miniflux-feeds.opml](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Data/miniflux-feeds.opml).
+- External Miniflux config/env path removed from example envs: `MINIFLUX_MODE` deleted in [.env.example#L76-L80](file:///home/prinova/CodeProjects/agent-vibes/.env.example#L76-L80).
+
+### Goal
+Align RSS pipeline with shared Supabase client conventions and standardize env usage.
+
+### Added
+- Shared Supabase service client under [serviceClient.ts](file:///home/prinova/CodeProjects/agent-vibes/src/Shared/Infrastructure/Storage/Supabase/serviceClient.ts); exported type `SupabaseServiceClient` and factory `createSupabaseServiceClient`.
+- Backward-compatible re-export in [client.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/ExternalServices/Supabase/client.ts) to avoid broad import churn.
+
+### Changed
+- RSS command handlers now use the shared client: [SyncEntriesCommandHandler.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Web/Application/Commands/SyncEntries/SyncEntriesCommandHandler.ts) and [GenerateSummariesCommandHandler.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Web/Application/Commands/GenerateSummaries/GenerateSummariesCommandHandler.ts).
+- Standardized env: replaced documentation references of `NEXT_PUBLIC_SUPABASE_URL` with `SUPABASE_URL` in [README.md](file:///home/prinova/CodeProjects/agent-vibes/README.md), [ApifyPipeline/README.md](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/README.md), and [GenerateSummaries/README.md](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Web/Application/Commands/GenerateSummaries/README.md). Updated [env.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Infrastructure/Config/env.ts) to source client URL from server `SUPABASE_URL` and adjusted [.env.example](file:///home/prinova/CodeProjects/agent-vibes/.env.example).
+
+### Notes
+- Clarified docs: `NEXT_PUBLIC_SUPABASE_ANON_KEY` is client-only and not equivalent to `SUPABASE_SERVICE_ROLE_KEY` in [README.md](file:///home/prinova/CodeProjects/agent-vibes/README.md) and [ApifyPipeline/README.md](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/README.md).
+
+### Goal
+Fix RSS dry-run OPML path; implement per-feed cap semantics for `RSS_SYNC_LIMIT`; align dry-run and sync behavior/logs (no new env vars).
+
+### Changed
+- Corrected OPML path for the in-house Miniflux client in [inhouse.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts).
+- Implemented per-feed cap semantics in [inhouse.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts): filter/sort per feed, cap to `limit`, flatten, then globally order by `published_at`; removed global slicing by `limit`.
+- Clarified dry-run logs in [dry-run-inhouse-rss.ts](file:///home/prinova/CodeProjects/agent-vibes/scripts/dry-run-inhouse-rss.ts) ("Per-feed limit", "Theoretical max fetched").
+- Ensured sync script matches behavior and log wording in [sync-rss-entries.ts](file:///home/prinova/CodeProjects/agent-vibes/scripts/sync-rss-entries.ts).
+- Updated unit test to assert per-feed cap and descending order in [inhouse-dry-run.test.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/__tests__/inhouse-dry-run.test.ts).
+
+### Goal
+Wire back Product Updates in dashboard-v2 and surface the latest Product Update in TL;DR Highlights.
+
+### Added
+- Latest Product Update wired into TL;DR Highlights via a client-side fetch of one item from `/api/rss/entries?category=product_updates&limit=1` with a graceful fallback when unavailable in [page.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx).
+
+### Changed
+- Restored Product Updates section to use [RssSection.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RssSection.tsx) (category `product_updates`, `limit=8`, `showLoadMore`) in [page.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx).
+- Updated default `limit` of [RssSection.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RssSection.tsx) from `6` to `8` to match historical behavior.
+
 ## [Agent-Vibes 0.1.3]
 
 ### Goal

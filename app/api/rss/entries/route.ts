@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from '@/src/ApifyPipeline/Infrastructure/C
 import { RssRepository } from '@/src/RssPipeline/DataAccess/Repositories/RssRepository';
 import type { RssCategory } from '@/src/RssPipeline/Core/Models/RssEntry';
 
+export const runtime = 'nodejs';
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;

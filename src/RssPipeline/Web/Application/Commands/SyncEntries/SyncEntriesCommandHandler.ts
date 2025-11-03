@@ -1,9 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseServiceClient } from '@/src/Shared/Infrastructure/Storage/Supabase/serviceClient';
 import { commandSchema, type SyncEntriesCommandInput } from './SyncEntriesCommand';
 import { createMinifluxClient } from '@/src/RssPipeline/ExternalServices/Miniflux/client';
 import { RssRepository } from '@/src/RssPipeline/DataAccess/Repositories/RssRepository';
-import { inferCategory } from '@/src/RssPipeline/Core/Transformations/categoryMapper';
+import { resolveCategory } from '@/src/RssPipeline/Core/Transformations/categoryResolution';
 import { stripHtml } from '@/src/RssPipeline/Core/Transformations/htmlStripper';
+
 
 interface SyncEntriesResult {
   success: boolean;
@@ -17,14 +18,7 @@ export const syncEntriesCommandHandler = async (
 ): Promise<SyncEntriesResult> => {
   const command = commandSchema.parse(input);
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase configuration missing');
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createSupabaseServiceClient();
   const miniflux = createMinifluxClient();
   const repository = new RssRepository(supabase);
 
@@ -60,10 +54,19 @@ export const syncEntriesCommandHandler = async (
       };
     }
 
+
+
     for (const entry of response.entries) {
       try {
         const strippedContent = stripHtml(entry.content);
-        const category = inferCategory(entry.title, strippedContent, entry.feed.title);
+        const feedCategoryTitle = entry.feed.category?.title as string | undefined;
+        const category = resolveCategory({
+          url: entry.url,
+          feedCategoryTitle,
+          title: entry.title,
+          content: strippedContent,
+          feedTitle: entry.feed.title,
+        });
 
         await repository.insertEntries([{
           feedId: entry.feed_id.toString(),

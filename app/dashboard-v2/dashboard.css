@@ -292,6 +292,51 @@ body {
     border: 1px solid hsl(var(--border));
     border-radius: 0.5rem;
     padding: 1rem;
+    /* Make cards consistent and allow footer to stick to bottom */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Reusable summary element under the title with ellipsis */
+.highlight-summary {
+    font-size: 0.875rem; /* match text-sm */
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 0.75rem; /* mb-3 */
+    /* Multi-line ellipsis */
+    display: -webkit-box;
+    line-clamp: 3; /* standard */
+    -webkit-line-clamp: 3; /* adjust if needed */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Footer row anchored to the bottom of the card */
+.highlight-footer {
+    margin-top: auto;
+}
+
+/* Keep the Read more link always visible and noticeable */
+.highlight-footer a {
+    flex-shrink: 0;
+    font-size: 0.875rem; /* text-sm */
+    font-weight: 600;    /* semibold */
+    text-decoration: none;
+}
+.highlight-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Ensure left metadata in footer truncates to a single line with ellipsis */
+.highlight-footer > span {
+    flex: 1 1 auto; /* allow to take remaining space */
+    min-width: 0;   /* required for text-overflow in flex items */
+    /* Multi-line clamp to 2 lines */
+    display: -webkit-box;
+    line-clamp: 3; /* standard */
+    -webkit-line-clamp: 3; /* vendor */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .highlight-header {
@@ -299,6 +344,10 @@ body {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 0.5rem;
+}
+/* When only time is shown, align it to the left */
+.highlight-header.single {
+    justify-content: flex-start;
 }
 
 .highlight-badge {

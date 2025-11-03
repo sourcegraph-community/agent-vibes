@@ -1,6 +1,6 @@
 # RSS Pipeline
 
-Vertical Slice Architecture (VSA) implementation for RSS feed integration with Miniflux (external) or an in-house aggregator, and AI summarization.
+Vertical Slice Architecture (VSA) implementation for RSS feed integration with an in-house aggregator and AI summarization.
 
 ## Structure
 
@@ -18,7 +18,7 @@ src/RssPipeline/
 │   └── Repositories/
 │       └── RssRepository.ts # Database operations
 ├── ExternalServices/
-│   ├── Miniflux/            # Miniflux RSS reader client
+│   ├── Miniflux/            # In-house RSS reader client
 │   │   ├── client.ts
 │   │   └── inhouse.ts
 │   └── Summarizer/          # Ollama summarization client
@@ -26,37 +26,35 @@ src/RssPipeline/
 └── Web/
     └── Application/
         └── Commands/        # API endpoints and handlers
-            ├── SyncEntries/     # Fetch entries from Miniflux
+            ├── SyncEntries/     # Fetch entries (in-house)
             └── GenerateSummaries/ # Generate AI summaries
 
 ## Features
 
-- **RSS Collection**: Fetch entries via Miniflux (external) or in-house aggregator
+- **RSS Collection**: Fetch entries via the in-house aggregator
 - **Auto-categorization**: Classify entries into product updates, research, or perspectives
 - **AI Summarization**: Generate summaries via Ollama (llama3.1:8b)
 - **Sentiment Analysis**: Extract sentiment and topics from content
 - **Dashboard Integration**: Ready for `/dashboard-v2` consumption
 
+### Categorization Policy
+
+- Feed-provided category is authoritative when valid (validated at runtime against `RssCategory`).
+- For known research sources (small whitelist of domains such as `arxiv.org`, `export.arxiv.org`, `paperswithcode.com`, selected Substack hosts), we intentionally override to `industry_research`.
+- When no valid feed category is present and the host is not in the whitelist, we fall back to keyword inference across title/content/feed title.
+
 ## API Endpoints
 
-- `POST /api/rss/sync` - Sync entries (external Miniflux or in-house)
+- `POST /api/rss/sync` - Sync entries (in-house)
 - `POST /api/rss/summarize` - Generate summaries for pending entries
 - `GET /api/rss/entries` - Retrieve entries with summaries
 
 ## Environment Variables
 
 ```bash
-# Mode: 'external' | 'inhouse' (default: external)
-MINIFLUX_MODE=external
-
-# External Miniflux (used when MINIFLUX_MODE=external)
-MINIFLUX_URL=http://localhost:8080
-MINIFLUX_API_KEY=your-api-key
-
-# In-house aggregator (used when MINIFLUX_MODE=inhouse)
-# Single-line JSON array
-# INHOUSE_RSS_FEEDS=[{"url":"https://hnrss.org/frontpage","title":"Hacker News","category":"industry_research"}]
-INHOUSE_RSS_FEEDS=
+# In-house RSS aggregator (single source of truth)
+# Provide a single-line JSON array of feed configs:
+# OPML sources are hardcoded in code (see ExternalServices/Miniflux/inhouse.ts)
 INHOUSE_RSS_TIMEOUT_MS=20000
 INHOUSE_RSS_MAX_CONCURRENCY=5
 

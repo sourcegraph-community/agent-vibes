@@ -9,6 +9,7 @@ interface RssEntryCardProps {
   category: 'product_updates' | 'industry_research' | 'perspectives' | 'uncategorized';
   starred?: boolean;
   readingTime?: number;
+  showBadge?: boolean; // default true; hide for sections where category is implied
 }
 
 export default function RssEntryCard({
@@ -21,6 +22,7 @@ export default function RssEntryCard({
   category,
   starred,
   readingTime,
+  showBadge = true,
 }: RssEntryCardProps) {
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -45,21 +47,43 @@ export default function RssEntryCard({
     }
   };
 
+  // Map API categories to CSS badge tokens used by dashboard.css
+  const categoryToken = (() => {
+    switch (category) {
+      case 'product_updates':
+        return 'product';
+      case 'industry_research':
+        return 'research';
+      case 'perspectives':
+        return 'perspective';
+      default:
+        return '';
+    }
+  })();
+
+  const headerClass = `highlight-header${showBadge ? '' : ' single'}`;
+  const timeText = formatTime(publishedAt);
+
   return (
     <div className={`highlight-card ${category}`}>
-      <div className="highlight-header">
-        <div className={`highlight-badge ${category}`}>
-          {getBadgeText()}
-          {starred && ' ⭐'}
-        </div>
-        <span className="highlight-time">{formatTime(publishedAt)}</span>
+      <div className={headerClass}>
+        {showBadge && (
+          <div className={`highlight-badge ${categoryToken}`}>
+            {getBadgeText()}
+            {starred && ' ⭐'}
+          </div>
+        )}
+        <span className="highlight-time">
+          {(!showBadge && starred) ? '⭐ ' : ''}
+          {timeText}
+        </span>
       </div>
 
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
 
-      <p className="text-sm text-gray-400 mb-3">{summary}</p>
+      <p className="highlight-summary">{summary}</p>
 
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="highlight-footer flex items-center justify-between text-xs text-gray-500">
         <span>
           {feedTitle}
           {author && ` • ${author}`}

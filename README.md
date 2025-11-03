@@ -155,8 +155,7 @@ Update JSON fixtures to adjust stats, copy, or chart data - routes reload on eve
 |----------|---------|----------|--------------|
 | `SUPABASE_URL` | Database connection | ✅ Yes | Team 1Password vault |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server DB access | ✅ Yes | Team 1Password vault |
-| `NEXT_PUBLIC_SUPABASE_URL` | Client DB access | ✅ Yes | Same as SUPABASE_URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client DB access | ✅ Yes | Team 1Password vault |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client-side only (future use). Do NOT use on server. Not equivalent to `SUPABASE_SERVICE_ROLE_KEY`. | ✅ Yes | Team 1Password vault |
 | `APIFY_TOKEN` | Tweet collection | ✅ Yes | Ask #ops-oncall |
 | `APIFY_ACTOR_ID` | Actor to run | ✅ Yes | `apidojo/tweet-scraper` |
 | `COLLECTOR_LANGUAGE` | Tweet language filter (default `'en'`) | ⚠️ Optional | n/a |

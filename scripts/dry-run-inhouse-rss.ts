@@ -3,6 +3,8 @@ import { parseOpmlFileToInhouseFeeds } from '@/src/RssPipeline/ExternalServices/
 import { createMinifluxClient } from '@/src/RssPipeline/ExternalServices/Miniflux/client';
 import { stripHtml, truncateContent } from '@/src/RssPipeline/Core/Transformations/htmlStripper';
 import { inferCategory } from '@/src/RssPipeline/Core/Transformations/categoryMapper';
+import { join } from 'node:path';
+import { discoverOpmlFiles } from '@/src/Shared/Infrastructure/Utilities/opmlDiscovery';
 
 config({ path: '.env.local' });
 
@@ -11,7 +13,10 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 async function main() {
-  const opmlPath = process.env.RSS_OPML_PATH || 'src/RssPipeline/Data/miniflux-feeds.opml';
+  const OPML_DIRS = [
+    join(process.cwd(), 'src/RssPipeline/Data'),
+  ];
+  const opmlPaths = discoverOpmlFiles(OPML_DIRS);
   const limitEnv = process.env.RSS_SYNC_LIMIT;
   const parsedLimit = limitEnv ? Number.parseInt(limitEnv, 10) : NaN;
   const limit = clamp(Number.isFinite(parsedLimit) ? parsedLimit : 100, 1, 500);
@@ -22,19 +27,22 @@ async function main() {
   const timeoutMs = process.env.INHOUSE_RSS_TIMEOUT_MS || '20000';
   const maxConc = process.env.INHOUSE_RSS_MAX_CONCURRENCY || '5';
 
-  const feeds = parseOpmlFileToInhouseFeeds(opmlPath);
+  const feeds = opmlPaths.flatMap((p) => parseOpmlFileToInhouseFeeds(p));
+  if (feeds.length === 0) {
+    console.error('❌ No feeds found in OPML directories. Add .opml files under src/RssPipeline/Data');
+    process.exit(1);
+  }
 
-  process.env.MINIFLUX_MODE = 'inhouse';
-  process.env.INHOUSE_RSS_FEEDS = JSON.stringify(feeds);
   process.env.INHOUSE_RSS_TIMEOUT_MS = timeoutMs;
   process.env.INHOUSE_RSS_MAX_CONCURRENCY = maxConc;
 
   console.log('🧪 Dry-run Inhouse Miniflux (no Supabase, no sentiment)');
   console.log('====================================================');
   console.log(`Feeds: ${feeds.length}`);
-  console.log(`Limit: ${limit}`);
+  console.log(`Per-feed limit: ${limit}`);
   console.log(`Since Days: ${sinceDays}`);
-  console.log(`OPML: ${opmlPath}`);
+  console.log(`OPML: ${opmlPaths.join(', ')}`);
+  console.log(`Theoretical max fetched: ${feeds.length * limit}`);
   console.log('');
 
   const miniflux = createMinifluxClient();

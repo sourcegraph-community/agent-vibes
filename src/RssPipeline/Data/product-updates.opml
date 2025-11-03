@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Product Updates Feeds - Agent Vibes Dashboard</title>
+    <dateCreated>Fri, 31 Oct 2025 00:00:00 GMT</dateCreated>
+  </head>
+  <body>
+    <!-- Product Updates: Coding agent releases, AI company announcements -->
+    <outline text="Product Updates" title="Product Updates">
+      <!-- Individual AI tool feeds (from root level) -->
+      <outline text="windsurf AI" title="windsurf AI" type="rss" xmlUrl="https://rss.app/feeds/tmBjci5hyu0GVBdl.xml" htmlUrl="https://rss.app/rss-feed?keyword=windsurf%20AI&amp;region=US&amp;lang=en"/>
+      <outline text="github copilot" title="github copilot" type="rss" xmlUrl="https://rss.app/feeds/tdjp5QuDAOtwqKb2.xml" htmlUrl="https://rss.app/rss-feed?keyword=github%20copilot&amp;region=US&amp;lang=en"/>
+      <outline text="cursor AI" title="cursor AI" type="rss" xmlUrl="https://rss.app/feeds/t5kP4PCxEZS0ms96.xml" htmlUrl="https://rss.app/rss-feed?keyword=cursor%20AI&amp;region=US&amp;lang=en"/>
+      <outline text="claudecode" title="claudecode" type="rss" xmlUrl="https://rss.app/feeds/tscvDZsuQV9wSOho.xml" htmlUrl="https://rss.app/rss-feed?keyword=claudecode&amp;region=US&amp;lang=en"/>
+      <outline text="Anthropic (@AnthropicAI) / Twitter" title="Anthropic (@AnthropicAI) / Twitter" type="rss" xmlUrl="https://rss.app/feeds/wl1I2Kg7A8i76v6t.xml" htmlUrl="https://x.com/AnthropicAI"/>
+      <outline text="#ampcode / Twitter Search" title="#ampcode / Twitter Search" type="rss" xmlUrl="https://rss.app/feeds/Nf9Y6vapMBKqf8qy.xml" htmlUrl="https://x.com/search?q=%23ampcode"/>
+
+      <!-- From "Coding Agent Product Updates" folder -->
+      <outline text="The GitHub Blog" title="The GitHub Blog" type="rss" xmlUrl="https://github.blog/feed/" htmlUrl="https://github.blog/"/>
+      <outline text="OpenAI News" title="OpenAI News" type="rss" xmlUrl="https://openai.com/news/rss.xml" htmlUrl="https://openai.com/news"/>
+      <outline text="Anthropic - Google News" title="Anthropic - Google News" type="rss" xmlUrl="https://news.google.com/news/rss/search?q=Anthropic&amp;hl=en" htmlUrl="https://news.google.com/search?q=Anthropic&amp;hl=en-US&amp;gl=US&amp;ceid=US:en"/>
+      <outline text="Anthropic News" title="Anthropic News" type="rss" xmlUrl="https://rsshub.app/anthropic/news" htmlUrl="https://anthropic.com/news"/>
+      <outline text="Codeium Blog Posts" title="Codeium Blog Posts" type="rss" xmlUrl="https://windsurf.com/feed.xml" htmlUrl="https://windsurf.com/"/>
+      <outline text="Cursor Changelog RSS Feed" title="Cursor Changelog RSS Feed" type="rss" xmlUrl="https://api.cursor-changelog.com/api/versions/rss" htmlUrl="https://cursor-changelog.com/"/>
+      <outline text="Changelogs – The GitHub Blog" title="Changelogs – The GitHub Blog" type="rss" xmlUrl="https://github.blog/changelog/feed/" htmlUrl="https://github.blog/"/>
+      <outline text="Amp News" title="Amp News" type="rss" xmlUrl="https://ampcode.com/news.rss" htmlUrl="https://ampcode.com/news"/>
+    </outline>
+  </body>
+</opml>
