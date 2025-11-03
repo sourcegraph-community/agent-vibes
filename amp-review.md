@@ -1,97 +1,86 @@
 ## High-level summary  
-This patch is a purely presentational update that lets RSS highlight cards hide the coloured “category” badge when the surrounding section already implies the category.  
-Core ideas  
-• New boolean prop(s): `showBadge` (card) and `showBadges` (section).  
-• Conditional rendering of the badge, with fallback logic so the ⭐ star and timestamp still appear.  
-• CSS refactor that turns the card into a flex-column container, introduces reusable `highlight-summary` and `highlight-footer` utilities, and adds a `.single` modifier for badge-less headers.  
-• Dashboard page updated to adopt the new classes and to suppress badges in the *Product Updates* and *Research Papers* sections.  
-No data fetching, routing, or server logic is touched.
-
----
+The update removes the standalone “Filter by Brand” radio-button card and replaces it with a compact `<select>` dropdown embedded in the chart header. Corresponding styling rules for the generic `.select` component are added in `dashboard.css` to create a consistent look and custom chevron across browsers. No business logic or data-fetching code was touched.
 
 ## Tour of changes  
-Begin with **`app/dashboard-v2/components/RssEntryCard.tsx`**.  
-It:  
-1. Adds the `showBadge` prop.  
-2. Shows how the badge, star, and time interact when hidden.  
-3. Introduces the CSS class names that the style sheet depends on.  
-Understanding this component makes the subsequent tweaks in `RssSection`, `dashboard.css`, and `page.tsx` obvious.
+Begin with `app/dashboard-v2/components/SocialSentiment.tsx`, lines surrounding the chart title. This is where the filter UI is relocated and rewritten; the CSS file only supports this change.
 
----
+## File level review  
 
-## File level review
-
-### `app/dashboard-v2/components/RssEntryCard.tsx`
+### `app/dashboard-v2/components/SocialSentiment.tsx`
 
 What changed  
-• `showBadge` prop (default `true`).  
-• `categoryToken` helper to map API categories → CSS tokens (`product`, `research`, `perspective`).  
-• `headerClass` helper adds `.single` when the badge is gone.  
-• Badge `<div>` wrapped in `showBadge && …`.  
-• New summary/footer class names.  
-• Star is now injected into the time element when the badge is hidden.
+• Deleted the radio-button fieldset that previously rendered in its own card.  
+• Inside the chart card header, wrapped the title and a new brand `<select>` in a flex container.  
+• The dropdown is conditionally rendered when `products.length > 0`.  
+• `onChange` sets `selectedBrand` to `e.target.value || null`.
 
 Correctness / bugs  
-+ Default keeps existing behaviour.  
-+ Conditional star logic avoids duplication (`⭐` shown inside badge when visible, prefixed to time when badge hidden).  
-+ `categoryToken` avoids leaking API naming into CSS.  
-+ No unused imports.  
-± `readingTime` remains unused; either wire it or delete the prop to avoid dead code.  
-± `categoryToken` falls back to `''` for `uncategorized` but CSS for that state may still expect a token; confirm visual state.  
-± `highlight-card ${category}` still passes the un-mapped category; if the surrounding CSS expects the mapped token (`product`, `research`, `perspective`) this will now diverge. Verify style rules for `.highlight-card.product_updates` etc. and adjust if necessary.  
-Security: All output is escaped by React; no URL handling here.
+1. Controlled `<select>` without a matching value  
+   ```ts
+   value={selectedBrand ?? ''}
+   ```  
+   If `selectedBrand` is `null` (initial page load or after clearing filters elsewhere), the value will be `''`, but there is **no `<option value="">`**. React will log  
+   “Warning: `value` prop on `select` must match one of the option values,”  
+   and the first option will be selected visually, creating a state/UI mismatch.
 
-### `app/dashboard-v2/components/RssSection.tsx`
+2. No way to clear the filter  
+   The old radio implementation could be cleared by selecting none (if `null` was ever possible). With the new dropdown the user is locked into one brand forever. Add a placeholder option:  
+   ```tsx
+   <option value="">All brands</option>
+   ```  
+   Keep `selectedBrand` `null` for the “all” state.
 
-What changed  
-• Added `showBadges` with default `true`; forwarded to each card.
+3. State transition corner case  
+   `onChange={() => setSelectedBrand(e.target.value || null)}` works only if `value` can be `''`, which it cannot at present (see 1). Fixing (1) also fixes this.
 
-Review  
-+ Propagate flag correctly.  
-± Name pluralisation (`showBadges` vs `showBadge`) may create friction; consider a JSDoc or rename for consistency.  
-+ Defaults maintain current rendering for callers that do not specify the flag.  
-No data-layer impact.
+4. Accessibility  
+   • Good: explicit `<label htmlFor="brand-select">Brand</label>`.  
+   • Consider adding `aria-label` on the `<select>` or using visually hidden label text for screen readers if the visible “Brand” label is removed later.  
+   • Loss of `fieldset`/`legend` semantics is acceptable because the filter has only one control now.
+
+5. Layout / visual  
+   The new flex wrapper uses `justify-between`, so the filter will float hard-right. Works, but if the title has long text it may wrap oddly; adding `flex-wrap` or `min-width` to the label may help in narrow viewports.
 
 ### `app/dashboard-v2/dashboard.css`
 
 What changed  
-• `.highlight-card` turned into a flex column and given `height:100%`.  
-• New utilities: `.highlight-summary`, `.highlight-footer`, `.highlight-header.single`.  
-• Multi-line clamping added.
+Added custom styling for `.select`:
+```
+.select {
+    background: hsl(var(--input));
+    border: 1px solid hsl(var(--border));
+    padding: 0.5rem 2.25rem 0.5rem 0.75rem; /* extra for chevron */
+    appearance: none; /* hide native arrow */
+    background-image: svg chevron;
+    background-position: right 0.75rem center;
+}
+```
 
-Review  
-+ Flex pattern reliably anchors the footer at the bottom.  
-+ Multi-line ellipsis uses the well-supported `-webkit-line-clamp` path with safe fallbacks.  
-± The *standard* `line-clamp` property is not yet supported outside experimental flags; the vendor-prefixed version is enough—consider removing the bare `line-clamp` to avoid confusion or feature-detect it with `@supports`.  
-± Comment says “single line with ellipsis” but clamp is set to 3 in `.highlight-footer > span`. Sync comment ↔ rule.  
-± `.highlight-header.single` removes `space-between` so the time sticks to the left, but now the time’s `flex-grow` behaviour differs from the normal header. Visually OK but test on narrow view-ports.  
-Accessibility  
-• When the badge is hidden the colour cue disappears; consider adding `aria-label` or `title` to expose the category to screen-reader users.
+Correctness / bugs  
+1. Focus indication  
+   The new rule does not explicitly style `:focus-visible`. In some browsers the default outline disappears once `appearance: none` is applied. Add:
+   ```
+   .select:focus-visible {
+       outline: 2px solid hsl(var(--ring));
+       outline-offset: 1px;
+   }
+   ```
 
-### `app/dashboard-v2/page.tsx`
+2. Cursor style  
+   Typically `select` gets the pointer cursor automatically, but after vendor-prefix removal this is still OK. No change needed, just verify on Safari.
 
-What changed  
-• Swapped inline Tailwind utility classes for the new reusable CSS classes.  
-• Added `showBadges={false}` to *Product Updates* and *Research Papers* sections.
+3. Color / contrast  
+   The custom SVG chevron color `#e5e7eb` (tailwind’s `gray-200`) has a contrast ratio of only 1.8:1 against a light background. Because the control background is dark (`hsl(var(--input))`), contrast is probably fine, but test both dark/light themes.
 
-Review  
-+ Mechanical refactor; no semantic changes.  
-+ Confirms that the defaults elsewhere keep badges for *Perspectives*.  
-• Static (“Cursor …”, “arXiv …”, “Tech Crunch …”) cards are still hard-coded; they now use the new CSS—good for consistency.
+Security  
+No user-supplied data is placed in the inline SVG. No additional attack surface added.
 
-### `amp-review.md`
-
-Internal review notes rewritten; no runtime effect.
+Performance  
+No significant impact; inline SVG avoids extra network request.
 
 ---
 
-## Overall assessment  
-Well-scoped, low-risk UI polish. Main follow-ups:  
-
-1. Verify there are matching CSS rules for the **old** vs **new** category tokens on `.highlight-card`.  
-2. Decide on a single prop name (`showBadge` everywhere) or document the pluralisation.  
-3. Align comments with actual `line-clamp` value and consider dropping the unsupported un-prefixed property.  
-4. Remove or implement `readingTime`.  
-5. Add accessibility text when the visual badge is removed.
-
-No performance, security, or architectural concerns otherwise.
+Overall recommendation  
+1. Add an “All brands” placeholder option (`value=""`) to keep the component controlled and allow clearing the filter.  
+2. Provide explicit focus styles for `.select` to preserve keyboard accessibility.  
+3. (Optional) consider responsive tweaks for the header flex layout.

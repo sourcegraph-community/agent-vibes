@@ -315,30 +315,7 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
       </div>
 
       {/* Brand Filter */}
-      {products.length > 0 && (
-        <div className="card mb-6">
-          <fieldset role="radiogroup" aria-labelledby="brand-filter-label">
-            <div className="flex items-center justify-between mb-3">
-              <h3 id="brand-filter-label" className="text-sm font-medium text-gray-400">Filter by Brand</h3>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {products.map((product) => (
-                <label key={product} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="brand"
-                    value={product}
-                    checked={selectedBrand === product}
-                    onChange={() => setSelectedBrand(product)}
-                    className="w-4 h-4 bg-gray-700 border border-gray-600 rounded-full cursor-pointer"
-                  />
-                  <span className="text-sm text-gray-300">{product}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        </div>
-      )}
+
 
       {/* Summary Cards */}
       {summaryData && (
@@ -379,10 +356,28 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
 
       {/* Chart */}
       <div className="card">
-        <h3 id="sentiment" className="text-lg font-semibold mb-4">
-          Sentiment Trends (Last {timeframe} Days)
-          {productLoading && ' — Loading...'}
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 id="sentiment" className="text-lg font-semibold">
+            Sentiment Trends (Last {timeframe} Days)
+            {productLoading && ' — Loading...'}
+          </h3>
+          {products.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="brand-select" className="text-sm text-gray-400">Brand</label>
+              <select
+                id="brand-select"
+                className="select"
+                value={selectedBrand ?? ''}
+                onChange={(e) => setSelectedBrand(e.target.value || null)}
+              >
+                <option value="">All brands</option>
+                {products.map((product) => (
+                  <option key={product} value={product}>{product}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
         {productLoading ? (
           <div className="flex items-center justify-center h-96 text-gray-400">
             <p>Loading chart data...</p>

@@ -12,6 +12,17 @@ All notable changes to this project will be documented in this file.
 
 ### Removed
 
+
+## [nextjs 0.1.4]
+
+### Goal
+Replace Social Sentiment brand radio group with a labeled dropdown in the Sentiment Trends header; fix select chevron spacing and ensure visible focus.
+
+### Changed
+- Replaced brand radio buttons with a right-aligned labeled `<select>` inside the Sentiment Trends card header in [SocialSentiment.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/SocialSentiment.tsx); preserved `selectedBrand` state and fetch behavior and added an "All brands" placeholder option to keep the control fully controlled and allow clearing.
+- Updated shared `.select` styles in [dashboard.css](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/dashboard.css) to add right padding and a custom chevron (appearance reset + inline SVG with `background-position: right 0.75rem`) so the caret has breathing room; applies to both timeframe and brand selects.
+- Added `.select:focus-visible` outline and border-color to restore clear keyboard focus after removing native appearance.
+
 ### Goal
 Align highlight cards layout and behavior for TL;DR, Product Updates, and Research Papers: clamp abstracts, pin footer to bottom, ensure consistent heights, and streamline badge/time rendering.
 

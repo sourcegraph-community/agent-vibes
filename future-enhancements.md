@@ -278,6 +278,13 @@ Recommended improvements and optimizations for future implementation.
 - Priority: Low
 - Status: Pending
 
+### Themed focus color for selects
+- Goal: Align select focus outline with the app’s accent theme.
+- What: Update `.select:focus-visible` in [dashboard.css](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/dashboard.css) to use an accent token (e.g., `--ring` or `--primary`) instead of `--foreground`; optionally introduce a dedicated focus token if one exists in theme.
+- Why: Improves visual affordance and consistency with other focused controls.
+- Priority: Low
+- Status: Pending
+
 ### Correct clamp comments to match configured counts
 - Goal: Keep CSS comments in sync with actual behavior.
 - What: Update comments near clamp rules in [dashboard.css](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/dashboard.css) to reflect the configured number of lines.
