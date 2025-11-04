@@ -69,8 +69,10 @@ export function parseOpmlToInhouseFeeds(opmlXml: string): InhouseFeedConfig[] {
   return feeds;
 }
 
-export function parseOpmlFileToInhouseFeeds(filePath: string): InhouseFeedConfig[] {
+export function parseOpmlFileToInhouseFeeds(filePath: string, forcedCategory?: InhouseCategory): InhouseFeedConfig[] {
   const absolute = resolve(filePath);
   const xml = readFileSync(absolute, 'utf8');
-  return parseOpmlToInhouseFeeds(xml);
+  const feeds = parseOpmlToInhouseFeeds(xml);
+  if (!forcedCategory) return feeds;
+  return feeds.map((f) => ({ ...f, category: forcedCategory }));
 }

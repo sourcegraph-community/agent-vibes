@@ -7,10 +7,33 @@ const MIN_DELTA = 2;
 const RESEARCH_OVER_PERSPECTIVE_RATIO = 1.2;
 const RESEARCH_OVER_PERSPECTIVE_DELTA = 2;
 
+// Existing mapping for human-readable Miniflux folder names
 const MINIFLUX_CATEGORY_TO_RSS: Record<string, RssCategory> = {
   'product updates': 'product_updates',
   'research papers': 'industry_research',
   'perspective pieces': 'perspectives',
+};
+
+// New: Accept common slug aliases in addition to human folder labels
+const CATEGORY_NORMALIZATION: Record<string, RssCategory> = {
+  // product updates
+  'product updates': 'product_updates',
+  'product_update': 'product_updates',
+  'product-updates': 'product_updates',
+  'product_updates': 'product_updates',
+  'productupdates': 'product_updates',
+  // research
+  'research papers': 'industry_research',
+  'industry research': 'industry_research',
+  'industry_research': 'industry_research',
+  'industry-research': 'industry_research',
+  'research': 'industry_research',
+  // perspectives
+  'perspective pieces': 'perspectives',
+  'perspectives': 'perspectives',
+  'perspective_pieces': 'perspectives',
+  'perspective-pieces': 'perspectives',
+  'perspectivepieces': 'perspectives',
 };
 
 const RESEARCH_HOSTS = new Set<string>([
@@ -30,7 +53,22 @@ const RESEARCH_HOSTS = new Set<string>([
   'xaiguy.substack.com',
 ]);
 
+// New: perspective host allowlist – pin these domains to 'perspectives'
+const PERSPECTIVE_HOSTS = new Set<string>([
+  'dev.to',
+]);
+
 const norm = (s: string) => s.trim().toLowerCase().replace(/^www\./, '');
+
+const normalizeLabelToRssCategory = (label?: string | null): RssCategory | undefined => {
+  if (!label) return undefined;
+  const key = norm(label).replace(/[\s_-]+/g, ' ').trim();
+  // Try direct
+  if (CATEGORY_NORMALIZATION[key]) return CATEGORY_NORMALIZATION[key];
+  // Try without spaces
+  const nospace = key.replace(/\s+/g, '');
+  return CATEGORY_NORMALIZATION[nospace];
+};
 
 const looksLikeResearchFeed = (t?: string | null) =>
   t ? /\barxiv\b|\bpapers with code\b|\bresearch\b/i.test(t) : false;
@@ -64,13 +102,11 @@ export function resolveCategory(params: {
   content: string | null;
   feedTitle?: string | null;
 }): RssCategory {
-  // 1) Folder/category mapping from Miniflux
-  const fromFolder = params.feedCategoryTitle
-    ? MINIFLUX_CATEGORY_TO_RSS[norm(params.feedCategoryTitle)]
-    : undefined;
+  // 1) Authoritative: Folder/category mapping from Miniflux (normalize aliases and slugs)
+  const fromFolder = normalizeLabelToRssCategory(params.feedCategoryTitle);
   if (fromFolder) return fromFolder;
 
-  // 2) Domain allowlist for research
+  // 2) Domain allowlist for perspectives (hard pin)
   let host: string | null = null;
   try {
     host = norm(new URL(params.url).hostname);
@@ -78,16 +114,24 @@ export function resolveCategory(params: {
     host = null;
   }
   if (host) {
+    for (const dom of PERSPECTIVE_HOSTS) {
+      const d = norm(dom);
+      if (host === d || host.endsWith('.' + d)) return 'perspectives';
+    }
+  }
+
+  // 3) Domain allowlist for research (hard pin)
+  if (host) {
     for (const dom of RESEARCH_HOSTS) {
       const d = norm(dom);
       if (host === d || host.endsWith('.' + d)) return 'industry_research';
     }
   }
 
-  // 3) Feed title hints
+  // 4) Feed title hints
   if (looksLikeResearchFeed(params.feedTitle)) return 'industry_research';
 
-  // 4) Heuristic scoring with ambiguity thresholds
+  // 5) Heuristic scoring with ambiguity thresholds
   const text = `${params.title} ${params.content ?? ''} ${params.feedTitle ?? ''}`.toLowerCase();
   const scores = scoreText(text);
   const { bestCat, bestScore, secondScore } = top2(scores);
@@ -101,9 +145,8 @@ export function resolveCategory(params: {
     return 'industry_research';
   }
 
-  // Ambiguous/low confidence → uncategorized
+  // Ambiguous/low confidence → uncategorized (with legacy fallback)
   if (bestScore < MIN_SCORE || bestScore - secondScore < MIN_DELTA) {
-    // As a last resort, try legacy inferCategory; still guard ambiguity
     const legacy = inferCategory(params.title, params.content, params.feedTitle ?? null);
     if (legacy !== 'uncategorized') return legacy;
     return 'uncategorized';

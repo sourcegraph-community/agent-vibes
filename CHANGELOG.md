@@ -4,11 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
+### Goal
+Ensure strict content separation on Dashboard‑v2 via OPML‑only routing; normalize categories and hard‑pin dev.to to perspectives.
 
 ### Added
+- Category normalization accepting slug/alias variants and human labels in [categoryResolution.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Core/Transformations/categoryResolution.ts).
+- Perspective host allowlist (dev.to) to force `perspectives` before heuristics in [categoryResolution.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Core/Transformations/categoryResolution.ts).
 
 ### Changed
+- Feed folder category is authoritative via normalization; short‑circuits when present in [categoryResolution.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Core/Transformations/categoryResolution.ts).
+- OPML‑only routing: derive forced category from OPML filename and stamp it on all feeds from that OPML in [inhouse.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts) and [opml.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/opml.ts).
+- `parseOpmlFileToInhouseFeeds` now accepts an optional forced category and applies it to returned feeds in [opml.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/opml.ts).
+
+### Fixed
+- Prevented leakage of DEV Community posts into Product Updates/Research by allowlisting `dev.to` under perspectives and preferring folder/OPML category in [categoryResolution.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Core/Transformations/categoryResolution.ts) and [inhouse.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts).
 
 ### Removed
 

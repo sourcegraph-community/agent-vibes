@@ -1,99 +1,81 @@
-## High-level summary  
-1. Backend: New API route `app/api/build-crew/digest/route.ts` that fetches & sanitises the Build Crew RSS digest and exposes a JSON endpoint.  
-2. Frontend:  
-   • New client component `BuildCrewDigest.tsx` that calls the endpoint and renders the digest with collapsible cards.  
-   • Social-activity tweets were extracted into `RecentSocialActivity.DayTweets.tsx`; small utility file `collapsibleDayUtils.ts` introduced.  
-   • Dashboard page wired up to show the daily digest.  
-3. Tooling & deps: `sanitize-html` (+types) and transitive deps added; project version bumped to 0.1.4.  
-4. Docs: Quick mention of `npm run check` inside `AGENTS.md`.
+## High-level summary
+This diff tightens and broadens category detection throughout the pipeline.
 
-## Tour of changes  
-Start with `app/api/build-crew/digest/route.ts`.  
-It defines the data contract consumed by the new UI, contains sanitisation logic, date handling and caching rules, and determines how safe the downstream `dangerouslySetInnerHTML` calls are. Understanding this file makes the subsequent React additions straightforward.
+1. `categoryResolution.ts`
+   • Introduces a normalization table and helper that accept many folder/slug aliases.  
+   • Adds a **perspective-host allow-list**, re-orders category resolution steps, and improves fallback logic.  
+   • Leaves the old `MINIFLUX_CATEGORY_TO_RSS` table in place but effectively unused.
 
-## File level review  
+2. `ExternalServices/Miniflux`
+   • `inhouse.ts` derives a default category from each OPML filename and passes it downstream.  
+   • `opml.ts` accepts that forced category and overrides every feed extracted from the file.
 
-### `AGENTS.md`  
-+ Merely advertises `npm run check`. No issues.
+These changes aim to reduce “uncategorized” items caused by unexpected folder names or OPML file locations.
 
----
+## Tour of changes
+Start with `src/RssPipeline/Core/Transformations/categoryResolution.ts`.  
+This is the heart of the change: it defines the new normalization table, introduces the perspective host list, and changes the resolution order. Understanding it makes the other two files (which merely supply better category hints) self-explanatory.
 
-### `app/api/build-crew/digest/route.ts`  
+## File-level review
 
-✔️ Good  
-• Uses `rss-parser`; shields against XSS with `sanitize-html`.  
-• Hard limits: `days` clamped to [1 … 31].  
-• Fast 30-min proxy cache via `s-maxage`, error handling returns 502.  
+### `src/RssPipeline/Core/Transformations/categoryResolution.ts`
 
-⚠️ Issues / suggestions  
-1. **Edge vs Node** – flag `export const runtime = 'nodejs';` forces a full Node runtime. If you don’t need native modules consider `'edge'` (smaller cold start).  
-2. **Regex channel extraction fragility** – Works only when headings are literally `<h2>`. Some RSS feeds output Markdown-generated `<strong>` or `<h3>`. Consider `(h2|h3)` or a DOM parser for resilience.  
-3. **HTML normalisation** – After `sanitizeHtml()` you re-inject the HTML in React. The call inside `extractSections` already sanitises but later `highlightChannelMentions` does string rewrites that may create un-sanitised substrings (`<span …>`). Because the regex operates only on text nodes between `>` `<`, new tags are dropped inside the original element so still safe, but we lose a second sanitisation pass. Consider `sanitizeHtml` at the very end or ensure the replacement string is safe (currently constant & trusted).  
-4. **Deduplication bias** – `seen` picks the *first* item for a day, but the sort order is newest→oldest; you therefore keep the newest. Good, just document.  
-5. **Date parsing** – `new Date(iso)` relies on host TZ. Prefer `Date.parse()` + `new Date(ms)` or an ISO library to avoid Safari quirks.  
-6. **Type safety** – `BCFeedItem` still indexed with `[key:string]`. Could extend the Parser generic instead.  
-7. **Resource failure** – No timeout / fetch retries. Node’s default DNS/network hiccup may block the route for >30 s. Wrap with `AbortController`.
+What changed
+• Added `CATEGORY_NORMALIZATION` table and `normalizeLabelToRssCategory()` helper.  
+• New `PERSPECTIVE_HOSTS` allow-list.  
+• Resolution order: (1) normalized folder; (2) perspective host; (3) research host; (4) feed-title hint; (5) heuristic; (6) legacy fallback.  
+• Left the old `MINIFLUX_CATEGORY_TO_RSS` constant untouched.
 
----
+Review
+✔️  Correctness  
+   – Normalization handles case, whitespace, dashes, underscores and no-space slugs.  
+   – Host matching uses `host === d || host.endsWith('.' + d)`, covering sub-domains.  
+   – Re-ordering places “perspective host” before “research host”, preventing an article from `dev.to` (in both lists) being mis-labelled.
 
-### `app/dashboard-v2/components/BuildCrewDigest.tsx`  
+⚠️  Redundant code  
+   – `MINIFLUX_CATEGORY_TO_RSS` is no longer referenced anywhere inside the module. It should either be removed or referenced within `normalizeLabelToRssCategory` to avoid confusion and dead code flags.
 
-✔️ Good  
-• `useMemo` for query string, simple loading/error states, collapsible UI reused from utils.  
-• Channel tags visually highlighted.  
+⚠️  Performance / memory  
+   – `CATEGORY_NORMALIZATION` duplicates some keys that differ only by underscore vs hyphen vs space. This is fine for size but could be generated algorithmically to avoid maintenance drift.
 
-⚠️ Issues / suggestions  
-1. **XSS after highlight** – See previous note. The newly inserted `<span>` is hard-coded but the `tag` text comes from RSS; regex ensures it starts with `#` and only word chars & dashes, so safe. You might still escape the tag (`kw.replace(/[&<>"]/g, …)`) to be 100 % certain.  
-2. **Regex “>text<” hack** – Fails if text contains `>` or `<` entities (`&lt;`). Consider using DOMParser client-side instead.  
-3. **Error message leak** – Displays raw `Error.message` which for network issues is fine, but for unexpected JSON shapes it might expose internals. Maybe replace with generic “Unable to load digest”.  
-4. **Stale-while-revalidate** – You cache on the server; on the client a SWR hook could further improve UX.  
+⚠️  Edge cases  
+   – `normalizeLabelToRssCategory` collapses repeated separators to a single space **before** looking up.  
+     ‣ Key “industry_research” becomes “industry research”, and lookup succeeds.  
+     ‣ However “industry–research” (en-dash) or other exotic punctuation are still misses; consider `\p{Pd}`.  
+   – If both `RESEARCH_HOSTS` and `PERSPECTIVE_HOSTS` contain the same base domain, only the first tested will win (currently perspective). Document this to avoid silent behaviour changes later.
 
----
+Security / stability  
+   – URL parsing is wrapped in try/catch: good.  
+   – No new security surface.
 
-### `app/dashboard-v2/components/RecentSocialActivity.DayTweets.tsx`  
+### `src/RssPipeline/ExternalServices/Miniflux/inhouse.ts`
 
-Extracted unchanged rendering logic. Good refactor for readability.  
-Minor: File has a long name; consider colocating inside a `DayTweets` folder.  
+What changed
+• Added `basename` import.  
+• `deriveCategoryFromFilename()` inspects the filename (“product-updates.opml”, etc.) and returns a canonical `InhouseCategory`.  
+• Passes this `forcedCategory` to `parseOpmlFileToInhouseFeeds`.
 
----
+Review
+✔️  Correctness  
+   – Uses `.includes()` on a lowercase basename – simple and robust.  
+   – Pattern “research” will also match e.g. “my-researcher‐notes.opml”. If that is a concern, anchor the word boundaries.
 
-### `app/dashboard-v2/components/collapsibleDayUtils.ts`  
+⚠️  Behavioural note  
+   – This **overrides** the category for every feed inside the OPML file. If mixed-category files are ever introduced, information will be lost. At minimum the function docstring should state the override semantics.
 
-Tiny helper; keeps class names DRY. Looks fine.  
+### `src/RssPipeline/ExternalServices/Miniflux/opml.ts`
 
----
+What changed
+• `parseOpmlFileToInhouseFeeds()` now takes an optional `forcedCategory`.  
+• When provided, every extracted feed is copied with `category` overwritten.
 
-### `app/dashboard-v2/components/CollapsibleDay.tsx`  
+Review  
+✔️ Straight-forward; spread operator copies the feed to keep immutability.  
+⚠️ If an individual outline already had its own `category` field, it will be silently replaced; consider logging when an overwrite occurs for easier debugging.
 
-Empty placeholder; can be deleted to avoid confusion.  
+## Recommendations
 
----
-
-### `app/dashboard-v2/components/RecentSocialActivity.tsx`  
-
-Imports and uses new `<DayTweets>` component, otherwise unchanged. Good separation.  
-
----
-
-### `app/dashboard-v2/page.tsx`  
-
-• Adds digest section + nav copy update.  
-• Renames “Discussions” → “Daily Digest”. No functional risks.  
-
----
-
-### `package.json` / `package-lock.json`  
-
-• Added `sanitize-html` & types. Acceptable; library is maintained.  
-• Version bump 0.1.0 → 0.1.4 – remember to tag release.  
-• Transitive deps (`deepmerge`, `is-plain-object` etc.) pulled in. No red flags.  
-
----
-
-## Recommendations (TL;DR)  
-1. Run the sanitisation again after `highlightChannelMentions` or escape the hashtag text.  
-2. Add fetch timeout & maybe retry/back-off in the API route.  
-3. Improve heading detection robustness (DOM parser instead of regex).  
-4. Remove empty `CollapsibleDay.tsx`.  
-5. Unit-test `extractSections()` with odd RSS inputs (missing headings, alternative casing).  
-6. Consider `edge` runtime if no Node-only APIs are required.
+1. Remove or integrate the now-unused `MINIFLUX_CATEGORY_TO_RSS` constant.  
+2. Add unit tests for `normalizeLabelToRssCategory`, especially for multi-separator edge cases.  
+3. Document or log category overrides in OPML parsing to avoid accidental data loss.  
+4. (Optional) Generate `CATEGORY_NORMALIZATION` programmatically from a minimal base list to reduce duplication.

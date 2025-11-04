@@ -177,6 +177,34 @@ Recommended improvements and optimizations for future implementation.
 - Priority: Low
 - Status: Pending
 
+### Remove legacy folder→RSS map from resolver
+- Goal: Reduce duplication now that normalization handles human labels and slugs.
+- What: Delete the redundant `MINIFLUX_CATEGORY_TO_RSS` mapping in [categoryResolution.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Core/Transformations/categoryResolution.ts) and rely solely on `normalizeLabelToRssCategory`.
+- Why: Keeps the resolver explicit and avoids drift between two mappings.
+- Priority: Low
+- Status: Pending
+
+### Tighten OPML filename → category inference
+- Goal: Avoid unintended matches when inferring research category from file names.
+- What: In [inhouse.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/ExternalServices/Miniflux/inhouse.ts), restrict `deriveCategoryFromFilename` to exact filename tokens (e.g., `research-papers.opml`) rather than broad `includes('research')`.
+- Why: Prevents accidental routing if future OPML filenames contain "research" in unrelated contexts.
+- Priority: Low
+- Status: Pending
+
+### Tests for category normalization and precedence
+- Goal: Pin behavior and prevent regressions in resolver precedence.
+- What: Add unit tests covering: folder/OPML category short‑circuit, perspective allowlist (dev.to and subdomains), research whitelist precedence, and heuristic fallback thresholds in [categoryResolution.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/Core/Transformations/categoryResolution.ts).
+- Why: Ensures strict content separation remains robust.
+- Priority: Medium
+- Status: Pending
+
+### Config‑ify host allowlists
+- Goal: Make perspective/research host lists explicit and easy to extend without code changes.
+- What: Move `PERSPECTIVE_HOSTS` and `RESEARCH_HOSTS` into a small config module (or JSON) consumed by the resolver; consider environment overrides for experiments.
+- Why: Improves extensibility while keeping behavior explicit and simple.
+- Priority: Low
+- Status: Pending
+
 ### Add unit tests for OPML discovery helper
 - Goal: Increase confidence and prevent regressions in directory/file detection.
 - What: Add a minimal unit test suite for [opmlDiscovery.ts](file:///home/prinova/CodeProjects/agent-vibes/src/Shared/Infrastructure/Utilities/opmlDiscovery.ts) covering: missing paths, directory with mixed files, single-file inclusion, and case-insensitive `.opml` matching.

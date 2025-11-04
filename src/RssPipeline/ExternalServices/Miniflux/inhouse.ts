@@ -1,7 +1,7 @@
 import Parser from 'rss-parser';
 import type { GetEntriesParams, MinifluxEntriesResponse, MinifluxEntry } from './client';
 import { parseOpmlFileToInhouseFeeds } from './opml';
-import { join } from 'node:path';
+import { join, basename } from 'node:path';
 import { discoverOpmlFiles } from '@/src/Shared/Infrastructure/Utilities/opmlDiscovery';
 
 // OPML directories to scan (each directory’s .opml files will be aggregated)
@@ -55,11 +55,20 @@ function stableHashInt(input: string): number {
   return Math.abs(h);
 }
 
+function deriveCategoryFromFilename(path: string): InhouseCategory | undefined {
+  const name = basename(path).toLowerCase();
+  if (name.includes('product-updates') || name.includes('product_update')) return 'product_updates';
+  if (name.includes('research-papers') || name.includes('research')) return 'industry_research';
+  if (name.includes('perspective')) return 'perspectives';
+  return undefined;
+}
+
 function parseFeedsEnv(): InhouseFeedConfig[] {
   const all: InhouseFeedConfig[] = [];
   const opmlFiles = discoverOpmlFiles(OPML_PATHS);
   for (const p of opmlFiles) {
-    const feeds = parseOpmlFileToInhouseFeeds(p);
+    const forcedCategory = deriveCategoryFromFilename(p);
+    const feeds = parseOpmlFileToInhouseFeeds(p, forcedCategory);
     if (Array.isArray(feeds) && feeds.length > 0) {
       all.push(...feeds);
     }
