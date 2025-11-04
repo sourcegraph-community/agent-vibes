@@ -298,3 +298,53 @@ Recommended improvements and optimizations for future implementation.
 - Why: Prevents empty `<p>` from creating layout gaps when no abstract is available.
 - Priority: Low
 - Status: Pending
+
+### Enforce auth gate on social sentiment tweets API
+- Goal: Protect the public API route and align with repo guidance for `/api/*` authentication.
+- What: Add header-based auth to [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts) similar to other `/api/*` endpoints (support `Authorization: Bearer ${CRON_SECRET}` and/or `x-api-key: INTERNAL_API_KEY`). Reject unauthorized requests before constructing the Supabase service client.
+- Why: Prevents bypass of RLS semantics and adheres to the documented API authentication policy in AGENTS.md.
+- Priority: High
+- Status: Pending
+
+### Abort client fetch on unmount in RecentSocialActivity
+- Goal: Avoid setState on unmounted component and unnecessary work.
+- What: Use `AbortController` in [RecentSocialActivity.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RecentSocialActivity.tsx) to cancel the fetch in the `useEffect` cleanup and pass the signal to `fetch`.
+- Why: Improves resilience during rapid brand switches/navigation.
+- Priority: Medium
+- Status: Pending
+
+### Virtualize day tweet lists for large groups
+- Goal: Maintain smooth scrolling with very large per-day tweet counts.
+- What: Integrate light virtualization (e.g., windowed list) in [RecentSocialActivity.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RecentSocialActivity.tsx) when counts exceed a threshold.
+- Why: Reduces render cost and memory footprint for extreme cases without server truncation.
+- Priority: Low
+- Status: Pending
+
+### Standardize time formatting in RecentSocialActivity
+- Goal: Ensure consistent, compact time display across locales.
+- What: Provide explicit `hour`, `minute`, and `hour12` options to `toLocaleTimeString()` and consider a consistent `Intl.DateTimeFormat` instance in [RecentSocialActivity.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RecentSocialActivity.tsx).
+- Why: Removes minor inconsistencies in time rendering across browsers/locales.
+- Priority: Low
+- Status: Pending
+
+### Prevent keyword chip key collisions
+- Goal: Avoid potential React key collisions for duplicate keywords across tweets.
+- What: Use a composite key (e.g., ``${t.id}-${kw}``) or include index when mapping chips in [RecentSocialActivity.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RecentSocialActivity.tsx).
+- Why: Ensures stable, unique keys even when keywords repeat.
+- Priority: Low
+- Status: Pending
+
+
+### Include error details in development for tweets API
+- Goal: Improve debuggability while keeping production responses generic.
+- What: In [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts) catch block, include `error.message` when `NODE_ENV !== 'production'`.
+- Why: Aids debugging during local/dev without leaking details in prod.
+- Priority: Low
+- Status: Pending
+
+### Add repository tests for keyword overlap and UTC day bucketing
+- Goal: Prevent regressions in case-insensitive keyword matching and last-N UTC calendar day grouping.
+- What: Tests for [DashboardRepository.getTweetsByPostedWindow](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/DataAccess/Repositories/DashboardRepository.ts) covering lowercased keyword overlaps and UTC midnight windowing, plus route-level grouping/slicing by `postedAt` day in [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts).
+- Why: Codifies behavior, eliminates ambiguity between processed vs posted day, and protects against regressions.
+- Priority: Medium
+- Status: Pending

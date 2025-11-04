@@ -403,6 +403,30 @@ body {
     width: 100%;
 }
 
+/* Themed thin scrollbar for dark UI */
+.scrollbar-themed {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: hsla(var(--muted-foreground), 0.45) transparent;
+  /* Reserve space so content doesn’t hug the bar */
+  scrollbar-gutter: stable both-edges;
+}
+.scrollbar-themed::-webkit-scrollbar {
+  width: 10px;
+}
+.scrollbar-themed::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-themed::-webkit-scrollbar-thumb {
+  background-color: hsla(var(--muted-foreground), 0.45);
+  border-radius: 9999px;
+  border: 2px solid transparent; /* creates visual inset */
+  background-clip: padding-box;
+}
+.scrollbar-themed::-webkit-scrollbar-thumb:hover {
+  background-color: hsla(var(--muted-foreground), 0.65);
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
     .sidebar {

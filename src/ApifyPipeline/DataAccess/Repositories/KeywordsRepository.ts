@@ -39,11 +39,12 @@ export const fetchEnabledKeywordsByProduct = async (
   limit?: number,
 ): Promise<string[]> => {
   const normalized = product.trim();
+  const pattern = `%${normalized}%`;
   let query = client
     .from('keywords')
     .select('keyword, is_enabled, priority, last_used_at, product')
     .eq('is_enabled', true)
-    .ilike('product', normalized)
+    .ilike('product', pattern)
     .order('priority', { ascending: true })
     .order('keyword', { ascending: true });
 

@@ -44,6 +44,8 @@ export interface TweetDetail {
   sentimentScore: number | null
 }
 
+export type TweetWithSentiment = TweetDetail;
+
 export interface DashboardFilters {
   startDate?: string
   endDate?: string
@@ -275,6 +277,92 @@ export class DashboardRepository {
         sentimentLabel: sentiment?.sentiment_label ?? null,
         sentimentScore: sentiment?.sentiment_score ?? null,
       };
+    });
+  }
+
+
+  async getTweetsByPostedWindow(filters: { startDate: string; language?: string; keywords?: string[]; limit?: number }): Promise<TweetWithSentiment[]> {
+    let query = this.supabase
+      .from('normalized_tweets')
+      .select(`
+        id,
+        author_handle,
+        author_name,
+        posted_at,
+        language,
+        content,
+        url,
+        engagement_likes,
+        engagement_retweets,
+        keyword_snapshot,
+        tweet_sentiments (
+          sentiment_label,
+          sentiment_score,
+          processed_at
+        )
+      `);
+
+    // Filter by posted range (strict posted-day dimension)
+    query = query.gte('posted_at', filters.startDate);
+
+    if (filters.language) {
+      query = query.eq('language', filters.language);
+    }
+
+    if (filters.keywords && filters.keywords.length > 0) {
+      const normalizedKeywords = filters.keywords.map((k) => k.toLowerCase());
+      query = query.overlaps('keyword_snapshot', normalizedKeywords);
+    }
+
+    const { data, error } = await query
+      .order('posted_at', { ascending: false })
+      .limit(filters.limit ?? 1000);
+
+    if (error) {
+      throw new Error(`Failed to fetch tweets by posted window: ${error.message}`);
+    }
+
+    const rows = (data ?? []) as Array<{
+      id: string;
+      author_handle: string | null;
+      author_name: string | null;
+      posted_at: string;
+      language: string | null;
+      content: string;
+      url: string | null;
+      engagement_likes: number | null;
+      engagement_retweets: number | null;
+      keyword_snapshot: string[];
+      tweet_sentiments: Array<{
+        sentiment_label: string;
+        sentiment_score: number;
+        processed_at?: string;
+      }>;
+    }>;
+
+    return rows.map((row) => {
+      let sentiment = null as null | { sentiment_label: string; sentiment_score: number; processed_at?: string };
+      if (Array.isArray(row.tweet_sentiments) && row.tweet_sentiments.length > 0) {
+        sentiment = [...row.tweet_sentiments].sort((a, b) => {
+          const ta = a.processed_at ? Date.parse(a.processed_at) : 0;
+          const tb = b.processed_at ? Date.parse(b.processed_at) : 0;
+          return tb - ta;
+        })[0];
+      }
+      return {
+        id: row.id,
+        authorHandle: row.author_handle,
+        authorName: row.author_name,
+        postedAt: row.posted_at,
+        language: row.language,
+        content: row.content,
+        url: row.url,
+        engagementLikes: row.engagement_likes,
+        engagementRetweets: row.engagement_retweets,
+        keywords: row.keyword_snapshot ?? [],
+        sentimentLabel: sentiment?.sentiment_label ?? null,
+        sentimentScore: sentiment?.sentiment_score ?? null,
+      } satisfies TweetWithSentiment;
     });
   }
 

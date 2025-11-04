@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
+import RecentSocialActivity from './RecentSocialActivity';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -99,28 +100,39 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
   }, []);
 
   // Fetch product data when timeframe or selected brand changes
-  const fetchProductData = useCallback(async () => {
+  const fetchProductData = useCallback(async (signal?: AbortSignal) => {
     if (!selectedBrand) {
-      setProductData(null);
+      if (!signal?.aborted) setProductData(null);
       return;
     }
 
+    if (signal?.aborted) return;
     setProductLoading(true);
     try {
-      const response = await fetch(
-        `/api/social-sentiment/by-product?days=${timeframe}&products=${encodeURIComponent(selectedBrand)}`,
-      );
-      const result = await response.json();
-      setProductData(result);
+      const url = `/api/social-sentiment/by-product?days=${timeframe}&products=${encodeURIComponent(selectedBrand)}`;
+      const response = await fetch(url, { signal });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      let result: ProductResponse | null = null;
+      try {
+        result = await response.json();
+      } catch {
+        result = null;
+      }
+      if (!signal?.aborted) setProductData(result);
     } catch (error) {
-      console.error('Failed to fetch product sentiment:', error);
+      if (!signal?.aborted) {
+        console.error('Failed to fetch product sentiment:', error);
+        setProductData(null);
+      }
     } finally {
-      setProductLoading(false);
+      if (!signal?.aborted) setProductLoading(false);
     }
   }, [timeframe, selectedBrand]);
 
   useEffect(() => {
-    fetchProductData();
+    const controller = new AbortController();
+    fetchProductData(controller.signal);
+    return () => controller.abort();
   }, [fetchProductData]);
 
   const fetchData = useCallback(async () => {
@@ -393,41 +405,8 @@ export default function SocialSentiment({ timeframe }: SocialSentimentProps) {
         )}
       </div>
 
-      {/* Social Feed Preview */}
-      {data && data.data.length > 0 && (
-        <div className="card mt-6">
-          <h3 className="text-lg font-semibold mb-4">Recent Social Activity</h3>
-          <div className="space-y-4">
-            {data.data.slice(0, 5).map((row, idx) => (
-              <div
-                key={idx}
-                className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg"
-              >
-                <div className="flex-1">
-                  <p className="text-sm text-gray-400">
-                    {new Date(row.sentimentDay).toLocaleDateString()}
-                  </p>
-                  <div className="flex gap-4 mt-2 text-sm">
-                    <span className="text-green-400">
-                      Positive: {row.positiveCount}
-                    </span>
-                    <span className="text-gray-400">
-                      Neutral: {row.neutralCount}
-                    </span>
-                    <span className="text-red-400">
-                      Negative: {row.negativeCount}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-500">{row.language}</p>
-                  <p className="text-sm font-medium">{row.totalCount} posts</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Recent Social Activity: collapsible days with tweets, filtered by brand; fixed last 7 days */}
+      <RecentSocialActivity brand={selectedBrand ?? undefined} />
     </section>
   );
 }

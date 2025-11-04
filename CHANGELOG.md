@@ -4,14 +4,42 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
+### Goal
+Align Recent Social Activity to show exactly the last N UTC calendar days by posted date, ensure case-insensitive keyword filtering, and keep API payloads minimal and consistent.
 
 ### Added
+- Repository method to fetch tweets by posted-day window with required sentiment and latest-per-tweet selection: [DashboardRepository.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/DataAccess/Repositories/DashboardRepository.ts).
 
 ### Changed
+- Group by posted day (no processed fallback) and slice to last `days` groups; sort days via ISO string compare in desc order in [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts).
+- Anchor window start to UTC midnight using `setUTCHours(0,0,0,0)` to match ISO date grouping in [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts).
+- Normalize product keywords to lowercase at the API boundary and in repository queries to avoid case-sensitive misses in [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts) and [DashboardRepository.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/DataAccess/Repositories/DashboardRepository.ts).
+- Switch data source to strict posted-day window via `getTweetsByPostedWindow` and use it in the tweets API route in [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts).
+- Early-return payload aligned across empty/non-empty responses to include `summary.product` and `generatedAt` in [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts).
 
 ### Removed
+- `processedAt` from tweets API payloads and types in [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts) and [DashboardRepository.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/DataAccess/Repositories/DashboardRepository.ts).
+- `getTweetsByProcessedWindow` in favor of strict posted-day window selection in [DashboardRepository.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/DataAccess/Repositories/DashboardRepository.ts).
+- Transient `dayKey` from the returned tweets (used only for grouping) in [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts).
 
+
+## [Agent-Vibes 0.1.5]
+
+### Goal
+Implement and refine “Recent Social Activity” in dashboard-v2: group tweets by day (collapsibles), filter by brand, always last 7 days, per‑day scroll without server truncation, subtle separators, themed scrollbar, and sentiment badges (green/red).
+
+### Added
+- New grouped tweets API endpoint returning last N days grouped by day with latest sentiment per tweet in [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts). Supports optional brand filtering via keyword overlap and optional language filter. Fetch window is capped; the server does not slice per day (UI controls scroll).
+- New collapsible Recent Social Activity component rendering day groups with compact spacing, thin dividers, themed scrollbar, and sentiment badges in [RecentSocialActivity.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RecentSocialActivity.tsx).
+
+### Changed
+- Integrated Recent Social Activity into Social Sentiment and decoupled from chart timeframe; uses fixed last 7 days and an optional brand prop in [SocialSentiment.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/SocialSentiment.tsx).
+- Added reusable themed thin scrollbar styles used by the day list in [dashboard.css](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/dashboard.css).
+
+### Fixed
+- Eliminated double URL encoding for the `products` param on the client; rely on `URLSearchParams` single encoding in [RecentSocialActivity.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/RecentSocialActivity.tsx). Removed server-side manual decode and parse query directly in [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts).
+- Replaced manual array literal filter with Supabase `.overlaps('keyword_snapshot', productKeywords)` for robust keyword matching in [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts).
+- Parallelized product keyword lookups with `Promise.all` and deduped merged results in [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/social-sentiment/tweets/route.ts).
 
 ## [nextjs 0.1.4]
 
