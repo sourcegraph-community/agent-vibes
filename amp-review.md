@@ -1,81 +1,115 @@
 ## High-level summary
-This diff tightens and broadens category detection throughout the pipeline.
+The patch introduces a real “Overview” section that is powered end-to-end:
 
-1. `categoryResolution.ts`
-   • Introduces a normalization table and helper that accept many folder/slug aliases.  
-   • Adds a **perspective-host allow-list**, re-orders category resolution steps, and improves fallback logic.  
-   • Leaves the old `MINIFLUX_CATEGORY_TO_RSS` table in place but effectively unused.
+* FE:  
+  * Adds a new client component `OverviewMetrics.tsx` that fetches metrics from an API and replaces the previous hard-coded cards in `dashboard-v2/page.tsx`.
+  * Wires the component into the dashboard, keeping the existing timeframe selector in place.
 
-2. `ExternalServices/Miniflux`
-   • `inhouse.ts` derives a default category from each OPML filename and passes it downstream.  
-   • `opml.ts` accepts that forced category and overrides every feed extracted from the file.
+* API / BE:  
+  * Adds an App-Router API route at `app/api/dashboard-v2/overview/route.ts` that re-exports the server implementation.
+  * Implements the server handler (`GetOverviewMetricsEndpoint.ts`) and its query logic (`GetOverviewMetricsQueryHandler.ts`).  
+  * Extends `RssRepository` with a helper `countEntriesSince` that supplies data for the query.
 
-These changes aim to reduce “uncategorized” items caused by unexpected folder names or OPML file locations.
+Overall this moves the overview cards from static placeholders to live data coming from Supabase.
 
 ## Tour of changes
-Start with `src/RssPipeline/Core/Transformations/categoryResolution.ts`.  
-This is the heart of the change: it defines the new normalization table, introduces the perspective host list, and changes the resolution order. Understanding it makes the other two files (which merely supply better category hints) self-explanatory.
+Start with `GetOverviewMetricsQueryHandler.ts`. It is the heart of the feature: all other changes (endpoint, FE calls, repository helper) are either “plumbing” or presentation of the data produced here. Once its semantics are clear, validating the endpoint, repository call, and React component becomes straightforward.
 
-## File-level review
+## File level review
 
-### `src/RssPipeline/Core/Transformations/categoryResolution.ts`
+### `src/ApifyPipeline/Web/Application/Queries/GetOverviewMetrics/GetOverviewMetricsQueryHandler.ts`
+*✔ Core logic*
 
-What changed
-• Added `CATEGORY_NORMALIZATION` table and `normalizeLabelToRssCategory()` helper.  
-• New `PERSPECTIVE_HOSTS` allow-list.  
-• Resolution order: (1) normalized folder; (2) perspective host; (3) research host; (4) feed-title hint; (5) heuristic; (6) legacy fallback.  
-• Left the old `MINIFLUX_CATEGORY_TO_RSS` constant untouched.
++ Builds two sliding windows: `[currentStart … today]` and the preceding window of the same length.  
++ Aggregates:
+  - Sentiment rows (tweets) via `DashboardRepository.getDailySentiment`.
+  - RSS entry counts via `RssRepository.countEntriesSince`.
+  - Research papers as an RSS subset (`industry_research` category).
++ Calculates % deltas with `calcPercentageDelta`.
 
-Review
-✔️  Correctness  
-   – Normalization handles case, whitespace, dashes, underscores and no-space slugs.  
-   – Host matching uses `host === d || host.endsWith('.' + d)`, covering sub-domains.  
-   – Re-ordering places “perspective host” before “research host”, preventing an article from `dev.to` (in both lists) being mis-labelled.
+Correctness / bugs
+1. Window boundaries  
+   • `currentStart` is inclusive but `getDailySentiment` for the previous window ends with `toYMD(new Date(currentStart.getTime() - 24 * 60 * 60 * 1000))` – one day before `currentStart`, making the two windows back-to-back without overlap. Good.
 
-⚠️  Redundant code  
-   – `MINIFLUX_CATEGORY_TO_RSS` is no longer referenced anywhere inside the module. It should either be removed or referenced within `normalizeLabelToRssCategory` to avoid confusion and dead code flags.
+2. `limit: days * 10`  
+   Assumes ≤ 10 language slices per day. If more languages are ever added this may silently truncate rows. Consider requesting *all* rows or `limit: days * expectedLangs` with a TODO.
 
-⚠️  Performance / memory  
-   – `CATEGORY_NORMALIZATION` duplicates some keys that differ only by underscore vs hyphen vs space. This is fine for size but could be generated algorithmically to avoid maintenance drift.
+3. `calcPercentageDelta`  
+   • When `previous === 0` and `current !== 0` it returns `100`, no matter how large `current` is. This makes any non-zero jump from zero indistinguishable. A more informative choice is `Infinity` or `null`, or returning the *absolute* current value (e.g., 2000 % if it went from 1 to 21).  
+   • Results are rounded to three decimals and then stored as `number`, OK.
 
-⚠️  Edge cases  
-   – `normalizeLabelToRssCategory` collapses repeated separators to a single space **before** looking up.  
-     ‣ Key “industry_research” becomes “industry research”, and lookup succeeds.  
-     ‣ However “industry–research” (en-dash) or other exotic punctuation are still misses; consider `\p{Pd}`.  
-   – If both `RESEARCH_HOSTS` and `PERSPECTIVE_HOSTS` contain the same base domain, only the first tested will win (currently perspective). Document this to avoid silent behaviour changes later.
+4. `rssPrevWindow`/`researchPrevWindow`  
+   Uses `Math.max(0, …)` to avoid negative counts (race conditions). Good defensive guard.
 
-Security / stability  
-   – URL parsing is wrapped in try/catch: good.  
-   – No new security surface.
+5. Type safety  
+   Returns fields as `number`, but downstream UI expects `.toFixed(1)`. Fine.
 
-### `src/RssPipeline/ExternalServices/Miniflux/inhouse.ts`
+Performance
+* One Supabase client is reused per repository; good.  
+* Counting RSS entries with `select('*', { count: 'exact', head: true })` only returns headers (minimal I/O). OK.
 
-What changed
-• Added `basename` import.  
-• `deriveCategoryFromFilename()` inspects the filename (“product-updates.opml”, etc.) and returns a canonical `InhouseCategory`.  
-• Passes this `forcedCategory` to `parseOpmlFileToInhouseFeeds`.
+Security
+* `days` is clamped 1-365.  
+* No user-supplied values are interpolated directly into SQL; Supabase RPC safe.
 
-Review
-✔️  Correctness  
-   – Uses `.includes()` on a lowercase basename – simple and robust.  
-   – Pattern “research” will also match e.g. “my-researcher‐notes.opml”. If that is a concern, anchor the word boundaries.
+Maintainability
+* Nice helper functions (`toYMD`, `calcPercentageDelta`).  
+* Consider pushing the repeated reduction logic into a `mergeTotals` util.
 
-⚠️  Behavioural note  
-   – This **overrides** the category for every feed inside the OPML file. If mixed-category files are ever introduced, information will be lost. At minimum the function docstring should state the override semantics.
+### `src/ApifyPipeline/Web/Application/Queries/GetOverviewMetrics/GetOverviewMetricsEndpoint.ts`
+*Wraps query handler.*
 
-### `src/RssPipeline/ExternalServices/Miniflux/opml.ts`
+Correctness
+* Validates `days` query param, falls back to 7.  
+* Sets `s-maxage` and `stale-while-revalidate` → allows CDN caching.
 
-What changed
-• `parseOpmlFileToInhouseFeeds()` now takes an optional `forcedCategory`.  
-• When provided, every extracted feed is copied with `category` overwritten.
+Minor
+* `Number.isFinite(Number(daysRaw))` still treats empty string as 0 ⇒ returns 0 ⇒ clamped up to 1. Might be better to test `daysRaw !== null`.
 
-Review  
-✔️ Straight-forward; spread operator copies the feed to keep immutability.  
-⚠️ If an individual outline already had its own `category` field, it will be silently replaced; consider logging when an overwrite occurs for easier debugging.
+### `app/api/dashboard-v2/overview/route.ts`
+Simple re-export. OK.
+
+### `src/RssPipeline/DataAccess/Repositories/RssRepository.ts`
+*Adds `countEntriesSince`.*
+
+Correctness
+* Uses `head: true` for efficient count.  
+* Error handling re-throws with explicit context. Good.
+
+Nit
+* `select('*' …)` could be `select('id' …)` for clarity, but has no runtime cost with `head: true`.
+
+### `app/dashboard-v2/components/OverviewMetrics.tsx`
+*Client presentation layer.*
+
+Correctness / UX
+1. Fetch logic  
+   • Clean abort via `AbortController`.  
+   • Handles loading, error, empty states.
+
+2. `useMemo` class helpers:  
+   If `data` is `null`, returns `undefined` – leading to `class="trend-indicator undefined"`. CSS may ignore, but consider default `''`.
+
+3. Number formatting  
+   Uses `.toLocaleString()` and `.toFixed(1)` – locale aware for ints, but not for percentages; acceptable.
+
+4. Accessibility  
+   Card layout appears OK, but no ARIA attributes. Could add `role="status"` for the delta.
+
+### `app/dashboard-v2/page.tsx`
+*Replaces hard-coded grid with `<OverviewMetrics>`.*
+
+Correctness
+* Passes `timeframe` state. Works because the API also accepts the same range.
+
+### Styling / CSS (not in diff)
+The new classes (`metrics-grid`, `trend-indicator positive|negative`, etc.) were already present; if not, ensure they exist.
 
 ## Recommendations
+1. In `calcPercentageDelta`, return a more meaningful number when `previous == 0` (e.g., `null` or `Infinity`) and let the UI decide how to display “N/A” or “—”.
+2. Replace `limit: days * 10` with an explanation or a higher bound.
+3. Prevent `"trend-indicator undefined"` by defaulting the CSS class to `''`.
+4. Input validation: treat empty `days` as “missing” instead of `0`.
+5. Consider caching the expensive Supabase counts in redis or Supabase Edge Functions if these numbers grow.
 
-1. Remove or integrate the now-unused `MINIFLUX_CATEGORY_TO_RSS` constant.  
-2. Add unit tests for `normalizeLabelToRssCategory`, especially for multi-separator edge cases.  
-3. Document or log category overrides in OPML parsing to avoid accidental data loss.  
-4. (Optional) Generate `CATEGORY_NORMALIZATION` programmatically from a minimal base list to reduce duplication.
+Otherwise the implementation is sound, readable, and deploy-ready.

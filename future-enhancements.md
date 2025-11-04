@@ -4,6 +4,18 @@ Recommended improvements and optimizations for future implementation.
 
 ## Pending Enhancements
 
+### Dashboard‑v2 Overview wiring follow-ups
+- Goal: Polish semantics and caching while keeping the flow minimal and explicit.
+- What:
+  - Refine delta semantics when previous window baseline is zero to avoid defaulting to 100%; consider returning 0 or a nullable delta in [GetOverviewMetricsQueryHandler.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Web/Application/Queries/GetOverviewMetrics/GetOverviewMetricsQueryHandler.ts#L41-L44).
+  - Document/justify query `limit` multiplier or derive it explicitly from `days` and expected languages in [GetOverviewMetricsQueryHandler.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Web/Application/Queries/GetOverviewMetrics/GetOverviewMetricsQueryHandler.ts#L67-L70) and [GetOverviewMetricsQueryHandler.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Web/Application/Queries/GetOverviewMetrics/GetOverviewMetricsQueryHandler.ts#L86-L90).
+  - Handle empty-day gaps explicitly if required (e.g., when no sentiment rows exist for some days) to make totals predictable.
+  - Remove the unused local variable flagged during review in [GetOverviewMetricsQueryHandler.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Web/Application/Queries/GetOverviewMetrics/GetOverviewMetricsQueryHandler.ts#L58).
+  - Optionally set CDN-only cache headers to avoid browser caching (e.g., `Cache-Control: public, s-maxage=300, stale-while-revalidate=120, max-age=0`) in [GetOverviewMetricsEndpoint.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Web/Application/Queries/GetOverviewMetrics/GetOverviewMetricsEndpoint.ts#L16-L18).
+- Why: Improves clarity, correctness on edge cases, and caching behavior without adding complexity.
+- Priority: Medium
+- Status: Pending
+
 ### Build Crew Daily Digest follow-ups
 - Goal: Harden the digest ingestion and rendering path and polish UX while keeping the solution simple.
 - What:

@@ -5,6 +5,7 @@ import './dashboard.css';
 import SocialSentiment from './components/SocialSentiment';
 import RssSection from './components/RssSection';
 import BuildCrewDigest from './components/BuildCrewDigest';
+import OverviewMetrics from './components/OverviewMetrics';
 
 export default function DashboardV2Page() {
   const [timeframe, setTimeframe] = useState(7);
@@ -212,71 +213,8 @@ export default function DashboardV2Page() {
             <div className="section-header">
               <h2 className="section-title">Overview</h2>
             </div>
-            <div className="metrics-grid">
-              <div className="card">
-                <div className="card-header">
-                  <div className="card-title">
-                    <h3>Overall Sentiment</h3>
-                    <div className="trend-indicator positive">
-                      <span>+12.5%</span>
-                    </div>
-                  </div>
-                  <p className="card-description">Trending up this month</p>
-                </div>
-                <div className="card-content">
-                  <div className="metric-value">74.2%</div>
-                  <div className="metric-subtitle">Positive across all sources</div>
-                </div>
-              </div>
-
-              <div className="card">
-                <div className="card-header">
-                  <div className="card-title">
-                    <h3>Content Analyzed</h3>
-                    <div className="trend-indicator positive">
-                      <span>+4.6%</span>
-                    </div>
-                  </div>
-                  <p className="card-description">Steady performance increase</p>
-                </div>
-                <div className="card-content">
-                  <div className="metric-value">8,547</div>
-                  <div className="metric-subtitle">Posts, papers, and updates</div>
-                </div>
-              </div>
-
-              <div className="card">
-                <div className="card-header">
-                  <div className="card-title">
-                    <h3>Active Discussions</h3>
-                    <div className="trend-indicator negative">
-                      <span>-2%</span>
-                    </div>
-                  </div>
-                  <p className="card-description">Down 2% this period</p>
-                </div>
-                <div className="card-content">
-                  <div className="metric-value">3,218</div>
-                  <div className="metric-subtitle">Across social platforms</div>
-                </div>
-              </div>
-
-              <div className="card">
-                <div className="card-header">
-                  <div className="card-title">
-                    <h3>Research Papers</h3>
-                    <div className="trend-indicator positive">
-                      <span>+15.2%</span>
-                    </div>
-                  </div>
-                  <p className="card-description">Strong publication rate</p>
-                </div>
-                <div className="card-content">
-                  <div className="metric-value">42</div>
-                  <div className="metric-subtitle">New publications this month</div>
-                </div>
-              </div>
-            </div>
+            {/* Dynamic metrics wired to API */}
+            <OverviewMetrics timeframe={timeframe} />
           </section>
 
           <SocialSentiment timeframe={timeframe} />

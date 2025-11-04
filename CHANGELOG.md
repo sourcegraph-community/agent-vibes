@@ -21,6 +21,19 @@ Ensure strict content separation on Dashboard‑v2 via OPML‑only routing; norm
 
 ### Removed
 
+### Goal
+Wire up Dashboard‑v2 “Overview” with real data via a minimal, explicit VSA-aligned flow.
+
+### Added
+- API route export for dashboard overview at [route.ts](file:///home/prinova/CodeProjects/agent-vibes/app/api/dashboard-v2/overview/route.ts) delegating to the slice endpoint.
+- New slice endpoint and handler to compose metrics from repositories in [GetOverviewMetricsEndpoint.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Web/Application/Queries/GetOverviewMetrics/GetOverviewMetricsEndpoint.ts) and [GetOverviewMetricsQueryHandler.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Web/Application/Queries/GetOverviewMetrics/GetOverviewMetricsQueryHandler.ts).
+- Minimal RSS repository helper to count entries since a date (optionally by category) in [RssRepository.ts](file:///home/prinova/CodeProjects/agent-vibes/src/RssPipeline/DataAccess/Repositories/RssRepository.ts#L283-L299).
+- Client component to fetch and render overview metrics, updating when timeframe changes in [OverviewMetrics.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/OverviewMetrics.tsx).
+
+### Changed
+- Replaced static Overview cards with dynamic metrics component in [page.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/page.tsx#L213-L218).
+- Added CDN caching headers (`s-maxage`, `stale-while-revalidate`) on the overview endpoint response in [GetOverviewMetricsEndpoint.ts](file:///home/prinova/CodeProjects/agent-vibes/src/ApifyPipeline/Web/Application/Queries/GetOverviewMetrics/GetOverviewMetricsEndpoint.ts#L16-L18).
+
 ## [Agent-Vibes 0.1.5]
 
 ### Goal

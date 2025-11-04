@@ -280,6 +280,24 @@ export class RssRepository {
     return count ?? 0;
   }
 
+  async countEntriesSince(params: { startDate: string; category?: RssCategory }): Promise<number> {
+    let query = this.client
+      .from('rss_entries')
+      .select('*', { count: 'exact', head: true })
+      .gte('published_at', params.startDate);
+
+    if (params.category) {
+      query = query.eq('category', params.category);
+    }
+
+    const { count, error } = await query;
+    if (error) {
+      throw new Error(`Failed to count entries since ${params.startDate}: ${error.message}`);
+    }
+
+    return count ?? 0;
+  }
+
   async getEntriesWithSummaries(params?: {
     category?: RssCategory;
     limit?: number;
