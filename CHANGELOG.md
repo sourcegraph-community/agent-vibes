@@ -1,8 +1,18 @@
-# Changelog
+# Changelog for Agent-Vibes
 
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+### Fixed
+
+### Added
+
+### Changed
+
+### Removed
+
+## [Agent-Vibes 0.1.5]
 
 ### Goal
 Align Recent Social Activity to show exactly the last N UTC calendar days by posted date, ensure case-insensitive keyword filtering, and keep API payloads minimal and consistent.

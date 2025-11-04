@@ -1,95 +1,99 @@
-## High-level summary
-The diff refactors how tweets are fetched in the *social-sentiment* API endpoint:
+## High-level summary  
+1. Backend: New API route `app/api/build-crew/digest/route.ts` that fetches & sanitises the Build Crew RSS digest and exposes a JSON endpoint.  
+2. Frontend:  
+   • New client component `BuildCrewDigest.tsx` that calls the endpoint and renders the digest with collapsible cards.  
+   • Social-activity tweets were extracted into `RecentSocialActivity.DayTweets.tsx`; small utility file `collapsibleDayUtils.ts` introduced.  
+   • Dashboard page wired up to show the daily digest.  
+3. Tooling & deps: `sanitize-html` (+types) and transitive deps added; project version bumped to 0.1.4.  
+4. Docs: Quick mention of `npm run check` inside `AGENTS.md`.
 
-1.  A new `DashboardRepository.getTweetsByPostedWindow()` method encapsulates the SQL logic that used to live in `route.ts`.
-2.  The route now:
-    • converts incoming keywords to lower-case,  
-    • relies on the repository for data,  
-    • tweaks day-bucketing and response‐shape (`generatedAt`, `product` in summary).
-3.  Miscellaneous clean-ups: UTC-safe date start, hard cap logic, camel-cased DTOs.
+## Tour of changes  
+Start with `app/api/build-crew/digest/route.ts`.  
+It defines the data contract consumed by the new UI, contains sanitisation logic, date handling and caching rules, and determines how safe the downstream `dangerouslySetInnerHTML` calls are. Understanding this file makes the subsequent React additions straightforward.
 
-Overall the change is an extraction of query logic plus some relatively small functional tweaks in the endpoint.
+## File level review  
 
-## Tour of changes
-Begin with the **new repository method** (`DashboardRepository.ts`) because:
-* It contains the full SQL/filters logic that drives all subsequent behaviour.
-* Understanding its return shape (camel-cased) is necessary before reviewing the mapping and grouping that follows in `route.ts`.
+### `AGENTS.md`  
++ Merely advertises `npm run check`. No issues.
 
-Once comfortable with the repository, review `route.ts` to see how the data are post-processed and serialized.
+---
 
-## File level review
+### `app/api/build-crew/digest/route.ts`  
 
-### `src/ApifyPipeline/DataAccess/Repositories/DashboardRepository.ts`
+✔️ Good  
+• Uses `rss-parser`; shields against XSS with `sanitize-html`.  
+• Hard limits: `days` clamped to [1 … 31].  
+• Fast 30-min proxy cache via `s-maxage`, error handling returns 502.  
 
-**What changed**
-* Added the alias type `TweetWithSentiment`.
-* Added `getTweetsByPostedWindow()`, essentially moving the old inline Supabase query from the route to the repository.
+⚠️ Issues / suggestions  
+1. **Edge vs Node** – flag `export const runtime = 'nodejs';` forces a full Node runtime. If you don’t need native modules consider `'edge'` (smaller cold start).  
+2. **Regex channel extraction fragility** – Works only when headings are literally `<h2>`. Some RSS feeds output Markdown-generated `<strong>` or `<h3>`. Consider `(h2|h3)` or a DOM parser for resilience.  
+3. **HTML normalisation** – After `sanitizeHtml()` you re-inject the HTML in React. The call inside `extractSections` already sanitises but later `highlightChannelMentions` does string rewrites that may create un-sanitised substrings (`<span …>`). Because the regex operates only on text nodes between `>` `<`, new tags are dropped inside the original element so still safe, but we lose a second sanitisation pass. Consider `sanitizeHtml` at the very end or ensure the replacement string is safe (currently constant & trusted).  
+4. **Deduplication bias** – `seen` picks the *first* item for a day, but the sort order is newest→oldest; you therefore keep the newest. Good, just document.  
+5. **Date parsing** – `new Date(iso)` relies on host TZ. Prefer `Date.parse()` + `new Date(ms)` or an ISO library to avoid Safari quirks.  
+6. **Type safety** – `BCFeedItem` still indexed with `[key:string]`. Could extend the Parser generic instead.  
+7. **Resource failure** – No timeout / fetch retries. Node’s default DNS/network hiccup may block the route for >30 s. Wrap with `AbortController`.
 
-**Correctness / bugs**
-1. Case-sensitivity
-   ```ts
-   const normalizedKeywords = filters.keywords.map((k) => k.toLowerCase());
-   query = query.overlaps('keyword_snapshot', normalizedKeywords);
-   ```
-   `keyword_snapshot` in Postgres is a `text[]`. The `overlaps` operator is case-sensitive, so down-casing only the filter list will fail to match records whose snapshot values contain upper-case letters.  
-   Recommendation: convert both sides (`lower(keyword_snapshot)`) or store snapshots already lower-cased.
+---
 
-2. Latest-sentiment logic
-   Same as before: order by `processed_at` desc and `limit(1)` on the FK table. OK.
+### `app/dashboard-v2/components/BuildCrewDigest.tsx`  
 
-3. Error handling
-   The method throws on Supabase error. That is fine, but callers must catch.
+✔️ Good  
+• `useMemo` for query string, simple loading/error states, collapsible UI reused from utils.  
+• Channel tags visually highlighted.  
 
-**Performance / efficiency**
-* Adds `.order('posted_at', { ascending: false })` **after** the sub-select/limit on the FK table. That yields exactly the same plan as before.
-* `limit(filters.limit ?? 1000)` is unchanged.
+⚠️ Issues / suggestions  
+1. **XSS after highlight** – See previous note. The newly inserted `<span>` is hard-coded but the `tag` text comes from RSS; regex ensures it starts with `#` and only word chars & dashes, so safe. You might still escape the tag (`kw.replace(/[&<>"]/g, …)`) to be 100 % certain.  
+2. **Regex “>text<” hack** – Fails if text contains `>` or `<` entities (`&lt;`). Consider using DOMParser client-side instead.  
+3. **Error message leak** – Displays raw `Error.message` which for network issues is fine, but for unexpected JSON shapes it might expose internals. Maybe replace with generic “Unable to load digest”.  
+4. **Stale-while-revalidate** – You cache on the server; on the client a SWR hook could further improve UX.  
 
-**Security**
-* No SQL injection risk—parameters are passed through Supabase query builder.
+---
 
-**Minor style**
-* Could keep the existing `TweetDetail` instead of the alias; harmless.
+### `app/dashboard-v2/components/RecentSocialActivity.DayTweets.tsx`  
 
-### `app/api/social-sentiment/tweets/route.ts`
+Extracted unchanged rendering logic. Good refactor for readability.  
+Minor: File has a long name; consider colocating inside a `DayTweets` folder.  
 
-**What changed**
-* Imports the new repository and removes the raw Supabase query.
-* Normalises keywords to lower-case up-front.
-* Uses `setUTCHours(0,0,0,0)` instead of local time; nice fix.
-* Builds `dayKey` once in `toTweet`.
-* Limits the number of day buckets with `.slice(0, days)`.
-* Adds `product` and `generatedAt` to the empty-result response.
+---
 
-**Correctness / bugs**
-1.  Unhandled repository errors  
-    The previous code returned `NextResponse.json(...)` with HTTP 500 on query error.  
-    Now `getTweetsByPostedWindow()` throws; there is no `try/catch`, so Next.js will bubble an unformatted 500 (HTML) instead of the expected JSON envelope. Wrap the call in `try/catch` and keep the previous behaviour.
+### `app/dashboard-v2/components/collapsibleDayUtils.ts`  
 
-2.  Case-lowering issue mirrors the repository (see above).
+Tiny helper; keeps class names DRY. Looks fine.  
 
-3.  Response schema drift  
-    When `productKeywords.length === 0` the summary footer gained `product` & `generatedAt`, but when **keywords exist** the code later still builds
-    ```ts
-    summary: { days, total: 0 }
-    ```
-    (unchanged in diff, not shown). Ensure both branches return the same shape.
+---
 
-4.  Type mismatch risk  
-    `toTweet` expects row keys in camelCase (`authorHandle`, …) which the repository does provide, but if another caller returns snake_case this would now break at compile time. Acceptable because TS will catch.
+### `app/dashboard-v2/components/CollapsibleDay.tsx`  
 
-5.  Sorting logic  
-    `b.localeCompare(a)` is fine. `slice(0, days)` guarantees we never exceed requested days (previously we might).
+Empty placeholder; can be deleted to avoid confusion.  
 
-**Performance / efficiency**
-* Delegating query to repository keeps the hard cap; no regression.
+---
 
-### General observations
-* Good separation of concerns—route gets thinner.
-* Unit tests that previously stubbed `supabase.from(... )` will need updating to stub the repository instead.
-* Consider documenting that all keywords should be stored lower-case in the DB to avoid the overlap mismatch highlighted above.
+### `app/dashboard-v2/components/RecentSocialActivity.tsx`  
 
-## Recommendations
-1. Add `try/catch` around `repo.getTweetsByPostedWindow()` and return a JSON 500 payload as before.
-2. Fix case-sensitive keyword overlap: either convert `keyword_snapshot` in the query (`where raw(lower(keyword_snapshot) && ?)`) or persist them lower-case.
-3. Align response shape for BOTH branches (`summary.product`, `generatedAt`).
-4. Add unit/integration tests for the repository method (filters, limits, keyword overlap).
+Imports and uses new `<DayTweets>` component, otherwise unchanged. Good separation.  
+
+---
+
+### `app/dashboard-v2/page.tsx`  
+
+• Adds digest section + nav copy update.  
+• Renames “Discussions” → “Daily Digest”. No functional risks.  
+
+---
+
+### `package.json` / `package-lock.json`  
+
+• Added `sanitize-html` & types. Acceptable; library is maintained.  
+• Version bump 0.1.0 → 0.1.4 – remember to tag release.  
+• Transitive deps (`deepmerge`, `is-plain-object` etc.) pulled in. No red flags.  
+
+---
+
+## Recommendations (TL;DR)  
+1. Run the sanitisation again after `highlightChannelMentions` or escape the hashtag text.  
+2. Add fetch timeout & maybe retry/back-off in the API route.  
+3. Improve heading detection robustness (DOM parser instead of regex).  
+4. Remove empty `CollapsibleDay.tsx`.  
+5. Unit-test `extractSections()` with odd RSS inputs (missing headings, alternative casing).  
+6. Consider `edge` runtime if no Node-only APIs are required.

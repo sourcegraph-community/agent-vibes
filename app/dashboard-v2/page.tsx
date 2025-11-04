@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import './dashboard.css';
 import SocialSentiment from './components/SocialSentiment';
 import RssSection from './components/RssSection';
+import BuildCrewDigest from './components/BuildCrewDigest';
 
 export default function DashboardV2Page() {
   const [timeframe, setTimeframe] = useState(7);
@@ -113,7 +114,7 @@ export default function DashboardV2Page() {
               className={`nav-item${activeSection === 'build-crew' ? ' active' : ''}`}
               onClick={() => setActiveSection('build-crew')}
             >
-              <span>Build Crew Discussions</span>
+              <span>Build Crew Daily Digest</span>
             </a>
             <a
               href="#highlights"
@@ -283,11 +284,9 @@ export default function DashboardV2Page() {
           {/* Build Crew Discussions Section */}
           <section id="build-crew" className="section">
             <div className="section-header">
-              <h2 className="section-title">Build Crew Discussions</h2>
+              <h2 className="section-title">Build Crew Daily Digest</h2>
             </div>
-            <div className="card">
-              <p className="text-gray-400 font-bold text-lg">Coming soon...</p>
-            </div>
+            <BuildCrewDigest />
           </section>
 
           {/* TL;DR Highlights Section */}

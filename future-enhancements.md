@@ -4,6 +4,25 @@ Recommended improvements and optimizations for future implementation.
 
 ## Pending Enhancements
 
+### Build Crew Daily Digest follow-ups
+- Goal: Harden the digest ingestion and rendering path and polish UX while keeping the solution simple.
+- What:
+  - Add `public, max-age=0` to Cache-Control for clearer browser caching semantics alongside existing `s-maxage` and `stale-while-revalidate` in the digest route; consider `ETag` if needed.
+  - Update sanitizer config to explicitly set `allowProtocolRelative: false` and keep the restricted schemes (`http`, `https`, `mailto`).
+  - After highlighting channel mentions, either re-run sanitization or escape the hashtag text before injecting the `<span>` to be maximally safe.
+  - Add a fetch timeout (AbortController) and a basic retry/backoff in the API route when fetching the RSS feed to avoid long hangs during transient network issues.
+  - Make heading parsing resilient to `<h3>` or alternative markup by supporting `(h2|h3)` or switching to a lightweight DOM parsing approach.
+  - Consider switching to `edge` runtime for the route if no Node-only APIs are needed to improve cold start; otherwise document `nodejs` choice explicitly.
+  - Remove unused `formatDay` helper in BuildCrewDigest and delete the empty placeholder file [CollapsibleDay.tsx](file:///home/prinova/CodeProjects/agent-vibes/app/dashboard-v2/components/CollapsibleDay.tsx).
+  - Add focused tests for section extraction with odd RSS inputs (missing headings, different casing, extra wrappers) to lock behavior.
+  - Use a DOM-based approach (e.g., `DOMParser`) for `highlightChannelMentions` to avoid brittle text-node regex replacements and allow safer element insertion.
+  - Clamp/normalize date parsing via `Date.parse()` or explicit UTC handling to avoid Safari edge cases when building day keys.
+  - Show a generic error message in the digest UI (hide raw error text) and consider adding a lightweight SWR layer for client-side revalidation.
+  - Abort the client fetch on unmount in the digest component using `AbortController` to prevent state updates after unmount.
+- Why: Improves safety, resilience, and UX without increasing complexity, and aligns with the project’s simplicity-first principle.
+- Priority: Medium
+- Status: Pending
+
 ### Adopt Supabase generated Database types in shared client
 - Goal: Improve type safety for database interactions.
 - What: Replace `any` with project’s generated `Database` types in the shared Supabase client exports and usage sites.

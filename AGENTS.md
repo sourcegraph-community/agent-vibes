@@ -2,6 +2,7 @@ For running reliable agent workflows, refer to: @docs/subagents/subagent-workflo
 
 - Stack: Next.js 15 (App Router), TypeScript, Tailwind v4 (@tailwindcss/postcss), Supabase (Postgres + Edge Functions), Apify (Twitter scraping), Gemini 2.5 (sentiment analysis)
 - Dev/build/start: `npm run dev` | `npm run build` | `npm run start` (Turbopack)
+- Build check `npm run check` to check for specific errors and warnings.
 - Typecheck/lint/tests: `npm run typecheck`; lint: `npm run lint`; fix: `npm run fix`; combined: `npm run check`; tests: `npm test`; watch: `npm run test:watch`
 - Apify Pipeline scripts: `npm run apply-migrations` (apply DB migrations), `npm run build:edge-functions` (build Edge Functions), `npm run functions:serve` (serve Edge Functions locally), `npm run health-check` (validate env), `npm run enqueue:backfill` (queue historical data, configurable via BACKFILL_DAYS/BACKFILL_BATCH_SIZE), `npm run process:backfill` (process batch manually, repeat per batch), `npm run replay:sentiments` (retry failures), `npm run cleanup:raw-tweets` (cleanup old data), `npm run rotate:supabase` (rotate secrets)
 - App Router: [layout.tsx](app/layout.tsx), [page.tsx](app/page.tsx) (client), [globals.css](app/globals.css)
